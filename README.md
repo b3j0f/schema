@@ -1,2 +1,0 @@
-# schema
-Pyhton schema library
