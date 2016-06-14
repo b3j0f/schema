@@ -24,10 +24,14 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Main configuration package."""
+"""Main package."""
 
-__all__ = [
-    '__version__'
-]
+__all__ = ['__version__', 'getschema', 'Schema', 'Property', 'ClassSchema']
 
 from .version import __version__
+
+from .base import getschema, Schema
+from .property import Property
+from .cls import ClassSchema
+
+import b3j0f.schema.lang

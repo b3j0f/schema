@@ -28,8 +28,6 @@
 
 from six import add_metaclass, string_types
 
-from parse import ParserError
-
 from b3j0f.conf import Configurable
 
 _SCHEMACLS = []
@@ -59,7 +57,9 @@ class Schema(dict):
     other attributes are:
 
     - name: schema name.
-    - uid: schema unique id."""
+    - uid: schema unique id.
+    - resource: schema resource from where it has been loaded.
+    - schema : specific schema object."""
 
     def __init__(self, resource, properties=None, *args, **kwargs):
         """
@@ -121,6 +121,26 @@ class Schema(dict):
 
         return result
 
+    def save(self, resource=None):
+        """Save this schema in the input resource.
+
+        :param resource: default is this resource.
+        """
+
+        if resource is None:
+            resource = self.resource
+
+        self._save(resource=resource)
+
+    def _save(self, resource):
+        """Method to override in order to save this schema in the input resource
+        media.
+
+        :param resource: resource to write this schema.
+        """
+
+        raise NotImplementedError()
+
 
 def getschema(resource, *args, **kwargs):
     """Schema factory.
@@ -142,7 +162,7 @@ def getschema(resource, *args, **kwargs):
         try:
             result = schemacls(resource=resource, *args, **kwargs)
 
-        except ParserError:
+        except Exception:
             continue
 
         break

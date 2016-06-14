@@ -24,8 +24,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-from __future__ import relative_imports
+"""Lang package"""
 
-"""Main configuration package."""
-
-import .json, .xml
+from .json import JSONSchema
+from .xsd import XSDSchema

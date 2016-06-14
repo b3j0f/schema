@@ -26,12 +26,12 @@
 
 """Class schema package."""
 
-from inspect import getargspec, isroutine
+from inspect import getargspec, isroutine, isclass
 
 from b3j0f.utils.path import getpath
 
 from .base import Schema
-from .property import FunctionProperty, Property
+from .property import FunctionProperty, Property, SchemaProperty
 
 
 class PythonFunctionProperty(FunctionProperty):
@@ -73,13 +73,19 @@ class ClassSchema(Schema):
 
         super(ClassSchema, self).__init__(*args, **kwargs)
 
+        if not isclass(self.resource):
+            raise TypeError('resource {0} is no a class'.format(self.resource))
+
         self.uid = getpath(self.resource)
         self.name = self.resource.__name__
 
         for name in dir(self.resource):
             attribute = getattr(self.resource, name)
 
-            if isroutine(attribute):
+            if isinstance(attribute, Schema):
+                prop = SchemaProperty(name=name, schema=attribute)
+
+            elif isroutine(attribute):
                 prop = PythonFunctionProperty(name=name, func=attribute)
 
             else:
@@ -91,6 +97,8 @@ class ClassSchema(Schema):
                 for name in self.resource.__slots__:
                     prop = Property(name=name)
                     self[name] = prop
+
+        self.schema = self
 
     def validate(self, data):
 

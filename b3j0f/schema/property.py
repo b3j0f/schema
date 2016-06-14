@@ -116,8 +116,34 @@ class FunctionProperty(Property):
     """Function property type."""
 
     def __init__(self, args=None, rtype=None, *vargs, **kwargs):
+        """
+        :param list args: argument names.
+        :param type rtype: function result type.
+        """
 
         super(FunctionProperty, self).__init__(*vargs, **kwargs)
 
         self.args = args
         self.rtype = rtype
+
+
+class SchemaProperty(Property):
+    """Schema property."""
+
+    def __init__(self, schema, *args, **kwargs):
+        """
+        :param type schema: schema type.
+        """
+
+        super(SchemaProperty, self).__init__(*args, **kwargs)
+
+        self.schema = schema
+
+    def validate(self, data):
+
+        result = super(SchemaProperty, self).validate(data)
+
+        if result:
+            result = self.schema.validate(data)
+
+        return result

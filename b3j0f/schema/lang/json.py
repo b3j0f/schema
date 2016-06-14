@@ -24,14 +24,14 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-from __future__ import relative_imports
+from __future__ import absolute_import
 
-"""Base schema package."""
+"""json schema module."""
 
 from ..base import Schema
 from ..property import Property
 
-from json import loads, load
+from json import loads, load, dump
 
 from jsonschema import validate
 
@@ -41,6 +41,8 @@ class JSONProperty(Property):
     def __init__(self, jsonproperty, *args, **kwargs):
 
         super(JSONProperty, self).__init__(*args, **kwargs)
+
+        self.jsonproperty = jsonproperty
 
 
 class JSONSchema(Schema):
@@ -68,3 +70,8 @@ class JSONSchema(Schema):
     def validate(self, data):
 
         return validate(data, self.schema)
+
+    def save(self, resource):
+
+        with open(resource, "w") as rstream:
+            dump(self.schema, rstream)
