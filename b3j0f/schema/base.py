@@ -156,7 +156,7 @@ def getschema(resource, *args, **kwargs):
         try:
             result = schemacls(resource=resource, *args, **kwargs)
 
-        except Exception as e:
+        except Exception:
             continue
 
         break
