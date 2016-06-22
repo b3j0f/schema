@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # --------------------------------------------------------------------
@@ -24,54 +25,28 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-from __future__ import absolute_import
 
-"""json schema module."""
+from unittest import main
 
-from ..base import Schema
-from ..property import Property
+from b3j0f.utils.ut import UTCase
 
-from json import loads, load, dump
-
-from jsonschema import validate
+from ..base import Schema, getschema
 
 
-class JSONProperty(Property):
+class SchemaTest(UTCase):
 
-    def __init__(self, jsonproperty, *args, **kwargs):
+    def test_getschema(self):
 
-        super(JSONProperty, self).__init__(*args, **kwargs)
+        self.assertRaises(ValueError, getschema, '')
 
-        self.jsonproperty = jsonproperty
+        class TestSchema(Schema):
+            pass
 
+        resource = 'resource'
 
-class JSONSchema(Schema):
-    """Schema for json resources."""
+        schema = getschema(resource)
 
-    def __init__(self, *args, **kwargs):
+        self.assertEqual(schema.resource, resource)
 
-        super(JSONSchema, self).__init__(*args, **kwargs)
-
-        try:
-            self._schema = loads(self.resource)
-
-        except TypeError:
-            with open(self.resource) as jsonfile:
-                self._schema = load(jsonfile)
-
-        self.uid = self._schema['id']
-
-        for name in self._schema['property']:
-
-            jsonproperty = self._schema['property'][name]
-
-            self[name] = JSONProperty(name=name, jsonproperty=jsonproperty)
-
-    def validate(self, data):
-
-        return validate(data, self._schema)
-
-    def save(self, resource):
-
-        with open(resource, "w") as rstream:
-            dump(self._schema, rstream)
+if __name__ == '__main__':
+    main()

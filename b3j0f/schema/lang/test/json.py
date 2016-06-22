@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # --------------------------------------------------------------------
@@ -26,52 +27,24 @@
 
 from __future__ import absolute_import
 
-"""json schema module."""
 
-from ..base import Schema
-from ..property import Property
+from unittest import main
 
-from json import loads, load, dump
+from b3j0f.utils.ut import UTCase
 
-from jsonschema import validate
-
-
-class JSONProperty(Property):
-
-    def __init__(self, jsonproperty, *args, **kwargs):
-
-        super(JSONProperty, self).__init__(*args, **kwargs)
-
-        self.jsonproperty = jsonproperty
+from ...base import getschema
+from ..json import JSONSchema
 
 
-class JSONSchema(Schema):
-    """Schema for json resources."""
+class JSONSchemaTest(UTCase):
 
-    def __init__(self, *args, **kwargs):
+    def test(self):
 
-        super(JSONSchema, self).__init__(*args, **kwargs)
+        resource = '{"id": "test", "property": []}'
 
-        try:
-            self._schema = loads(self.resource)
+        schema = getschema(resource)
 
-        except TypeError:
-            with open(self.resource) as jsonfile:
-                self._schema = load(jsonfile)
+        self.assertIsInstance(schema, JSONSchema)
 
-        self.uid = self._schema['id']
-
-        for name in self._schema['property']:
-
-            jsonproperty = self._schema['property'][name]
-
-            self[name] = JSONProperty(name=name, jsonproperty=jsonproperty)
-
-    def validate(self, data):
-
-        return validate(data, self._schema)
-
-    def save(self, resource):
-
-        with open(resource, "w") as rstream:
-            dump(self._schema, rstream)
+if __name__ == '__main__':
+    main()

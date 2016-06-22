@@ -24,6 +24,8 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+__all__ = ['Schema', 'getschema']
+
 """Base schema package."""
 
 from six import add_metaclass, string_types
@@ -36,15 +38,14 @@ _SCHEMACLS = []
 class MetaSchema(type):
     """Automatically register schemas."""
 
-    def __new__(mcs, *args, **kwargs):
+    def __new__(mcs, name, bases, _dict):
 
-        result = super(MetaSchema, mcs).__new__(mcs *args, **kwargs)
+        result = super(MetaSchema, mcs).__new__(mcs, name, bases, _dict)
 
-        if Schema is not mcs:
-            _SCHEMACLS.append(mcs)
+        if bases != (dict,):
+            _SCHEMACLS.append(result)
 
         return result
-
 
 @Configurable(paths='schema.conf')
 @add_metaclass(MetaSchema)
@@ -59,13 +60,12 @@ class Schema(dict):
     - name: schema name.
     - uid: schema unique id.
     - resource: schema resource from where it has been loaded.
-    - schema : specific schema object."""
+    - _schema : specific schema object."""
 
     def __init__(self, resource, properties=None, *args, **kwargs):
         """
         :param resource: resource from where get schema content.
-        :param Properties properties: list of Property
-        :raises: ParserError if resource can not be parsed.
+        :param Properties properties: list of Property.
         """
 
         super(Schema, self).__init__(*args, **kwargs)
@@ -147,22 +147,16 @@ def getschema(resource, *args, **kwargs):
 
     Find the right schema class to load input resource.
 
-    :param str resource: resource from where load schema.
+    :param resource: resource from where load schema.
     :param args: schema args.
     :param kwargs: schema kwargs"""
-
-    if not isinstance(resource, string_types):
-
-        raise TypeError(
-            'Wrong resource type: {0}. str expected'.format(resource)
-        )
 
     for schemacls in _SCHEMACLS:
 
         try:
             result = schemacls(resource=resource, *args, **kwargs)
 
-        except Exception:
+        except Exception as e:
             continue
 
         break

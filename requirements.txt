@@ -1,4 +1,5 @@
 b3j0f.utils
 b3j0f.conf
 six
+jsonschema
 jsonpatch

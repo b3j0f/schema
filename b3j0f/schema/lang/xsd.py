@@ -45,3 +45,5 @@ class XSDSchema(Schema):
     def __init__(self, *args, **kwargs):
 
         super(XSDSchema, self).__init__(*args, **kwargs)
+
+        raise NotImplementedError()

@@ -42,7 +42,12 @@ class PythonFunctionProperty(FunctionProperty):
         super(PythonFunctionProperty, self).__init__(*args, **kwargs)
 
         self.func = func
-        self.args, self.vargs, self.kwargs, self.default = getargspec(func)
+
+        try:
+            self.args, self.vargs, self.kwargs, self.default = getargspec(func)
+
+        except TypeError:
+            self.args, self.vargs, self.kwargs, self.default = (), (), {}, ()
 
     def __call__(self, instance=None, args=None, kwargs=None):
         """Execute this function property.
@@ -69,17 +74,25 @@ class PythonFunctionProperty(FunctionProperty):
 class ClassSchema(Schema):
     """Class schema."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, public=True, *args, **kwargs):
+        """
+        :param bool public: if True (default), convert only public attributes.
+        """
 
         super(ClassSchema, self).__init__(*args, **kwargs)
 
         if not isclass(self.resource):
-            raise TypeError('resource {0} is no a class'.format(self.resource))
+            raise TypeError('resource {0} is not a class'.format(self.resource))
 
         self.uid = getpath(self.resource)
         self.name = self.resource.__name__
+        self.public = public
 
         for name in dir(self.resource):
+
+            if self.public and name.startswith('_'):
+                continue
+
             attribute = getattr(self.resource, name)
 
             if isinstance(attribute, Schema):
@@ -98,7 +111,7 @@ class ClassSchema(Schema):
                     prop = Property(name=name)
                     self[name] = prop
 
-        self.schema = self
+        self._schema = self
 
     def validate(self, data):
 
