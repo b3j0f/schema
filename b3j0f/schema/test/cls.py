@@ -29,9 +29,10 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
+from b3j0f.utils.path import getpath
 
 from ..base import getschema
-from ..property import Property, SchemaProperty, FunctionProperty
+from ..prop import Property, SchemaProperty, FunctionProperty
 from ..cls import ClassSchema, PythonFunctionProperty
 
 
@@ -49,6 +50,11 @@ class ClassSchemaTest(UTCase):
         test = Test()
 
         schema = getschema(Test)
+
+        self.assertEqual(schema.name, Test.__name__)
+        self.assertEqual(schema.uid, getpath(Test))
+        self.assertIsNone(schema.ids)
+        self.assertIsNone(schema.pids)
 
         self.assertIsInstance(schema, ClassSchema)
 
@@ -68,8 +74,16 @@ class ClassSchemaTest(UTCase):
         self.assertNotIn('c', schema)
 
         Test.c = schema
+        Test.__name__ = 'a'
+        Test.__uid__ =  'b'
+        Test.__ids__ = ['a', 'b']
 
         schema = getschema(Test)
+
+        self.assertEqual(schema.name, 'a')
+        self.assertEqual(schema.uid, 'b')
+        self.assertEqual(schema.ids, ['a', 'b'])
+        self.assertEqual(schema.pids, [schema['a'], schema['b']])
 
         self.assertIsInstance(schema, ClassSchema)
 
@@ -88,7 +102,7 @@ class ClassSchemaTest(UTCase):
 
         schema = getschema(Test, public=False)
 
-        self.assertEqual(len(schema), len(dir(Test)))
+        self.assertEqual(len(schema), len(dir(Test)) - 2)
 
 if __name__ == '__main__':
     main()

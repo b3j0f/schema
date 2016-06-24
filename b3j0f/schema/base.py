@@ -28,7 +28,7 @@ __all__ = ['Schema', 'getschema']
 
 """Base schema package."""
 
-from six import add_metaclass, string_types
+from six import add_metaclass
 
 from b3j0f.conf import Configurable
 
@@ -62,10 +62,16 @@ class Schema(dict):
     - resource: schema resource from where it has been loaded.
     - _schema : specific schema object."""
 
-    def __init__(self, resource, properties=None, *args, **kwargs):
+    def __init__(
+            self, resource, name=None, uid=None, properties=None, ids=None,
+            *args, **kwargs
+    ):
         """
         :param resource: resource from where get schema content.
+        :param str name: schema name. resource name if None.
+        :param str uid: schema uid. resource uid if None.
         :param Properties properties: list of Property.
+        :param list ids: property name ids.
         """
 
         super(Schema, self).__init__(*args, **kwargs)
@@ -75,6 +81,10 @@ class Schema(dict):
         if properties is not None:
             for prop in properties:
                 self[prop.name] = prop
+
+        self.name = name
+        self.uid = uid
+        self.ids = ids
 
     def validate(self, data):
         """Validate input data.
@@ -140,6 +150,17 @@ class Schema(dict):
         """
 
         raise NotImplementedError()
+
+    @property
+    def pids(self):
+        """Get property ids."""
+
+        result = None
+
+        if self.ids is not None:
+            result = [self[pid] for pid in self.ids]
+
+        return result
 
 
 def getschema(resource, *args, **kwargs):

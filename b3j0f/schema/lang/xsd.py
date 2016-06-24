@@ -27,7 +27,7 @@
 """xsd schema package."""
 
 from ..base import Schema
-from ..property import Property
+from ..prop import Property
 
 
 class XSDProperty(Property):

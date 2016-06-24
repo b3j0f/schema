@@ -31,6 +31,7 @@ from unittest import main
 from b3j0f.utils.ut import UTCase
 
 from ..base import Schema, getschema
+from ..prop import Property as P
 
 
 class SchemaTest(UTCase):
@@ -47,6 +48,25 @@ class SchemaTest(UTCase):
         schema = getschema(resource)
 
         self.assertEqual(schema.resource, resource)
+
+    def test_init(self):
+
+        schema = Schema('')
+
+        self.assertIsNone(schema.name)
+        self.assertIsNone(schema.uid)
+        self.assertIsNone(schema.ids)
+        self.assertIsNone(schema.pids)
+
+        schema = Schema(
+            '',
+            name='a', uid='b', ids=['a', 'b'], properties=[P('a'), P('b')]
+        )
+
+        self.assertEqual(schema.name, 'a')
+        self.assertEqual(schema.uid, 'b')
+        self.assertEqual(schema.ids, ['a', 'b'])
+        self.assertEqual(schema.pids, [schema['a'], schema['b']])
 
 if __name__ == '__main__':
     main()

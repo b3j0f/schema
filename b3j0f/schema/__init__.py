@@ -26,12 +26,15 @@
 
 """Main package."""
 
-__all__ = ['__version__', 'getschema', 'Schema', 'Property', 'ClassSchema']
+__all__ = [
+    '__version__', 'getschema', 'Schema', 'Property', 'ClassSchema',
+    'FunctionProperty', 'SchemaProperty', 'ArrayProperty'
+]
 
 from .version import __version__
 
 from .base import getschema, Schema
-from .property import Property
+from .prop import Property, FunctionProperty, SchemaProperty, ArrayProperty
 from .cls import ClassSchema
 
 import b3j0f.schema.lang

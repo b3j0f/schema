@@ -29,7 +29,7 @@ from __future__ import absolute_import
 """json schema module."""
 
 from ..base import Schema
-from ..property import Property
+from ..prop import Property
 
 from json import loads, load, dump
 

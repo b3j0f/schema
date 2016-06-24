@@ -31,8 +31,12 @@ from inspect import getargspec, isroutine, isclass
 from b3j0f.utils.path import getpath
 
 from .base import Schema
-from .property import FunctionProperty, Property, SchemaProperty
+from .prop import FunctionProperty, Property, SchemaProperty
 
+
+__IDS__ = '__ids__'  #: schema ids class attribute.
+__UID__ = '__uid__'  #: schema uid. Class full pach by default.
+__NAME__ = '__name__'  #: schema name. Class name by default.
 
 class PythonFunctionProperty(FunctionProperty):
     """Python function property class."""
@@ -90,26 +94,34 @@ class ClassSchema(Schema):
 
         for name in dir(self.resource):
 
-            if self.public and name.startswith('_'):
-                continue
-
-            attribute = getattr(self.resource, name)
-
-            if isinstance(attribute, Schema):
-                prop = SchemaProperty(name=name, schema=attribute)
-
-            elif isroutine(attribute):
-                prop = PythonFunctionProperty(name=name, func=attribute)
-
-            else:
-                prop = Property(name=name, ptype=type(attribute))
-
-            self[name] = prop
-
             if name == '__slots__':
                 for name in self.resource.__slots__:
+
+                    if self.public and name.startswith('_'):
+                        continue
+
                     prop = Property(name=name)
                     self[name] = prop
+
+            elif name in (__IDS__, __UID__, __NAME__):
+                setattr(self, name[2:-2], getattr(self.resource, name))
+
+            else:
+                if self.public and name.startswith('_'):
+                    continue
+
+                attribute = getattr(self.resource, name)
+
+                if isinstance(attribute, Schema):
+                    prop = SchemaProperty(name=name, schema=attribute)
+
+                elif isroutine(attribute):
+                    prop = PythonFunctionProperty(name=name, func=attribute)
+
+                else:
+                    prop = Property(name=name, ptype=type(attribute))
+
+                self[name] = prop
 
         self._schema = self
 
