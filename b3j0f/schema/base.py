@@ -24,9 +24,9 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-__all__ = ['Schema', 'getschema']
-
 """Base schema package."""
+
+__all__ = ['Schema', 'getschema']
 
 from six import add_metaclass
 

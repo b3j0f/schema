@@ -24,11 +24,9 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-__all__ = ['Registry', 'getbyname', 'register']
-
 """Schema registry module."""
 
-_SCHEMACLS = []
+__all__ = ['Registry', 'getbyname', 'register']
 
 
 class Registry(object):

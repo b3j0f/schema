@@ -24,9 +24,11 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+"""json schema module."""
+
 from __future__ import absolute_import
 
-"""json schema module."""
+__all__ = ['JSONProperty', 'JSONSchema']
 
 from ..base import Schema
 from ..prop import Property

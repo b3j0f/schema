@@ -26,6 +26,10 @@
 
 """Class schema package."""
 
+__all__ = [
+    '__IDS__', '__UID__', '__NAME__', 'PythonFunctionProperty', 'ClassSchema'
+]
+
 from inspect import getargspec, isroutine, isclass
 
 from b3j0f.utils.path import getpath

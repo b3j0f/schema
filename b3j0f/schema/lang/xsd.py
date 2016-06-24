@@ -24,13 +24,16 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""xsd schema package."""
+"""XSD schema package."""
+
+__all__ = ['XSDProperty', 'XSDSchema']
 
 from ..base import Schema
 from ..prop import Property
 
 
 class XSDProperty(Property):
+    """xsd property"""
 
     def __init__(self, xsdprop, *args, **kwargs):
 
@@ -40,7 +43,7 @@ class XSDProperty(Property):
 
 
 class XSDSchema(Schema):
-    """Schema for json resources."""
+    """Schema for xml resources."""
 
     def __init__(self, *args, **kwargs):
 

@@ -28,7 +28,8 @@
 
 __all__ = [
     '__version__', 'getschema', 'Schema', 'Property', 'ClassSchema',
-    'FunctionProperty', 'SchemaProperty', 'ArrayProperty'
+    'FunctionProperty', 'SchemaProperty', 'ArrayProperty', 'getbyname',
+    'register'
 ]
 
 from .version import __version__
@@ -36,5 +37,6 @@ from .version import __version__
 from .base import getschema, Schema
 from .prop import Property, FunctionProperty, SchemaProperty, ArrayProperty
 from .cls import ClassSchema
+from .reg import register, getbyname
 
 import b3j0f.schema.lang
