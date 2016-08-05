@@ -42,6 +42,11 @@ __IDS__ = '__ids__'  #: schema ids class attribute.
 __UID__ = '__uid__'  #: schema uid. Class full pach by default.
 __NAME__ = '__name__'  #: schema name. Class name by default.
 
+
+def makeschema(resource):
+    pass
+
+
 class PythonFunctionProperty(FunctionProperty):
     """Python function property class."""
 
@@ -136,3 +141,35 @@ class ClassSchema(Schema):
     def newdata(self, **properties):
 
         return self.resource(**properties)
+
+
+
+@registermaker
+def classschemamaker(resource):
+    """Default function which make a schema class from a resource.
+
+    :param type resource: input resource is a class.
+    :raise: TypeError if resource is not a class."""
+
+    if not isinstance(resource, type):
+        raise TypeError('Wrong type {0}, \'type\' expected'.format(resource))
+
+    name = resource.__name__
+    bases = resource.mro() + [Schema]
+    _dict = {}
+
+    for name, member in getmembers(resource):
+
+        if isinstance(member, Schema):
+            val = type(member)
+
+        else:
+            val = getelementaryschema(member)
+
+        _dict[name] = val
+
+    return type(name, bases, _dict)
+
+
+baseschema = classschemamaker(Schema)
+register(baseschema)

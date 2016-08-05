@@ -26,163 +26,97 @@
 
 """Base schema package."""
 
-__all__ = ['Schema', 'getschema']
+__all__ = ['MetaSchema', 'Schema']
 
-from six import add_metaclass
+from six import add_metaclass, string_types
 
+from b3j0f.utils.version import getcallargs
 from b3j0f.conf import Configurable
 
-_SCHEMACLS = []
+from .registry import register
+from .factory import
+from .prop import Property
+
+from inspect import getmembers, getargspec
+
+from numbers import Number
 
 
 class MetaSchema(type):
     """Automatically register schemas."""
 
-    def __new__(mcs, name, bases, _dict):
+    def __call__(mcs, *args, **kwargs):
 
-        result = super(MetaSchema, mcs).__new__(mcs, name, bases, _dict)
+        result = super(MetaSchema, mcs).__call__(*args, **kwargs)
 
-        if bases != (dict,):
-            _SCHEMACLS.append(result)
+        register(result)
 
         return result
 
-@Configurable(paths='schema.conf')
+
 @add_metaclass(MetaSchema)
-class Schema(dict):
+class Schema(object):
     """Base class for schema.
 
-    Couple of (key, value) are (Property name and value).
-    Referenced schema are instance of Schema.
+    It has a unique identifier (UID) and instanciates data objects.
 
-    other attributes are:
+    Its name is its class name.
 
-    - name: schema name.
-    - uid: schema unique id.
-    - resource: schema resource from where it has been loaded.
-    - _schema : specific schema object."""
+    Once you defined your schema inheriting from this class, your schema will be
+    automatically registered in the registry and becomes accessible from the
+    `b3j0f.schema.reg.getschemabyuid` function."""
 
-    def __init__(
-            self, resource, name=None, uid=None, properties=None, ids=None,
-            *args, **kwargs
-    ):
-        """
-        :param resource: resource from where get schema content.
-        :param str name: schema name. resource name if None.
-        :param str uid: schema uid. resource uid if None.
-        :param Properties properties: list of Property.
-        :param list ids: property name ids.
+    uid = '/schema'  #: unique schema identifier.
+    required = []  #: required innerschema names.
+    default = None  #: default value for this schema.
+
+    def __init__(self, *args, **kwargs):
+        """Instance attributes are setted related to arguments or inner schemas.
         """
 
-        super(Schema, self).__init__(*args, **kwargs)
+        callargs = getcallargs(self.__init__, self, *args, **kwargs)
 
-        self.resource = resource
+        for name, schema in getmembers(
+            type(self), lambda member: issubclass(member, Schema)
+        ):
 
-        if properties is not None:
-            for prop in properties:
-                self[prop.name] = prop
+            val = callargs.get(name, schema())
 
-        self.name = name
-        self.uid = uid
-        self.ids = ids
+            setattr(self, name, val)
 
-    def validate(self, data):
-        """Validate input data.
+    @classmethod
+    def validate(cls, data):
+        """Validate input data in returning an empty list if true.
 
-        :param dict data: data to validate with this schema."""
+        :param data: data to validate with this schema.
+        :raises: Exception if the data is not validated"""
 
-        result = True
+        if not isinstance(data, self):
+            raise TypeError(
+                'Wrong type {0}. {1} expected'.format(data, self)
+            )
 
-        names = set(data)
+        for name, schema in getmembers(
+            cls, lambda member: issubclass(member, Schema)
+        ):
 
-        for name in self:
-            prop = self[name]
+            if name in cls.REQUIRED and not hasattr(data, name):
+                error = 'Mandatory property {0} by {1} is missing in {2}. {3} expected.'.format(
+                    name, cls, data, schema
+                )
+                raise ValueError(error)
 
-            if name not in data and prop.mandatory:
-                result = False
-
-            else:
-                value = data[name]
-                result = prop.validate(value)
-
-            names.remove(name)
-
-            if not result:
-                break
-
-        else:
-            result = not names
+            elif hasattr(data, name):
+                schema.validate(getattr(data, name))
 
         return result
 
-    def newdata(self, **properties):
-        """Instanciate a new data with input properties."""
+    @classmethod
+    def innerschemas(cls):
+        """Get all inner schemas."""
 
-        result = properties.copy()
-
-        for name in self:
-
-            if name not in properties:
-
-                prop = self[name]
-
-                if prop.mandatory:
-                    result[name] = prop
-
-        return result
-
-    def save(self, resource=None):
-        """Save this schema in the input resource.
-
-        :param resource: default is this resource.
-        """
-
-        if resource is None:
-            resource = self.resource
-
-        self._save(resource=resource)
-
-    def _save(self, resource):
-        """Method to override in order to save this schema in the input resource
-        media.
-
-        :param resource: resource to write this schema.
-        """
-
-        raise NotImplementedError()
-
-    @property
-    def pids(self):
-        """Get property ids."""
-
-        result = None
-
-        if self.ids is not None:
-            result = [self[pid] for pid in self.ids]
-
-        return result
+        return getmembers(cls, lambda member: issubclass(Schema))
 
 
-def getschema(resource, *args, **kwargs):
-    """Schema factory.
-
-    Find the right schema class to load input resource.
-
-    :param resource: resource from where load schema.
-    :param args: schema args.
-    :param kwargs: schema kwargs"""
-
-    for schemacls in _SCHEMACLS:
-
-        try:
-            result = schemacls(resource=resource, *args, **kwargs)
-
-        except Exception:
-            continue
-
-        break
-
-    else:
-        raise ValueError('No parser found for {0}.'.format(resource))
-
-    return result
+baseschema = classschemamaker(Schema)
+register(baseschema)
