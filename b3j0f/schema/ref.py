@@ -24,21 +24,40 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Main package."""
+"""Reference schema package."""
 
-__all__ = [
-    '__version__', 'getschema', 'Schema', 'Property', 'ClassSchema',
-    'FunctionProperty', 'SchemaProperty', 'ArrayProperty', 'getbyname',
-    'register'
-]
+__all__ = ['RefSchema', 'uuidref']
 
-from .version import __version__
-"""
-from .base import getschema
 from .core import Schema
-from .prop import Property, FunctionProperty, SchemaProperty, ArrayProperty
-from .cls import ClassSchema
-from .reg import register, getbyname
+from .registry import getbyuuid
 
-import b3j0f.schema.lang
-"""
+
+class ReferenceSchema(Schema):
+    """Handle reference to a schema."""
+
+    ref = Schema()
+
+    def getter(self, obj):
+
+        return self.ref.getter(obj)
+
+    def setter(self, obj, value):
+
+        return self.ref.setter(obj, value)
+
+    def deleter(self, obj):
+
+        return self.ref.deleter(obj)
+
+    def validate(self, data):
+
+        return self.ref.validate(data)
+
+
+def uuidref(refuuid, **kwargs):
+    """Get a reference schema from a uuid.
+
+    :param str refuuid: uuid of the refered schema.
+    :rtype: RefSchema"""
+
+    return Ref(ref=getbyuuid(uuid), **kwargs)

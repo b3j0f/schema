@@ -24,21 +24,41 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Main package."""
+"""Base schema package."""
 
-__all__ = [
-    '__version__', 'getschema', 'Schema', 'Property', 'ClassSchema',
-    'FunctionProperty', 'SchemaProperty', 'ArrayProperty', 'getbyname',
-    'register'
-]
+__all__ = ['MetaSchema', 'Schema']
 
-from .version import __version__
-"""
-from .base import getschema
-from .core import Schema
-from .prop import Property, FunctionProperty, SchemaProperty, ArrayProperty
-from .cls import ClassSchema
-from .reg import register, getbyname
+from .base import BaseSchema
+from .elementary import StringSchema, ArraySchema
 
-import b3j0f.schema.lang
-"""
+
+class Schema(Schema):
+    """Schema description."""
+
+    data_types = [Schema]
+
+    name = StringSchema(default=lambda: Schema.__name__)
+    uid = StringSchema(default=lambda: Schema.__name__)
+    description = StringSchema()
+    default = BaseSchema()
+    required = ArraySchema()
+    version = StringSchema(default='1')
+
+    def validate(self, data):
+        """Validate input data in returning an empty list if true.
+
+        :param data: data to validate with this schema.
+        :raises: Exception if the data is not validated"""
+
+        super(Schema, self).validate(data)
+
+        for name, schema in self.properties:
+            if name in self.required and not hasattr(data, name):
+                part1 = 'Mandatory property {0} by {1} is missing in {2}.'.
+                    format(name, self, data)
+                part2 = '{3} expected.'.format(schema)
+                error = '{0} {1}'.format(part1, part2)
+                raise ValueError(error)
+
+            elif hasattr(data, name):
+                schema.validate(getattr(data, name))

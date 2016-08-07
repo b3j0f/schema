@@ -26,67 +26,61 @@
 
 """elementary schema package."""
 
-__all__ = ['NumberSchema', 'StringSchema', 'ArraySchema', 'BooleanSchema']
+__all__ = [
+    'IntegerSchema', 'FloatSchema', 'StringSchema', 'ArraySchema',
+    'BooleanSchema', 'EnumSchema', 'FunctionSchema'
+]
 
-from six import string_types
+from six import string_types, add_metaclass
 
 from numbers import Number
 
 from enum import Enum
 
-from types import FunctionType
+from types import CallableType
 
 from sys import maxsize
 
-from six import add_metaclass
+from datetime import datetime
 
-from .base import Schema, MetaSchema
-from .prop import Property
+from .core import Schema
+from .base import MetaSchema
+from .registry import register
+
+__DATA_TYPES__ = '__data_types__'  #: data types class attribute.
 
 
 class MetaElementarySchema(MetaSchema):
+    """Meta Elementary Schema class.
 
-    _SCHEMAS_BY_DATA_TYPE = {}
+    Ensure inheritance and subclassing checking with corresponding data_type."""
 
-    def __call__(mcs, *args, **kwargs):
+    def  __new__(mcs, *args, **kwargs):
 
-        result = super(MetaElementarySchema, mcs).__call__(*args, **kwargs)
+        result = super(MetaElementarySchema, mcs).__new__(mcs, *args, **kwargs)
 
-        _SCHEMAS_BY_DATA_TYPE[mcs.data_type] = mcs
-        mcs.data_type = result.data_type
-        mcs.subclass
+        if mcs.__data_types__:  # register default elementary instance to __data_types__
+            register(result(), mcs.__data_types__)
 
         return result
 
-    def __instancecheck__(self, instance):
+    def __instancecheck__(cls, instance):
 
-        if isinstance(instance, tuple):
-            instance = tuple(list(instance) + [self.data_type])
+        return super(MetaElementarySchema, cls).__instancecheck__(instance) &&
+            isinstance(instance, cls.__data_types__)
 
-        return super(MetaElementarySchema, self).__instancecheck__(instance)
+    def __subclasscheck__(cls, subclass):
 
-    def __subclasscheck__(self, subclass):
-
-        if isinstance(subclass, tuple):
-            subclass = tuple(list(subclass) + [self.data_type])
-
-        return super(MetaElementarySchema, self).__subclasscheck__(
-            (other, self.data_type)
-        )
-
-
-def getelementaryschema(data):
-    """Get the right Elementary schema."""
-
-    return MetaElementarySchema._SCHEMAS_BY_DATA_ID[type(data)]
+        return super(MetaElementarySchema, cls).__subclasscheck__(subclass) &&
+            issubclass(subclass, cls.data_type)
 
 
 @add_metaclass(MetaElementarySchema)
 class ElementarySchema(Schema):
 
-    data_type = object
+    __data_types__ = ()  #: data_types to register with
 
-    def __call__(self, val=None):
+    def __call__(self, val=None, *args, **kwargs):
 
         if val is None:
             if self.default is None:
@@ -100,11 +94,11 @@ class ElementarySchema(Schema):
 
         return self.data_type(*args)
 
-    def validate(self, data):
+    def validate(self, data, *args, **kwargs):
 
-        if not isinstance(data, self.data_type):
+        if not isinstance(data, self.data_types):
             raise TypeError(
-                'Wrong type {0}. {1} expected'.format(data, self.data_type)
+                'Wrong type {0}. {1} expected'.format(data, self.data_types)
             )
 
 
@@ -125,30 +119,44 @@ class NumberSchema(ElementarySchema):
             )
 
 
-class IntegerSchema(ElementarySchema):
+class IntegerSchema(NumberSchema):
     """Integer Schema."""
 
-    data_type = int
+    __data_types__ = [int]
     default = 0
+
+
+class LongSchema(NumberSchema):
+    """Long schema."""
+
+    __data_types__ = [long]
+    default = 0l
+
+
+class ComplexSchema(NumberSchema):
+    """Complex Schema."""
+
+    __data_types__ = [complex]
+    default = 0j
 
 
 class FloatSchema(ElementarySchema):
     """Float Schema."""
 
-    data_type = float
+    __data_types__ = [float]
     default = 0.
 
 
-class StringSchema(Schema, string_types):
+class StringSchema(ElementarySchema):
     """String Schema."""
 
-    data_type = string_types
+    __data_types__ = [string_types]
 
 
-class ArraySchema(Schema, Iterable):
+class ArraySchema(ElementarySchema):
     """Array Schema."""
 
-    data_type = list
+    __data_types__ = [list]
     item_types = object
     minsize = 0
     maxsize = maxsize
@@ -177,23 +185,32 @@ class ArraySchema(Schema, Iterable):
         return result
 
 
-class EnumSchema(Schema, Enum):
+class EnumSchema(ElementarySchema):
     """Enumerable schema."""
 
-    data_type = Enum
+    __data_types__ = [Enum]
 
 
-class BooleanSchema(Schema):
+class BooleanSchema(ElementarySchema):
     """Boolean schema."""
 
-    data_type = bool
+    __data_types__ = [bool]
     default = False
 
 
-class FunctionSchema(Schema):
+class DateTimeSchema(ElementarySchema):
+
+    __data_types__ = [datetime]
+    default = lambda: datetime.now()
+
+
+class FunctionSchema(ElementarySchema):
     """Function schema."""
 
-    data_type = FunctionType
+    __data_types__ = [CallableType]
+    params = ArraySchema()
+    rtype = StringSchema()
+    impl = StringSchema()
 
     def __call__(self, code, globals, name=None, argdefs=None, closure=None):
 

@@ -25,83 +25,93 @@
 # --------------------------------------------------------------------
 """Schema factory module."""
 
-__all__ = ['registermaker', 'getschema', 'schemamaker']
-
-from inspect import getmembers, isroutine
+__all__ = ['SchemaFactory', 'registermaker', 'unregistermaker', 'getschema']
 
 
-_SCHEMASBYRESOURCE = {}
+class SchemaFactory(object):
+    """Factory dedicated to generate schemas.
 
-_MAKERS = []
+    Keys are schema maker names, and values are schema makers."""
+
+    def __init__(self, makers=None, schemasbyresource=None, *args, **kwargs):
+
+        super(SchemaFactory, self).__init__(*args, **kwargs)
+
+        self._schemasbyresource = schemasbyresource or {}
+        self._makers = makers or {}
+
+    def registermaker(self, name, maker):
+        """Register a schema maker with a key name.
+
+        :param maker: callable object which takes in parameter a schema resource
+            and generate a schema class in return. If the resource is not in the
+            right format, the maker must raise a TypeError exception."""
+
+        self._makers[name] = maker
+
+    def unregistermaker(self, name):
+        """Unregister a maker by its name.
+
+        :param str name: maker name to remove.
+        :raises: KeyError if name is not registered."""
+
+        del self._makers[name]
+
+    def getschema(self, resource, cache=True):
+        """Get a schema from input resource.
+
+        :param resource: object from where get the right schema.
+        :param bool cache: use cache system.
+        :rtype: Schema."""
+
+        result = None
+
+        if cache and resource in self._schemasbyresource:
+            result = self._schemasbyresource[resource]
+
+        else:
+            for maker in self._makers.values():
+                try:
+                    result = maker(resource)
+
+                except TypeError:
+                    pass
+
+        if result is None:
+            raise TypeError('No maker found for {0}'.format(resource))
+
+        if cache:
+            self._schemasbyresource[resource] = result
+
+        return result
+
+_SCHEMAFACTORY = SchemaFactory()  #: global schema factory
 
 
-def registermaker(maker):
+def registermaker(name, maker):
     """Register a schema maker.
 
+    :param str name: maker name.
     :param maker: callable object which takes in parameter a schema resource
         and generate a schema class in return. If the resource is not in the
         right format, the maker must raise a TypeError exception."""
 
-    _MAKERS.append(maker)
+    return _SCHEMAFACTORY.registermaker(name=name, maker=maker)
 
+
+def unregistermaker(name):
+    """Unregister a maker by its name.
+
+    :param str name: maker name to remove.
+    :raises: KeyError if name is not registered."""
+
+    return _SCHEMAFACTORY.unregistermaker(name=name)
 
 def getschema(resource, cache=True):
     """Get a schema from input resource.
 
-    :param resource: object from where get the right schema."""
+    :param resource: object from where get the right schema.
+    :param bool cache: use cache system.
+    :rtype: Schema."""
 
-    if cache and resource in _SCHEMASBYRESOURCE:
-        result = _SCHEMASBYRESOURCE[resource]
-
-    else:
-
-        for maker in _MAKERS:
-            try:
-                result = maker(resource)
-
-            except TypeError:
-                pass
-
-    if cache:
-        _SCHEMASBYRESOURCE[resource] = result
-
-    return result
-
-
-@registermaker
-def clsschemamaker(resource):
-    """Default function which make a schema class from a resource.
-
-    :param type resource: input resource is a class.
-    :raise: TypeError if resource is not a class."""
-
-    if not isinstance(resource, type):
-        raise TypeError('Wrong type {0}, \'type\' expected'.format(resource))
-
-    name = resource.__name__
-    bases = resource.mro() + [Schema]
-    _dict = {}
-
-    for name, member in getmembers(resource):
-
-        if isroutine(member):
-            _dict[name] = FunctionProperty(member)
-
-        else:
-            _dict[name] = Property(member)
-
-    return type(name, bases, _dict)
-
-
-def objectschemamaker(resource):
-    """Make a schema from an object."""
-
-    return clsschemamaker(type(object))
-
-
-def functionmaker(resource):
-
-    return objectschemamaker()
-
-
-schemamaker(type(schemamaker))  # auto
+    return _SCHEMAFACTORY.getschema(resource=resource, cache=True)

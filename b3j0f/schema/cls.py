@@ -26,25 +26,15 @@
 
 """Class schema package."""
 
-__all__ = [
-    '__IDS__', '__UID__', '__NAME__', 'PythonFunctionProperty', 'ClassSchema'
-]
+__all__ = ['clsschemamaker', 'functionschemamaker']
 
-from inspect import getargspec, isroutine, isclass
+from inspect import getargspec, isroutine, isclass, getsourcelines
 
 from b3j0f.utils.path import getpath
 
 from .base import Schema
-from .prop import FunctionProperty, Property, SchemaProperty
-
-
-__IDS__ = '__ids__'  #: schema ids class attribute.
-__UID__ = '__uid__'  #: schema uid. Class full pach by default.
-__NAME__ = '__name__'  #: schema name. Class name by default.
-
-
-def makeschema(resource):
-    pass
+from .elementary import FunctionSchema
+from .registry import fromobj
 
 
 class PythonFunctionProperty(FunctionProperty):
@@ -84,68 +74,8 @@ class PythonFunctionProperty(FunctionProperty):
         return result
 
 
-class ClassSchema(Schema):
-    """Class schema."""
-
-    def __init__(self, public=True, *args, **kwargs):
-        """
-        :param bool public: if True (default), convert only public attributes.
-        """
-
-        super(ClassSchema, self).__init__(*args, **kwargs)
-
-        if not isclass(self.resource):
-            raise TypeError('resource {0} is not a class'.format(self.resource))
-
-        self.uid = getpath(self.resource)
-        self.name = self.resource.__name__
-        self.public = public
-
-        for name in dir(self.resource):
-
-            if name == '__slots__':
-                for name in self.resource.__slots__:
-
-                    if self.public and name.startswith('_'):
-                        continue
-
-                    prop = Property(name=name)
-                    self[name] = prop
-
-            elif name in (__IDS__, __UID__, __NAME__):
-                setattr(self, name[2:-2], getattr(self.resource, name))
-
-            else:
-                if self.public and name.startswith('_'):
-                    continue
-
-                attribute = getattr(self.resource, name)
-
-                if isinstance(attribute, Schema):
-                    prop = SchemaProperty(name=name, schema=attribute)
-
-                elif isroutine(attribute):
-                    prop = PythonFunctionProperty(name=name, func=attribute)
-
-                else:
-                    prop = Property(name=name, ptype=type(attribute))
-
-                self[name] = prop
-
-        self._schema = self
-
-    def validate(self, data):
-
-        return isinstance(data, self.resource)
-
-    def newdata(self, **properties):
-
-        return self.resource(**properties)
-
-
-
 @registermaker
-def classschemamaker(resource):
+def clsschemamaker(resource):
     """Default function which make a schema class from a resource.
 
     :param type resource: input resource is a class.
@@ -160,16 +90,31 @@ def classschemamaker(resource):
 
     for name, member in getmembers(resource):
 
-        if isinstance(member, Schema):
-            val = type(member)
+        try:
+            schema = fromobj(member)
+
+        except Exception:
+            pass
 
         else:
-            val = getelementaryschema(member)
-
-        _dict[name] = val
+            _dict[name] = schema
 
     return type(name, bases, _dict)
 
 
-baseschema = classschemamaker(Schema)
-register(baseschema)
+@registermaker
+def functionschemamaker(resource):
+
+    if not isinstance(resource, Callable):
+        raise TypeError('Wrong type {0}. Callable expected'.format())
+
+    args, vargs, keywords, default = getargspec(resource)
+
+    params = []
+
+    rargs = args[:-len(default)]
+    dargs = map((arg[pos + len(rargs)], default[pos]) for pos in range(len(default)))
+
+    params = map(Schema, rargs) + map(lambda item: Schema(default=val) for arg, val in dargs)
+
+    FunctionSchema(args=None, impl=getsourcelines(resource))

@@ -26,14 +26,12 @@
 
 """Base schema package."""
 
-__all__ = ['MetaSchema', 'BaseSchema']
+__all__ = ['MetaSchema', 'Schema']
 
 from six import add_metaclass, string_types
 
 from b3j0f.utils.version import getcallargs
 from b3j0f.conf import Configurable
-
-from types import LambdaType
 
 from .registry import register
 from .cls import clsschemamaker
@@ -44,35 +42,19 @@ from inspect import getmembers, getargspec
 class MetaSchema(type):
     """Automatically register schemas."""
 
-    def __call__(cls, *args, **kwargs):
+    def __new__(mcs, *args, **kwargs):
 
-        result = super(MetaSchema, cls).__call__(*args, **kwargs)
+        result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
 
-        register(result)
+        register(result, data_type=getattr(result, 'data_type', None))
 
         return result
 
 
 @add_metaclass(MetaSchema)
-class BaseSchema(property):
+class Schema(property):
     """Schema description.
 
-    A schema is an object where attributes are properties and implement such
-    methods:
-
-    - __init__: takes in parameters schema properties,
-    - __call__: takes in parameters schema properties
-    -  properties with required name or uid,
-    such methods:
-
-    .. csv-table::
-        name, description
-
-        __iter__, "iterator on sub schema names".
-        __call__, "takes instanciate a new data"
-
-    - the __call__ method which instanciates a new data checking the schema.
-    - the
     It has a unique identifier (UID) and instanciates data objects.
 
     Its name is its class name.
@@ -81,56 +63,30 @@ class BaseSchema(property):
     automatically registered in the registry and becomes accessible from the
     `b3j0f.schema.reg.getschemabyuid` function."""
 
-    default = BaseSchema(
-        fget=lambda obj: self._value() if isinstance(self._value, LambdaType)
-            else self._value
-    )
-
-    def __init__(self, fget=None, fset=None, fdel=None, doc=None, **kwargs):
+    def __init__(self, title=None, name=None, uid=None, description=None, **kwargs):
         """Instance attributes are setted related to arguments or inner schemas.
-
-        :param default: default value. If lambda, called at initialization.
         """
 
         super(Schema, self).__init__(
-            fget=self.getter, fset=self.setter, fdel=self.deleter, doc=doc
+            fget=self.getter, fset=self.setter, fdel=self.deleter,
+            doc=kwargs.get('description', type(self).description)
         )
 
-        # set all init parameters to related schema properties
-        callargs = getcallargs(self.__init__, self, **kwargs)
+        self._fget = kwargs.get('fget')
+        self._fset = kwargs.get('fset')
+        self._fdel = kwargs.get('fdel')
 
-        for name, schema in self.properties:
-            if name in callargs:
-                setattr(self, name, val)
+        self._value = None  # this value for parent schema.
 
-        self._fget = fget
-        self._fset = fset
-        self._fdel = fdel
+        callargs = getcallargs(self.__init__, self, *args, **kwargs)
 
-        # set default value
-        self._value = None
-        self._value = self.default
+        for name, schema in getmembers(
+            type(self), lambda member: issubclass(member, Schema)
+        ):
 
-    def __eq__(self, other):
-        """Compare properties."""
+            val = callargs.get(name, schema())
 
-        return other is self or self.properties == other.properties
-
-    @property
-    def default(self):
-        """Get this default value."""
-
-        return (
-            self._default()
-            if isinstance(self._default, LambdaType)
-            else self._default
-        )
-
-    @property
-    def properties(self):
-        """Get inner properties by name."""
-
-        return getmembers(self, lambda member: isinstance(member, BaseSchema))
+            setattr(self, name, val)
 
     def getter(self, obj):
         """Called when the parent element tries to get this property value.
@@ -140,7 +96,7 @@ class BaseSchema(property):
         result = None
 
         if self._fget is not None:
-            result = self._fget(obj)
+            result = self._fget(obj, cls)
 
         if result is None:
             result = self._value
@@ -175,7 +131,8 @@ class BaseSchema(property):
         else:
             del self._value
 
-    def validate(self, data):
+    @classmethod
+    def validate(cls, data):
         """Validate input data in returning an empty list if true.
 
         :param data: data to validate with this schema.
@@ -186,22 +143,49 @@ class BaseSchema(property):
                 'Wrong type {0}. {1} expected'.format(data, self)
             )
 
-    def dump(self):
-        """Get a serialized value of this schema.
+        for name, schema in getmembers(
+            cls, lambda member: issubclass(member, Schema)
+        ):
 
-        :rtype: dict"""
+            if name in cls.required and not hasattr(data, name):
+                error = 'Mandatory property {0} by {1} is missing in {2}. {3} expected.'.format(
+                    name, cls, data, schema
+                )
+                raise ValueError(error)
 
-        result = {}
-
-        for name, prop in self.properties:
-            val = prop.dump()
-
-            result[name] = val
+            elif hasattr(data, name):
+                schema.validate(getattr(data, name))
 
         return result
 
     @classmethod
     def schemas(cls):
-        """Get inner schemas by name."""
+        """Get all inner schemas."""
 
-        return getmembers(cls, lambda member: issubclass(member, Schema))
+        return getmembers(cls, lambda member: issubclass(Schema))
+
+    def properties(self):
+        """Get all inner properties."""
+
+        return getmembers(self, lambda member: isinstance(Schema))
+
+    @classmethod
+    def apply(cls, fget=None, **kwargs):
+        """Property decorator to use in order to decorate schema attributes."""
+
+        callargs = getcallargs(cls.apply, fget=fget, **kwargs)
+
+        # decorator without parameters.
+        if fget is not None:
+            return cls(fget=fget, **kwargs)
+
+        else:  # decorator with parameters.
+            def _schema(fget):
+                """result function if apply has arguments."""
+
+                return cls(fget=fget, **kwargs)
+
+            return _schema
+
+
+register(clsschemamaker(Schema), data_types=[Schema])
