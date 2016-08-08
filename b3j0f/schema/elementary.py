@@ -24,11 +24,15 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""elementary schema package."""
+"""Elementary schema package."""
 
 __all__ = [
-    'IntegerSchema', 'FloatSchema', 'StringSchema', 'ArraySchema',
-    'BooleanSchema', 'EnumSchema', 'FunctionSchema'
+    'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
+    'StringSchema',
+    'ArraySchema',
+    'BooleanSchema',
+    'EnumSchema',
+    'FunctionSchema'
 ]
 
 from six import string_types, add_metaclass
@@ -37,14 +41,13 @@ from numbers import Number
 
 from enum import Enum
 
-from types import CallableType
+from types import FunctionType, MethodType
 
 from sys import maxsize
 
 from datetime import datetime
 
-from .core import Schema
-from .base import MetaSchema
+from .base import Schema, MetaSchema
 from .registry import register
 from .cls import clsschemamaker
 
@@ -61,40 +64,30 @@ class MetaElementarySchema(MetaSchema):
         result = super(MetaElementarySchema, mcs).__new__(mcs, *args, **kwargs)
 
         if mcs.__data_types__:  # register default elementary instance to __data_types__
-            register(result(), mcs.__data_types__)
+            register(result(), result.__data_types__)
             clsschemamaker(result, inline=True)
 
         return result
 
     def __instancecheck__(cls, instance):
 
-        return super(MetaElementarySchema, cls).__instancecheck__(instance) &&
-            isinstance(instance, cls.__data_types__)
+        return (
+            super(MetaElementarySchema, cls).__instancecheck__(instance)
+            and isinstance(instance, cls.__data_types__)
+        )
 
     def __subclasscheck__(cls, subclass):
 
-        return super(MetaElementarySchema, cls).__subclasscheck__(subclass) &&
-            issubclass(subclass, cls.data_type)
+        return (
+            super(MetaElementarySchema, cls).__subclasscheck__(subclass)
+            and issubclass(subclass, cls.data_type)
+        )
 
 
 @add_metaclass(MetaElementarySchema)
 class ElementarySchema(Schema):
 
     __data_types__ = ()  #: data_types to register with
-
-    def __call__(self, val=None, *args, **kwargs):
-
-        if val is None:
-            if self.default is None:
-                args = []
-
-            else:
-                args = [self.default]
-
-        else:
-            args = [self.val]
-
-        return self.data_type(*args)
 
     def validate(self, data, *args, **kwargs):
 
@@ -113,7 +106,7 @@ class NumberSchema(ElementarySchema):
 
         super(NumberSchema, self).validate(data)
 
-        if self.min => data => self.max:
+        if self.min >= data >= self.max:
             raise ValueError(
                 'data {0} must be in [{1}; {2}]'.format(
                     data, self.min, self.max
@@ -153,6 +146,7 @@ class StringSchema(ElementarySchema):
     """String Schema."""
 
     __data_types__ = [string_types]
+    default = ''
 
 
 class BooleanSchema(ElementarySchema):
@@ -176,7 +170,7 @@ class ArraySchema(ElementarySchema):
 
         super(ArraySchema, self).validate(data, *args, **kwargs)
 
-        if self.minsize => len(data) or len(data) => self.maxsize:
+        if self.minsize >= len(data) or len(data) >= self.maxsize:
             raise ValueError(
                 'length of data {0} must be in [{1}; {2}]'.format(
                     data, self.minsize, self.maxsize
@@ -188,7 +182,7 @@ class ArraySchema(ElementarySchema):
                 raise ValueError('Duplicated items in {0}'.format(result))
 
             for index, item in enumerate(data):
-                if not isinstance(item, item_types)::
+                if not isinstance(item, item_types):
                     raise TypeError(
                         'Wrong type of {0} at pos {1}. {2} expected.'.format(
                             item, index, item_types
@@ -211,10 +205,13 @@ class DateTimeSchema(ElementarySchema):
 class FunctionSchema(ElementarySchema):
     """Function schema."""
 
-    __data_types__ = [CallableType]
+    __data_types__ = [FunctionType, MethodType]
     params = lambda: []
     rtype = ''
     impl = ''
+
+    def default(*args, **kwargs):
+        raise NotImplementedError()
 
     def __call__(self, code, globals, name=None, argdefs=None, closure=None):
 

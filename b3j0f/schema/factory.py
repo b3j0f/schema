@@ -29,6 +29,8 @@ __all__ = ['SchemaFactory', 'registermaker', 'unregistermaker', 'getschema']
 
 from uuid import uuid4 as uuid
 
+from six import string_types
+
 
 class SchemaFactory(object):
     """Factory dedicated to generate schemas.
@@ -42,7 +44,7 @@ class SchemaFactory(object):
         self._schemasbyresource = schemasbyresource or {}
         self._makers = makers or {}
 
-    def registermaker(self, maker, name=None):
+    def registermaker(self, maker=None, name=None):
         """Register a schema maker with a key name.
 
         :param str name: maker name. Default is maker name or generated.
@@ -50,10 +52,25 @@ class SchemaFactory(object):
             and generate a schema class in return. If the resource is not in the
             right format, the maker must raise a TypeError exception."""
 
-        if name is None:
-            name = getattr(maker, '__name__', uuid())
+        def _register(
+                maker, name=maker if isinstance(maker, string_types) else name
+        ):
 
-        self._makers[name] = maker
+            if name is None:
+                name = getattr(maker, '__name__', uuid())
+
+            self._makers[name] = maker
+
+            return maker
+
+        if maker is None:
+            return _register
+
+        elif isinstance(maker, string_types):
+            return _register
+
+        else:
+            return _register(maker)
 
     def unregistermaker(self, name):
         """Unregister a maker by its name.

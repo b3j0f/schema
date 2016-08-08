@@ -31,78 +31,18 @@ from unittest import main
 from b3j0f.utils.ut import UTCase
 from b3j0f.utils.path import getpath
 
-from ..base import getschema
-from ..prop import Property, SchemaProperty, FunctionProperty
-from ..cls import ClassSchema, PythonFunctionProperty
+from ..python import clsschemamaker
 
 
-class ClassSchemaTest(UTCase):
+class CLSSchemaMakerTest(UTCase):
 
-    def test(self):
+    def test_default(self):
 
-        class Test(object):
+        @clsschemamaker
+        class A(object):
+            pass
 
-            a = 'a'
-
-            def b(self, b):
-                return b
-
-        test = Test()
-
-        schema = getschema(Test)
-
-        self.assertEqual(schema.name, Test.__name__)
-        self.assertEqual(schema.uid, getpath(Test))
-        self.assertIsNone(schema.ids)
-        self.assertIsNone(schema.pids)
-
-        self.assertIsInstance(schema, ClassSchema)
-
-        self.assertIsInstance(schema['a'], Property)
-        self.assertNotIsInstance(schema['a'], FunctionProperty)
-        self.assertNotIsInstance(schema['a'], PythonFunctionProperty)
-
-        self.assertIsInstance(schema['b'], Property)
-        self.assertIsInstance(schema['b'], FunctionProperty)
-        self.assertIsInstance(schema['b'], PythonFunctionProperty)
-
-        self.assertEqual(schema['b'](test, [2]), 2)
-        self.assertEqual(schema['b'](test, None, {'b': 2}), 2)
-
-        self.assertEqual(len(schema), 2)
-
-        self.assertNotIn('c', schema)
-
-        Test.c = schema
-        Test.__name__ = 'a'
-        Test.__uid__ =  'b'
-        Test.__ids__ = ['a', 'b']
-
-        schema = getschema(Test)
-
-        self.assertEqual(schema.name, 'a')
-        self.assertEqual(schema.uid, 'b')
-        self.assertEqual(schema.ids, ['a', 'b'])
-        self.assertEqual(schema.pids, [schema['a'], schema['b']])
-
-        self.assertIsInstance(schema, ClassSchema)
-
-        self.assertIsInstance(schema['a'], Property)
-        self.assertNotIsInstance(schema['a'], FunctionProperty)
-        self.assertNotIsInstance(schema['a'], PythonFunctionProperty)
-
-        self.assertIsInstance(schema['b'], Property)
-        self.assertIsInstance(schema['b'], FunctionProperty)
-        self.assertIsInstance(schema['b'], PythonFunctionProperty)
-
-        self.assertIsInstance(schema['c'], Property)
-        self.assertIsInstance(schema['c'], SchemaProperty)
-
-        self.assertEqual(len(schema), 3)
-
-        schema = getschema(Test, public=False)
-
-        self.assertEqual(len(schema), len(dir(Test)) - 2)
+        self.assertFalse(A.schemas())
 
 if __name__ == '__main__':
     main()

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # --------------------------------------------------------------------
@@ -24,7 +25,55 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Lang package"""
 
-#from .json import JSONSchema
-#from .xsd import XSDSchema
+from unittest import main
+
+from b3j0f.utils.ut import UTCase
+
+from ..base import Schema
+
+from ..elementary import (
+        IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
+        StringSchema,
+        ArraySchema,
+        BooleanSchema,
+        EnumSchema,
+        FunctionSchema,
+        ElementaryTest
+    )
+
+
+class ElementaryTest(UTCase):
+
+    __class__ = None
+
+    def _assert(self, value, error=False, **kwargs):
+
+        schema = self.__class__(**kwargs)
+
+        if error:
+            self.assertRaises(Exception, schema.validate, value)
+
+        else:
+            schema.validate(value)
+
+
+class IntegerSchemaTest(ElementaryTest):
+
+    __class__ = IntegerSchema
+
+    def test_default(self):
+
+        self._assert(0)
+
+    def test_min(self):
+
+        self._assert(min=0, value=-2, error=True)
+
+    def test_max(self):
+
+        self._assert(max=0, value=2, error=True)
+
+
+if __name__ == '__main__':
+    main()

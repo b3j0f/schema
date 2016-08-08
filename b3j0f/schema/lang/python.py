@@ -30,48 +30,11 @@ __all__ = ['clsschemamaker', 'functionschemamaker']
 
 from inspect import getargspec, isroutine, isclass, getsourcelines
 
-from b3j0f.utils.path import getpath
+from types import FunctionType, MethodType
 
-from .base import Schema
-from .elementary import FunctionSchema
-from .registry import fromobj
-
-
-class PythonFunctionProperty(FunctionProperty):
-    """Python function property class."""
-
-    def __init__(self, func, *args, **kwargs):
-
-        super(PythonFunctionProperty, self).__init__(*args, **kwargs)
-
-        self.func = func
-
-        try:
-            self.args, self.vargs, self.kwargs, self.default = getargspec(func)
-
-        except TypeError:
-            self.args, self.vargs, self.kwargs, self.default = (), (), {}, ()
-
-    def __call__(self, instance=None, args=None, kwargs=None):
-        """Execute this function property.
-
-        :param instance: func instance if func is a method.
-        :param tuple args: func args.
-        :param dict kwargs: func kwargs."""
-
-        if args is None:
-            args = ()
-
-        if kwargs is None:
-            kwargs = {}
-
-        if instance is None:
-            result = self.func(*args, **kwargs)
-
-        else:
-            result = self.func(instance, *args, **kwargs)
-
-        return result
+from ..base import Schema
+from ..factory import registermaker
+from ..registry import fromobj
 
 
 @registermaker
@@ -129,7 +92,7 @@ clsschemamaker(Schema, inline=True)
 @registermaker
 def functionschemamaker(resource):
 
-    if not isinstance(resource, Callable):
+    if not isinstance(resource, [FunctionType, MethodType]):
         raise TypeError('Wrong type {0}. Callable expected'.format())
 
     args, vargs, keywords, default = getargspec(resource)

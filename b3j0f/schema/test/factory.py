@@ -35,6 +35,10 @@ from ..factory import SchemaFactory, registermaker, getschema
 
 class TestFactory(UTCase):
 
+    def setUp(self):
+
+        self.factory = SchemaFactory()
+
     def maker(self, _type):
         """maker generator."""
 
@@ -54,29 +58,47 @@ class TestFactory(UTCase):
         schemastr = 'test'
         schemaint = 2
 
-        factory = SchemaFactory()
+        self.factory = SchemaFactory()
 
-        self.assertRaises(TypeError, factory.getschema, schemaint)
-        self.assertRaises(TypeError, factory.getschema, schemastr)
+        self.assertRaises(TypeError, self.factory.getschema, schemaint)
+        self.assertRaises(TypeError, self.factory.getschema, schemastr)
 
-        factory.registermaker(name='str', maker=makerstr)
+        self.factory.registermaker(name='str', maker=makerstr)
 
-        self.assertRaises(TypeError, factory.getschema, schemaint)
-        schema = factory.getschema(schemastr)
+        self.assertRaises(TypeError, self.factory.getschema, schemaint)
+        schema = self.factory.getschema(schemastr)
         self.assertEqual(schema, schemastr)
 
-        factory.registermaker(name='int', maker=makerint)
-        schema = factory.getschema(schemaint)
+        self.factory.registermaker(name='int', maker=makerint)
+        schema = self.factory.getschema(schemaint)
         self.assertEqual(schema, schemaint)
-        schema = factory.getschema(schemastr)
+        schema = self.factory.getschema(schemastr)
         self.assertEqual(schema, schemastr)
 
-        factory.unregistermaker('str')
-        schema = factory.getschema(schemastr)
+        self.factory.unregistermaker('str')
+        schema = self.factory.getschema(schemastr)
         self.assertEqual(schema, schemastr)
-        self.assertRaises(TypeError, factory.getschema, schemastr, cache=False)
-        schema = factory.getschema(schemaint)
+        self.assertRaises(
+            TypeError, self.factory.getschema, schemastr, cache=False
+        )
+        schema = self.factory.getschema(schemaint)
         self.assertEqual(schema, schemaint)
+
+    def test_decorator(self):
+
+        @self.factory.registermaker
+        def make():
+            pass
+
+        self.assertIn('make', self.factory._makers)
+
+    def test_decorator_name(self):
+
+        @self.factory.registermaker('test')
+        def make():
+            pass
+
+        self.assertIn('test', self.factory._makers)
 
 
 if __name__ == '__main__':
