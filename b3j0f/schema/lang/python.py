@@ -24,168 +24,121 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Base schema package."""
+"""Python language schema package."""
 
-__all__ = ['MetaSchema', 'Schema']
+__all__ = ['clsschemamaker', 'functionschemamaker']
 
-from six import add_metaclass, string_types
+from inspect import getargspec, isroutine, isclass, getsourcelines
 
-from b3j0f.utils.version import getcallargs
-from b3j0f.conf import Configurable
+from b3j0f.utils.path import getpath
 
-from .registry import register
-from .cls import clsschemamaker
-
-from inspect import getmembers, getargspec
+from .base import Schema
+from .elementary import FunctionSchema
+from .registry import fromobj
 
 
-class MetaSchema(type):
-    """Automatically register schemas."""
+class PythonFunctionProperty(FunctionProperty):
+    """Python function property class."""
 
-    def __new__(mcs, *args, **kwargs):
+    def __init__(self, func, *args, **kwargs):
 
-        result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
+        super(PythonFunctionProperty, self).__init__(*args, **kwargs)
 
-        register(result, data_type=getattr(result, 'data_type', None))
+        self.func = func
 
-        return result
+        try:
+            self.args, self.vargs, self.kwargs, self.default = getargspec(func)
 
+        except TypeError:
+            self.args, self.vargs, self.kwargs, self.default = (), (), {}, ()
 
-@add_metaclass(MetaSchema)
-class Schema(property):
-    """Schema description.
+    def __call__(self, instance=None, args=None, kwargs=None):
+        """Execute this function property.
 
-    It has a unique identifier (UID) and instanciates data objects.
+        :param instance: func instance if func is a method.
+        :param tuple args: func args.
+        :param dict kwargs: func kwargs."""
 
-    Its name is its class name.
+        if args is None:
+            args = ()
 
-    Once you defined your schema inheriting from this class, your schema will be
-    automatically registered in the registry and becomes accessible from the
-    `b3j0f.schema.reg.getschemabyuid` function."""
+        if kwargs is None:
+            kwargs = {}
 
-    def __init__(self, title=None, name=None, uid=None, description=None, **kwargs):
-        """Instance attributes are setted related to arguments or inner schemas.
-        """
+        if instance is None:
+            result = self.func(*args, **kwargs)
 
-        super(Schema, self).__init__(
-            fget=self.getter, fset=self.setter, fdel=self.deleter,
-            doc=kwargs.get('description', type(self).description)
-        )
-
-        self._fget = kwargs.get('fget')
-        self._fset = kwargs.get('fset')
-        self._fdel = kwargs.get('fdel')
-
-        self._value = None  # this value for parent schema.
-
-        callargs = getcallargs(self.__init__, self, *args, **kwargs)
-
-        for name, schema in getmembers(
-            type(self), lambda member: issubclass(member, Schema)
-        ):
-
-            val = callargs.get(name, schema())
-
-            setattr(self, name, val)
-
-    def getter(self, obj):
-        """Called when the parent element tries to get this property value.
-
-        :param obj: parent element."""
-
-        result = None
-
-        if self._fget is not None:
-            result = self._fget(obj, cls)
-
-        if result is None:
-            result = self._value
+        else:
+            result = self.func(instance, *args, **kwargs)
 
         return result
 
-    def setter(self, obj, value):
-        """Called when the parent element tries to set this property value.
 
-        :param obj: parent element.
-        :param value: new value to use."""
+@registermaker
+def clsschemamaker(resource, inline=False, name=None):
+    """Default function which make a schema class from a resource.
 
-        if self.validate(value):
+    :param type resource: input resource is a class.
+    :param bool inline: update the resource with schemas.
+    :param str name: schema type name to use. Default is resource name.
+    :return: if inline, return the updated resource, otherwise return a new
+        class.
+    :rtype: type
+    :raise: TypeError if resource is not a class."""
 
-            if self._fset is not None:
-                self._fset(obj, value)
+    result = resource if inline else None
+
+    if not isinstance(resource, type):
+        raise TypeError('Wrong type {0}, \'type\' expected'.format(resource))
+
+    if not inline:
+        resname = resource.__name__ if name is None else name
+        bases = resource.mro()
+        if Schema not in bases:
+            bases.append(Schema)
+
+        _dict = {}
+
+    for name, member in getmembers(resource):
+
+        if isinstance(member, Schema):
+            schema = member
+
+        else:
+            try:
+                schema = fromobj(member, force=True)
+
+            except TypeError:
+                continue
 
             else:
-                self._value = value
+                if inline:
+                    setattr(resource, name, schema)
 
-        else:
-            raise ValueError('{0} does not match with {1}'.format(value, self))
+        if not inline:
+            _dict[name] = schema
 
-    def deleter(self, obj):
-        """Called when the parent element tries to delete this property value.
+    if not inline:
+        result = type(resname, bases, _dict)
 
-        :param obj: parent element."""
+    return result
 
-        if self._fdel is not None:
-            self._fdel(obj)
-
-        else:
-            del self._value
-
-    @classmethod
-    def validate(cls, data):
-        """Validate input data in returning an empty list if true.
-
-        :param data: data to validate with this schema.
-        :raises: Exception if the data is not validated"""
-
-        if not isinstance(data, self):
-            raise TypeError(
-                'Wrong type {0}. {1} expected'.format(data, self)
-            )
-
-        for name, schema in getmembers(
-            cls, lambda member: issubclass(member, Schema)
-        ):
-
-            if name in cls.required and not hasattr(data, name):
-                error = 'Mandatory property {0} by {1} is missing in {2}. {3} expected.'.format(
-                    name, cls, data, schema
-                )
-                raise ValueError(error)
-
-            elif hasattr(data, name):
-                schema.validate(getattr(data, name))
-
-        return result
-
-    @classmethod
-    def schemas(cls):
-        """Get all inner schemas."""
-
-        return getmembers(cls, lambda member: issubclass(Schema))
-
-    def properties(self):
-        """Get all inner properties."""
-
-        return getmembers(self, lambda member: isinstance(Schema))
-
-    @classmethod
-    def apply(cls, fget=None, **kwargs):
-        """Property decorator to use in order to decorate schema attributes."""
-
-        callargs = getcallargs(cls.apply, fget=fget, **kwargs)
-
-        # decorator without parameters.
-        if fget is not None:
-            return cls(fget=fget, **kwargs)
-
-        else:  # decorator with parameters.
-            def _schema(fget):
-                """result function if apply has arguments."""
-
-                return cls(fget=fget, **kwargs)
-
-            return _schema
+clsschemamaker(Schema, inline=True)
 
 
-register(clsschemamaker(Schema), data_types=[Schema])
+@registermaker
+def functionschemamaker(resource):
+
+    if not isinstance(resource, Callable):
+        raise TypeError('Wrong type {0}. Callable expected'.format())
+
+    args, vargs, keywords, default = getargspec(resource)
+
+    params = []
+
+    rargs = args[:-len(default)]
+    dargs = map((arg[pos + len(rargs)], default[pos]) for pos in range(len(default)))
+
+    params = map(Schema, rargs) + map(lambda item: Schema(default=val) for arg, val in dargs)
+
+    FunctionSchema(args=None, impl=getsourcelines(resource))

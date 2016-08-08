@@ -27,6 +27,8 @@
 
 __all__ = ['SchemaFactory', 'registermaker', 'unregistermaker', 'getschema']
 
+from uuid import uuid4 as uuid
+
 
 class SchemaFactory(object):
     """Factory dedicated to generate schemas.
@@ -40,12 +42,16 @@ class SchemaFactory(object):
         self._schemasbyresource = schemasbyresource or {}
         self._makers = makers or {}
 
-    def registermaker(self, name, maker):
+    def registermaker(self, maker, name=None):
         """Register a schema maker with a key name.
 
+        :param str name: maker name. Default is maker name or generated.
         :param maker: callable object which takes in parameter a schema resource
             and generate a schema class in return. If the resource is not in the
             right format, the maker must raise a TypeError exception."""
+
+        if name is None:
+            name = getattr(maker, '__name__', uuid())
 
         self._makers[name] = maker
 
@@ -56,6 +62,14 @@ class SchemaFactory(object):
         :raises: KeyError if name is not registered."""
 
         del self._makers[name]
+
+    @property
+    def makers(self):
+        """Get maker names.
+
+        :rtype: list"""
+
+        return list(self._makers.keys())
 
     def getschema(self, resource, cache=True):
         """Get a schema from input resource.
@@ -88,10 +102,10 @@ class SchemaFactory(object):
 _SCHEMAFACTORY = SchemaFactory()  #: global schema factory
 
 
-def registermaker(name, maker):
+def registermaker(maker, name=None):
     """Register a schema maker.
 
-    :param str name: maker name.
+    :param str name: maker name. Default is maker name or generated.
     :param maker: callable object which takes in parameter a schema resource
         and generate a schema class in return. If the resource is not in the
         right format, the maker must raise a TypeError exception."""

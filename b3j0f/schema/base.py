@@ -26,19 +26,19 @@
 
 """Base schema package."""
 
-__all__ = ['MetaSchema', 'BaseSchema']
-
-from six import add_metaclass, string_types
+__all__ = ['MetaSchema', 'Schema']
 
 from b3j0f.utils.version import getcallargs
-from b3j0f.conf import Configurable
 
 from types import LambdaType
 
-from .registry import register
-from .cls import clsschemamaker
+from inspect import getmembers, isclass
 
-from inspect import getmembers, getargspec
+from six import get_unbound_function, add_metaclass
+
+from uuid import uuid4
+
+from .registry import register
 
 
 class MetaSchema(type):
@@ -54,37 +54,28 @@ class MetaSchema(type):
 
 
 @add_metaclass(MetaSchema)
-class BaseSchema(property):
+class Schema(property):
     """Schema description.
 
-    A schema is an object where attributes are properties and implement such
-    methods:
+    A schema is identified by a string such as an universal unique identifier,
+    and optionnally a name.
 
-    - __init__: takes in parameters schema properties,
-    - __call__: takes in parameters schema properties
-    -  properties with required name or uid,
-    such methods:
-
-    .. csv-table::
-        name, description
-
-        __iter__, "iterator on sub schema names".
-        __call__, "takes instanciate a new data"
-
-    - the __call__ method which instanciates a new data checking the schema.
-    - the
-    It has a unique identifier (UID) and instanciates data objects.
-
-    Its name is its class name.
+    Any setted value respect those conditions in this order:
+    1. if the value is a lambda expression, the value equals its execution.
+    2. the value is validated with this method `validate`.
+    3. the value is given to a custom setter (`fget` constructor parameter) if
+        given or setted to this attribute `_value`.
 
     Once you defined your schema inheriting from this class, your schema will be
     automatically registered in the registry and becomes accessible from the
     `b3j0f.schema.reg.getschemabyuid` function."""
 
-    default = BaseSchema(
-        fget=lambda obj: self._value() if isinstance(self._value, LambdaType)
-            else self._value
-    )
+    name = ''  #: schema name. Default is self name.
+    uuid = lambda: uuid4()  #: schema universal unique identifier.
+    description = ''  #: schema description.
+    default = None  #: schema default value.
+    required = lambda: []  #: required schema names.
+    version = '1'  #: schema version.
 
     def __init__(self, fget=None, fset=None, fdel=None, doc=None, **kwargs):
         """Instance attributes are setted related to arguments or inner schemas.
@@ -93,14 +84,15 @@ class BaseSchema(property):
         """
 
         super(Schema, self).__init__(
-            fget=self.getter, fset=self.setter, fdel=self.deleter, doc=doc
+            fget=self._getter, fset=self._setter, fdel=self._deleter, doc=doc
         )
 
-        # set all init parameters to related schema properties
+        # set all init parameters to related inner schema
         callargs = getcallargs(self.__init__, self, **kwargs)
 
-        for name, schema in self.properties:
+        for name, schema in self.schemas():
             if name in callargs:
+                val = callargs[name]
                 setattr(self, name, val)
 
         self._fget = fget
@@ -109,33 +101,14 @@ class BaseSchema(property):
 
         # set default value
         self._value = None
-        self._value = self.default
 
     def __eq__(self, other):
-        """Compare properties."""
+        """Compare schemas."""
 
-        return other is self or self.properties == other.properties
+        return other is self or self.schemas() == other.schemas()
 
-    @property
-    def default(self):
-        """Get this default value."""
-
-        return (
-            self._default()
-            if isinstance(self._default, LambdaType)
-            else self._default
-        )
-
-    @property
-    def properties(self):
-        """Get inner properties by name."""
-
-        return getmembers(self, lambda member: isinstance(member, BaseSchema))
-
-    def getter(self, obj):
-        """Called when the parent element tries to get this property value.
-
-        :param obj: parent element."""
+    def _getter(self, obj, *args, **kwargs):
+        """Called when the parent element tries to get this property value."""
 
         result = None
 
@@ -147,27 +120,26 @@ class BaseSchema(property):
 
         return result
 
-    def setter(self, obj, value):
+    def _setter(self, obj, value):
         """Called when the parent element tries to set this property value.
 
-        :param obj: parent element.
-        :param value: new value to use."""
+        :param value: new value to use. If lambda, updated with the lambda
+            result."""
 
-        if self.validate(value):
+        if isinstance(value, LambdaType):  # execute lambda values.
+            value = value()
 
-            if self._fset is not None:
-                self._fset(obj, value)
+        self.validate(value)
 
-            else:
-                self._value = value
+        if self._fset is not None:
+            self._fset(obj, value)
 
         else:
-            raise ValueError('{0} does not match with {1}'.format(value, self))
+            self._value = value
 
-    def deleter(self, obj):
+    def _deleter(self, obj):
         """Called when the parent element tries to delete this property value.
-
-        :param obj: parent element."""
+        """
 
         if self._fdel is not None:
             self._fdel(obj)
@@ -181,10 +153,22 @@ class BaseSchema(property):
         :param data: data to validate with this schema.
         :raises: Exception if the data is not validated"""
 
-        if not isinstance(data, self):
+        if not isinstance(data, type(self)):
             raise TypeError(
                 'Wrong type {0}. {1} expected'.format(data, self)
             )
+
+        for name, schema in self.schemas():
+            if name in self.required and not hasattr(data, name):
+                part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
+                    format(name, self, data)
+                )
+                part2 = '{3} expected.'.format(schema)
+                error = '{0} {1}'.format(part1, part2)
+                raise ValueError(error)
+
+            elif hasattr(data, name):
+                schema.validate(getattr(data, name))
 
     def dump(self):
         """Get a serialized value of this schema.
@@ -193,8 +177,8 @@ class BaseSchema(property):
 
         result = {}
 
-        for name, prop in self.properties:
-            val = prop.dump()
+        for name, schema in self.schemas():
+            val = schema.dump()
 
             result[name] = val
 
@@ -204,4 +188,4 @@ class BaseSchema(property):
     def schemas(cls):
         """Get inner schemas by name."""
 
-        return getmembers(cls, lambda member: issubclass(member, Schema))
+        return getmembers(cls, lambda member: isinstance(member, Schema))

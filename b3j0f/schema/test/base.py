@@ -30,43 +30,155 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..base import Schema, getschema
-from ..prop import Property as P
+from ..base import Schema
 
 
 class SchemaTest(UTCase):
 
-    def test_getschema(self):
-
-        self.assertRaises(ValueError, getschema, '')
-
-        class TestSchema(Schema):
-            pass
-
-        resource = 'resource'
-
-        schema = getschema(resource)
-
-        self.assertEqual(schema.resource, resource)
-
     def test_init(self):
 
-        schema = Schema('')
+        schema = Schema()
 
-        self.assertIsNone(schema.name)
-        self.assertIsNone(schema.uid)
-        self.assertIsNone(schema.ids)
-        self.assertIsNone(schema.pids)
+        self.assertIsNone(schema._fget)
+        self.assertIsNone(schema._fset)
+        self.assertIsNone(schema._fdel)
+        self.assertIsNone(schema._value)
 
-        schema = Schema(
-            '',
-            name='a', uid='b', ids=['a', 'b'], properties=[P('a'), P('b')]
-        )
+    def test_init_gsd(self):
 
-        self.assertEqual(schema.name, 'a')
-        self.assertEqual(schema.uid, 'b')
-        self.assertEqual(schema.ids, ['a', 'b'])
-        self.assertEqual(schema.pids, [schema['a'], schema['b']])
+        processing = []
+
+        class Test(object):
+
+            test = Schema()
+
+        test = Test()
+
+        res = test.test
+        self.assertIsNone(res)
+
+        test.test = Schema()
+        self.assertIsInstance(test.test, Schema)
+
+        del test.test
+        self.assertFalse(hasattr(test, 'test'))
+
+        test.test = Schema()
+        self.assertIsInstance(test.test, Schema)
+
+    def test_init_gsd_custom(self):
+
+        processing = []
+
+        class Test(object):
+
+            @Schema
+            def test(self):
+                processing.append('getter')
+                return getattr(self, '_value', self)
+
+            @test.setter
+            def test(self, value):
+                processing.append('setter')
+                self._value = value
+
+            @test.deleter
+            def test(self):
+                processing.append('deleter')
+                del self._value
+
+        test = Test()
+        self.assertNotIn('getter', processing)
+        self.assertNotIn('setter', processing)
+        self.assertNotIn('deleter', processing)
+
+        res = test.test
+        self.assertEqual(res, test)
+        self.assertIn('getter', processing)
+        self.assertNotIn('setter', processing)
+        self.assertNotIn('deleter', processing)
+
+        test.test = Schema()
+        self.assertIsInstance(test.test, Schema)
+        self.assertIn('getter', processing)
+        self.assertIn('setter', processing)
+        self.assertNotIn('deleter', processing)
+
+        self.assertRaises(TypeError, setattr, test, 'test', None)
+
+        test.test = lambda: Schema()
+
+        self.assertRaises(TypeError, setattr, test, 'test', lambda: None)
+
+        del test.test
+        self.assertFalse(hasattr(test, '_value'))
+        self.assertIn('getter', processing)
+        self.assertIn('setter', processing)
+        self.assertIn('deleter', processing)
+
+        test.test = Schema()
+        self.assertIsInstance(test.test, Schema)
+        self.assertIn('getter', processing)
+        self.assertIn('setter', processing)
+        self.assertIn('deleter', processing)
+
+    def test_validate(self):
+
+        schema = Schema()
+
+        self.assertRaises(TypeError, schema.validate, None)
+
+    def test_dump(self):
+
+        schema = Schema()
+
+    def test_schemas(self):
+
+        class TestSchema(Schema):
+
+            a = Schema()
+
+            b = Schema()
+
+        names = ['a', 'b']
+
+        schemas = TestSchema.schemas()
+
+        self.assertEqual(len(names), len(schemas))
+
+        for index, (name, value) in enumerate(schemas):
+            self.assertEqual(names[index], name)
+
+        schema = TestSchema()
+
+        schemas = schema.schemas()
+
+        self.assertEqual(len(names), len(schemas))
+
+        for index, (name, value) in enumerate(schemas):
+            self.assertEqual(names[index], name)
+
+    def test_dump(self):
+
+        schema = Schema()
+
+        dump = schema.dump()
+
+        self.assertFalse(dump)
+
+    def test_dump_content(self):
+
+        class TestSchema(Schema):
+
+            a = Schema()
+
+            b = Schema()
+
+        schema = TestSchema()
+
+        dump = schema.dump()
+
+        self.assertEqual(dump, {'a': {}, 'b': {}})
 
 if __name__ == '__main__':
     main()

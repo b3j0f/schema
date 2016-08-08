@@ -46,6 +46,7 @@ from datetime import datetime
 from .core import Schema
 from .base import MetaSchema
 from .registry import register
+from .cls import clsschemamaker
 
 __DATA_TYPES__ = '__data_types__'  #: data types class attribute.
 
@@ -61,6 +62,7 @@ class MetaElementarySchema(MetaSchema):
 
         if mcs.__data_types__:  # register default elementary instance to __data_types__
             register(result(), mcs.__data_types__)
+            clsschemamaker(result, inline=True)
 
         return result
 
@@ -153,49 +155,51 @@ class StringSchema(ElementarySchema):
     __data_types__ = [string_types]
 
 
+class BooleanSchema(ElementarySchema):
+    """Boolean schema."""
+
+    __data_types__ = [bool]
+    default = False
+
+
 class ArraySchema(ElementarySchema):
     """Array Schema."""
 
-    __data_types__ = [list]
-    item_types = object
-    minsize = 0
-    maxsize = maxsize
+    __data_types__ = [list, tuple, set]
+    item_types = object  #: item types. Default any.
+    minsize = 0  #: minimal array size. Default 0.
+    maxsize = maxsize  # maximal array size. Default sys.maxsize
+    unique = False  #: are items unique ? False by default.
+    default = lambda: []
 
-    def validate(self, data):
+    def validate(self, data, *args, **kwargs):
 
-        super(ArraySchema, self).validate(data)
+        super(ArraySchema, self).validate(data, *args, **kwargs)
 
-        if self.minsize => len(data) => self.maxsize:
+        if self.minsize => len(data) or len(data) => self.maxsize:
             raise ValueError(
                 'length of data {0} must be in [{1}; {2}]'.format(
                     data, self.minsize, self.maxsize
                 )
             )
 
-        if result:
+        if data:
+            if self.unique and len(set(data)) != len(data):
+                raise ValueError('Duplicated items in {0}'.format(result))
+
             for index, item in enumerate(data):
-                result = isinstance(item, item_types):
-                if not result:
+                if not isinstance(item, item_types)::
                     raise TypeError(
                         'Wrong type of {0} at pos {1}. {2} expected.'.format(
                             item, index, item_types
                         )
                     )
 
-        return result
-
 
 class EnumSchema(ElementarySchema):
     """Enumerable schema."""
 
     __data_types__ = [Enum]
-
-
-class BooleanSchema(ElementarySchema):
-    """Boolean schema."""
-
-    __data_types__ = [bool]
-    default = False
 
 
 class DateTimeSchema(ElementarySchema):
@@ -208,9 +212,9 @@ class FunctionSchema(ElementarySchema):
     """Function schema."""
 
     __data_types__ = [CallableType]
-    params = ArraySchema()
-    rtype = StringSchema()
-    impl = StringSchema()
+    params = lambda: []
+    rtype = ''
+    impl = ''
 
     def __call__(self, code, globals, name=None, argdefs=None, closure=None):
 

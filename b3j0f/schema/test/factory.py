@@ -59,13 +59,13 @@ class TestFactory(UTCase):
         self.assertRaises(TypeError, factory.getschema, schemaint)
         self.assertRaises(TypeError, factory.getschema, schemastr)
 
-        factory.registermaker('str', makerstr)
+        factory.registermaker(name='str', maker=makerstr)
 
         self.assertRaises(TypeError, factory.getschema, schemaint)
         schema = factory.getschema(schemastr)
         self.assertEqual(schema, schemastr)
 
-        factory.registermaker('int', makerint)
+        factory.registermaker(name='int', maker=makerint)
         schema = factory.getschema(schemaint)
         self.assertEqual(schema, schemaint)
         schema = factory.getschema(schemastr)

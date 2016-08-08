@@ -30,7 +30,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..registry import SchemaRegistry, getbyuuid, getbyname, unregister, fromcls
+from ..registry import SchemaRegistry, getbyuuid, getbyname, unregister, fromobj
 
 from uuid import uuid4
 
@@ -39,13 +39,20 @@ from numbers import Number
 
 class TestSchema(object):
 
-    def __init__(self, name=None, uuid=None, _=None, *args, **kwargs):
+    def __init__(
+            self, name=None, uuid=None, _=None, default=None, *args, **kwargs
+    ):
 
         super(TestSchema, self).__init__(*args, **kwargs)
 
         self.name = name or TestSchema.__name__
         self.uuid = uuid or uuid4()
         self._testschema = _ or TestSchema(_=self)
+        self.default = default
+
+    def __eq__(self, other):
+
+        return self.name == other.name and self.uuid == other.uuid
 
     def schemas(self):
 
@@ -96,25 +103,31 @@ class SchemaRegistryTest(UTCase):
         schemabool = TestSchema()
         schemanumber = TestSchema()
 
-        self.assertRaises(TypeError, self.registry.fromcls, int)
+        self.assertRaises(TypeError, self.registry.fromobj, 1)
 
-        self.assertRaises(TypeError, self.registry.fromcls, TestSchema)
+        self.assertRaises(TypeError, self.registry.fromobj, TestSchema())
 
         self.registry.register(schemaint, data_types=[int])
         self.registry.register(schemabool, data_types=[bool])
         self.registry.register(schemanumber, data_types=[Number])
 
-        _schema = self.registry.fromcls(int)
+        _schema = self.registry.fromobj(1, uuid=schemaint.uuid)
         self.assertEqual(schemaint, _schema)
 
-        _schema = self.registry.fromcls(bool)
+        _schema = self.registry.fromobj(lambda: 1, uuid=schemaint.uuid)
+        self.assertEqual(schemaint, _schema)
+
+        _schema = self.registry.fromobj(True, uuid=schemabool.uuid)
         self.assertEqual(_schema, schemabool)
 
-        _schema = self.registry.fromcls(Number)
-        self.assertEqual(_schema, schemanumber)
+        _schema = self.registry.fromobj(lambda: True, uuid=schemabool.uuid)
+        self.assertEqual(_schema, schemabool)
 
         self.registry.unregister(schemaint.uuid)
-        _schema = self.registry.fromcls(int)
+        _schema = self.registry.fromobj(1, uuid=schemanumber.uuid)
+        self.assertEqual(_schema, schemanumber)
+
+        _schema = self.registry.fromobj(lambda: 1, uuid=schemanumber.uuid)
         self.assertEqual(_schema, schemanumber)
 
 if __name__ == '__main__':
