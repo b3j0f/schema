@@ -38,22 +38,34 @@ from six import get_unbound_function, add_metaclass
 
 from uuid import uuid4
 
-from .registry import register
+from .registry import register, fromobj
+from .factory import registermaker, getschemacls
 
 
 class MetaSchema(type):
     """Automatically register schemas."""
 
+    def __new__(mcs, *args, **kwargs):
+
+        result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
+
+        clsschemamaker(resource=result)  # clean all new schema
+        if result.__data_types__:
+            registertype(schemacls=result, data_types=result.__data_types__)
+
+        return result
+
     def __call__(cls, *args, **kwargs):
 
         result = super(MetaSchema, cls).__call__(*args, **kwargs)
 
-        register(result)
+        if result.__register__:  # register all new schema
+            register(schema=result)
 
         return result
 
 
-@add_metaclass(MetaSchema)
+#@add_metaclass(MetaSchema)
 class Schema(property):
     """Schema description.
 
@@ -70,12 +82,16 @@ class Schema(property):
     automatically registered in the registry and becomes accessible from the
     `b3j0f.schema.reg.getschemabyuid` function."""
 
+    __register__ = True  #: automatically register it if True.
+    __data_types__ = []  #: data types which can be instanciated by this schema.
+
     name = ''  #: schema name. Default is self name.
     uuid = lambda: uuid4()  #: schema universal unique identifier.
     description = ''  #: schema description.
     default = None  #: schema default value.
     required = lambda: []  #: required schema names.
     version = '1'  #: schema version.
+    nullable = True  #: if True (default), value can be None.
 
     def __init__(self, fget=None, fset=None, fdel=None, doc=None, **kwargs):
         """Instance attributes are setted related to arguments or inner schemas.
@@ -153,10 +169,19 @@ class Schema(property):
         :param data: data to validate with this schema.
         :raises: Exception if the data is not validated"""
 
-        if not isinstance(data, type(self)):
-            raise TypeError(
-                'Wrong type {0}. {1} expected'.format(data, self)
-            )
+        if data is None and not self.nullable:
+            raise TypeError('Value can not be null')
+
+        elif data is not None:
+            if not isinstance(data, type(self)):
+                raise TypeError(
+                    'Wrong type {0}. {1} expected'.format(data, self)
+                )
+
+            self._validate(data)
+
+    def _validate(self, data):
+        """Custom validation."""
 
         for name, schema in self.schemas():
             if name in self.required and not hasattr(data, name):
@@ -178,9 +203,9 @@ class Schema(property):
         result = {}
 
         for name, schema in self.schemas():
-            val = schema.dump()
-
-            result[name] = val
+            if hasattr(self, name):
+                val = getattr(self, name)
+                result[name] = val
 
         return result
 
@@ -189,3 +214,48 @@ class Schema(property):
         """Get inner schemas by name."""
 
         return getmembers(cls, lambda member: isinstance(member, Schema))
+
+
+@registermaker
+def clsschemamaker(resource, name=None):
+    """Default function which make a schema class from a resource.
+
+    :param type resource: input resource is a class.
+    :param str name: schema type name to use. Default is resource name.
+    :rtype: type
+    :raise: TypeError if resource is not a class."""
+
+    if not isinstance(resource, type):
+        raise TypeError('Wrong type {0}, \'type\' expected'.format(resource))
+
+    if issubclass(resource, Schema):
+        result = resource
+
+    else:
+        try:
+            result = getschemacls(resource)
+
+        except KeyError:
+            resname = resource.__name__ if name is None else name
+            return type(resname, (Schema, resource), {})
+
+    for name, member in getmembers(resource):
+
+        if name[0] != '_':  # parse only public members
+
+            if isinstance(member, Schema):
+                schema = member
+
+            else:
+                try:
+                    schemacls = getbytype(type(member))
+
+                except TypeError:
+                    continue
+
+                else:
+                    setattr(result, name, schemacls())
+
+    return result
+
+Schema = add_metaclass(MetaSchema)(Schema)

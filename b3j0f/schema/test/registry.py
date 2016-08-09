@@ -97,38 +97,59 @@ class SchemaRegistryTest(UTCase):
             self.registry.unregister(uuid)
             self.assertRaises(KeyError, self.registry.getbyuuid, uuid)
 
-    def test_register_with_data_types(self):
+    def test_registertype(self):
 
-        schemaint = TestSchema()
-        schemabool = TestSchema()
-        schemanumber = TestSchema()
+        class Schema(object):
 
-        self.assertRaises(TypeError, self.registry.fromobj, 1)
+            def __init__(self, default, *args, **kwargs):
+                super(Schema, self).__init__(*args, **kwargs)
+                self.default = default
 
-        self.assertRaises(TypeError, self.registry.fromobj, TestSchema())
+        class IntSchema(Schema):
+            pass
 
-        self.registry.register(schemaint, data_types=[int])
-        self.registry.register(schemabool, data_types=[bool])
-        self.registry.register(schemanumber, data_types=[Number])
+        class BoolSchema(Schema):
+            pass
 
-        _schema = self.registry.fromobj(1, uuid=schemaint.uuid)
-        self.assertEqual(schemaint, _schema)
+        class NumberSchema(Schema):
+            pass
 
-        _schema = self.registry.fromobj(lambda: 1, uuid=schemaint.uuid)
-        self.assertEqual(schemaint, _schema)
+        self.assertIsNone(self.registry.fromobj(1))
 
-        _schema = self.registry.fromobj(True, uuid=schemabool.uuid)
-        self.assertEqual(_schema, schemabool)
+        self.assertIsNone(self.registry.fromobj(TestSchema()))
 
-        _schema = self.registry.fromobj(lambda: True, uuid=schemabool.uuid)
-        self.assertEqual(_schema, schemabool)
+        self.registry.registercls(schemacls=IntSchema, data_types=[int])
+        self.registry.registercls(schemacls=BoolSchema, data_types=[bool])
+        self.registry.registercls(schemacls=NumberSchema, data_types=[Number])
 
-        self.registry.unregister(schemaint.uuid)
-        _schema = self.registry.fromobj(1, uuid=schemanumber.uuid)
-        self.assertEqual(_schema, schemanumber)
+        schemacls = self.registry.getbytype(int)
+        self.assertIs(schemacls, IntSchema)
+        schema = self.registry.fromobj(1)
+        self.assertIsInstance(schema, IntSchema)
+        self.assertEqual(schema.default, 1)
+        schema = self.registry.fromobj(lambda: 1)
+        self.assertIsInstance(schema, IntSchema)
+        self.assertEqual(schema.default, 1)
 
-        _schema = self.registry.fromobj(lambda: 1, uuid=schemanumber.uuid)
-        self.assertEqual(_schema, schemanumber)
+        schemacls = self.registry.getbytype(bool)
+        self.assertIs(schemacls, BoolSchema)
+        schema = self.registry.fromobj(True)
+        self.assertIsInstance(schema, BoolSchema)
+        self.assertEqual(schema.default, True)
+        schema = self.registry.fromobj(lambda: True)
+        self.assertIsInstance(schema, BoolSchema)
+        self.assertEqual(schema.default, True)
+
+        self.registry.unregistertype(schemacls=IntSchema)
+        schemacls = self.registry.getbytype(int)
+        self.assertIs(schemacls, NumberSchema)
+        schema = self.registry.fromobj(1)
+        self.assertIsInstance(schema, NumberSchema)
+        self.assertEqual(schema.default, 1)
+
+        schema = self.registry.fromobj(lambda: 1)
+        self.assertIsInstance(schema, NumberSchema)
+        self.assertEqual(schema.default, 1)
 
 if __name__ == '__main__':
     main()

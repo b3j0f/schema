@@ -30,7 +30,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..factory import SchemaFactory, registermaker, getschema
+from ..factory import SchemaFactory
 
 
 class TestFactory(UTCase):
@@ -60,29 +60,53 @@ class TestFactory(UTCase):
 
         self.factory = SchemaFactory()
 
-        self.assertRaises(TypeError, self.factory.getschema, schemaint)
-        self.assertRaises(TypeError, self.factory.getschema, schemastr)
+        self.assertRaises(TypeError, self.factory.make, schemaint)
+        self.assertRaises(KeyError, self.factory.getschemacls, schemaint)
+        self.assertRaises(TypeError, self.factory.make, schemastr)
+        self.assertRaises(KeyError, self.factory.getschemacls, schemastr)
 
         self.factory.registermaker(name='str', maker=makerstr)
 
-        self.assertRaises(TypeError, self.factory.getschema, schemaint)
-        schema = self.factory.getschema(schemastr)
-        self.assertEqual(schema, schemastr)
+        self.assertRaises(TypeError, self.factory.make, schemaint)
+        self.assertRaises(KeyError, self.factory.getschemacls, schemaint)
+
+        schemacls = self.factory.make(schemastr)
+        self.assertEqual(schemacls, schemastr)
+
+        schemacls = self.factory.getschemacls(schemastr)
+        self.assertEqual(schemacls, schemastr)
 
         self.factory.registermaker(name='int', maker=makerint)
-        schema = self.factory.getschema(schemaint)
-        self.assertEqual(schema, schemaint)
-        schema = self.factory.getschema(schemastr)
-        self.assertEqual(schema, schemastr)
+
+        schemacls = self.factory.make(schemaint)
+        self.assertEqual(schemacls, schemaint)
+
+        schemacls = self.factory.getschemacls(schemaint)
+        self.assertEqual(schemacls, schemaint)
+
+        schemacls = self.factory.make(schemastr)
+        self.assertEqual(schemacls, schemastr)
+
+        schemacls = self.factory.getschemacls(schemastr)
+        self.assertEqual(schemacls, schemastr)
 
         self.factory.unregistermaker('str')
-        schema = self.factory.getschema(schemastr)
-        self.assertEqual(schema, schemastr)
+
+        schemacls = self.factory.make(schemastr)
+        self.assertEqual(schemacls, schemastr)
+
         self.assertRaises(
-            TypeError, self.factory.getschema, schemastr, cache=False
+            TypeError, self.factory.make, schemastr, cache=False
         )
-        schema = self.factory.getschema(schemaint)
-        self.assertEqual(schema, schemaint)
+
+        schemacls = self.factory.getschemacls(schemastr)
+        self.assertEqual(schemacls, schemastr)
+
+        schemacls = self.factory.make(schemaint)
+        self.assertEqual(schemacls, schemaint)
+
+        schemacls = self.factory.make(schemastr)
+        self.assertEqual(schemacls, schemastr)
 
     def test_decorator(self):
 

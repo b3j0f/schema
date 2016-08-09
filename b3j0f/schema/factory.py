@@ -25,7 +25,7 @@
 # --------------------------------------------------------------------
 """Schema factory module."""
 
-__all__ = ['SchemaFactory', 'registermaker', 'unregistermaker', 'getschema']
+__all__ = ['SchemaFactory', 'registermaker', 'unregistermaker', 'make']
 
 from uuid import uuid4 as uuid
 
@@ -47,10 +47,14 @@ class SchemaFactory(object):
     def registermaker(self, maker=None, name=None):
         """Register a schema maker with a key name.
 
-        :param str name: maker name. Default is maker name or generated.
+        Can be used such as a decorator where the maker can be the name for a
+        short use.
+
         :param maker: callable object which takes in parameter a schema resource
             and generate a schema class in return. If the resource is not in the
-            right format, the maker must raise a TypeError exception."""
+            right format, the maker must raise a TypeError exception.
+        :param str name: maker name. Default is maker name or generated.
+        """
 
         def _register(
                 maker, name=maker if isinstance(maker, string_types) else name
@@ -88,8 +92,8 @@ class SchemaFactory(object):
 
         return list(self._makers.keys())
 
-    def getschema(self, resource, cache=True):
-        """Get a schema from input resource.
+    def make(self, resource, cache=True):
+        """Make a schema class from input resource.
 
         :param resource: object from where get the right schema.
         :param bool cache: use cache system.
@@ -116,6 +120,16 @@ class SchemaFactory(object):
 
         return result
 
+    def getschemacls(self, resource):
+        """Get schema class related to input resource.
+
+        :param resource: resource from which get schema class.
+        :rtype: type
+        :raises: KeyError if resource is not already registered."""
+
+        return self._schemasbyresource[resource]
+
+
 _SCHEMAFACTORY = SchemaFactory()  #: global schema factory
 
 
@@ -138,11 +152,19 @@ def unregistermaker(name):
 
     return _SCHEMAFACTORY.unregistermaker(name=name)
 
-def getschema(resource, cache=True):
+def make(resource, cache=True):
     """Get a schema from input resource.
 
     :param resource: object from where get the right schema.
     :param bool cache: use cache system.
     :rtype: Schema."""
 
-    return _SCHEMAFACTORY.getschema(resource=resource, cache=True)
+    return _SCHEMAFACTORY.make(resource=resource, cache=True)
+
+def getschemacls(resource):
+    """Get schema class related to input resource.
+
+    :param resource: resource from which get schema class.
+    :rtype: type"""
+
+    return _SCHEMAFACTORY.getschemacls(resource=resource)

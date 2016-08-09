@@ -49,7 +49,7 @@ from datetime import datetime
 
 from .base import Schema, MetaSchema
 from .registry import register
-from .cls import clsschemamaker
+
 
 __DATA_TYPES__ = '__data_types__'  #: data types class attribute.
 
@@ -63,9 +63,8 @@ class MetaElementarySchema(MetaSchema):
 
         result = super(MetaElementarySchema, mcs).__new__(mcs, *args, **kwargs)
 
-        if mcs.__data_types__:  # register default elementary instance to __data_types__
-            register(result(), result.__data_types__)
-            clsschemamaker(result, inline=True)
+        if result.__data_types__:  # register default elementary instance to __data_types__
+            register(schema=result(), data_types=result.__data_types__)
 
         return result
 
@@ -87,7 +86,7 @@ class MetaElementarySchema(MetaSchema):
 @add_metaclass(MetaElementarySchema)
 class ElementarySchema(Schema):
 
-    __data_types__ = ()  #: data_types to register with
+    __data_types__ = []  #: data_types to register with
 
     def validate(self, data, *args, **kwargs):
 
@@ -200,19 +199,3 @@ class DateTimeSchema(ElementarySchema):
 
     __data_types__ = [datetime]
     default = lambda: datetime.now()
-
-
-class FunctionSchema(ElementarySchema):
-    """Function schema."""
-
-    __data_types__ = [FunctionType, MethodType]
-    params = lambda: []
-    rtype = ''
-    impl = ''
-
-    def default(*args, **kwargs):
-        raise NotImplementedError()
-
-    def __call__(self, code, globals, name=None, argdefs=None, closure=None):
-
-        return FunctionType(code, globals, name, argdefs, closure)

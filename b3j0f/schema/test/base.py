@@ -30,7 +30,62 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..base import Schema
+from ..factory import registermaker
+from ..base import Schema, clsschemamaker
+
+
+class CLSSchemaMaker(UTCase):
+
+    class Test(object):
+        pass
+
+    def setUp(self):
+
+        @registermaker
+        def testmaker(resource):
+
+            if not issubclass(resource, CLSSchemaMaker.Test):
+                raise TypeError()
+
+            return Schema
+
+    def test_default(self):
+
+        @clsschemamaker
+        class TestSchema(object):
+            pass
+
+        self.assertFalse(TestSchema.schemas())
+
+    def test_schema(self):
+
+        @clsschemamaker
+        class TestSchema(Schema):
+            pass
+
+        self.assertFalse(TestSchema.schemas())
+
+    def test_content(self):
+
+        @clsschemamaker
+        class TestSchema(object):
+
+            a = 'a'
+            b = CLSSchemaMaker.Test()
+
+        self.assertEqual(TestSchema.a, 'a')
+        self.assertIsInstance(TestSchema.b, Schema)
+
+    def test_content_schema(self):
+
+        @clsschemamaker
+        class TestSchema(Schema):
+
+            a = 'a'
+            b = CLSSchemaMaker.Test()
+
+        self.assertEqual(TestSchema.a, 'a')
+        self.assertIsInstance(TestSchema.b, Schema)
 
 
 class SchemaTest(UTCase):
@@ -104,11 +159,18 @@ class SchemaTest(UTCase):
         self.assertIn('setter', processing)
         self.assertNotIn('deleter', processing)
 
+        test.test = None
+        Test.test.nullable = False
         self.assertRaises(TypeError, setattr, test, 'test', None)
+        self.assertRaises(TypeError, setattr, test, 'test', 1)
 
         test.test = lambda: Schema()
 
         self.assertRaises(TypeError, setattr, test, 'test', lambda: None)
+        self.assertRaises(TypeError, setattr, test, 'test', lambda: 1)
+
+        Test.test.nullable = True
+        test.test = lambda: None
 
         del test.test
         self.assertFalse(hasattr(test, '_value'))
@@ -126,11 +188,12 @@ class SchemaTest(UTCase):
 
         schema = Schema()
 
+        schema.validate(None)
+        self.assertRaises(TypeError, schema.validate, 1)
+        schema.nullable = False
         self.assertRaises(TypeError, schema.validate, None)
-
-    def test_dump(self):
-
-        schema = Schema()
+        schema.nullable = True
+        schema.validate(None)
 
     def test_schemas(self):
 
@@ -178,7 +241,7 @@ class SchemaTest(UTCase):
 
         dump = schema.dump()
 
-        self.assertEqual(dump, {'a': {}, 'b': {}})
+        self.assertEqual(dump, {'a': None, 'b': None})
 
 if __name__ == '__main__':
     main()
