@@ -38,8 +38,7 @@ from ..elementary import (
         ArraySchema,
         BooleanSchema,
         EnumSchema,
-        FunctionSchema,
-        ElementaryTest
+        FunctionSchema
     )
 
 

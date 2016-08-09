@@ -194,22 +194,17 @@ class Schema(property):
                     'Wrong type {0}. {1} expected'.format(data, self)
                 )
 
-            self._validate(data)
+            for name, schema in iteritems(self.schemas()):
+                if name in self.required and not hasattr(data, name):
+                    part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
+                        format(name, self, data)
+                    )
+                    part2 = '{3} expected.'.format(schema)
+                    error = '{0} {1}'.format(part1, part2)
+                    raise ValueError(error)
 
-    def _validate(self, data):
-        """Custom validation."""
-
-        for name, schema in iteritems(self.schemas()):
-            if name in self.required and not hasattr(data, name):
-                part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
-                    format(name, self, data)
-                )
-                part2 = '{3} expected.'.format(schema)
-                error = '{0} {1}'.format(part1, part2)
-                raise ValueError(error)
-
-            elif hasattr(data, name):
-                schema.validate(getattr(data, name))
+                elif hasattr(data, name):
+                    schema.validate(getattr(data, name))
 
     def dump(self):
         """Get a serialized value of this schema.

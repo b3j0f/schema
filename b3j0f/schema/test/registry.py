@@ -56,7 +56,7 @@ class TestSchema(object):
 
     def schemas(self):
 
-        return (('one', self), ('two', self._testschema))
+        return {'one': self, 'two': self._testschema}
 
 
 class SchemaRegistryTest(UTCase):

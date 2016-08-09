@@ -41,58 +41,27 @@ from numbers import Number
 
 from enum import Enum
 
-from types import FunctionType, MethodType
+from types import FunctionType, MethodType, LambdaType
 
 from sys import maxsize
 
 from datetime import datetime
 
-from .base import Schema, MetaSchema
+from .base import Schema, MetaSchema, DynamicValue
 from .registry import register
 
 
-__DATA_TYPES__ = '__data_types__'  #: data types class attribute.
-
-
-class MetaElementarySchema(MetaSchema):
-    """Meta Elementary Schema class.
-
-    Ensure inheritance and subclassing checking with corresponding data_type."""
-
-    def  __new__(mcs, *args, **kwargs):
-
-        result = super(MetaElementarySchema, mcs).__new__(mcs, *args, **kwargs)
-
-        if result.__data_types__:  # register default elementary instance to __data_types__
-            register(schema=result(), data_types=result.__data_types__)
-
-        return result
-
-    def __instancecheck__(cls, instance):
-
-        return (
-            super(MetaElementarySchema, cls).__instancecheck__(instance)
-            and isinstance(instance, cls.__data_types__)
-        )
-
-    def __subclasscheck__(cls, subclass):
-
-        return (
-            super(MetaElementarySchema, cls).__subclasscheck__(subclass)
-            and issubclass(subclass, cls.data_type)
-        )
-
-
-@add_metaclass(MetaElementarySchema)
 class ElementarySchema(Schema):
 
-    __data_types__ = []  #: data_types to register with
+    nullable = False
 
     def validate(self, data, *args, **kwargs):
 
-        if not isinstance(data, self.data_types):
+        if not isinstance(data, tuple(self.__data_types__)):
             raise TypeError(
-                'Wrong type {0}. {1} expected'.format(data, self.data_types)
+                'Wrong data value: {0}. {1} expected.'.format(
+                    data, self.__data_types__
+                )
             )
 
 
@@ -101,11 +70,11 @@ class NumberSchema(ElementarySchema):
     min = -maxsize
     max = maxsize
 
-    def validate(self, data):
+    def validate(self, data, *args, **kwargs):
 
-        super(NumberSchema, self).validate(data)
+        super(NumberSchema, self).validate(data, *args, **kwargs)
 
-        if self.min >= data >= self.max:
+        if self.min > data or data > self.max:
             raise ValueError(
                 'data {0} must be in [{1}; {2}]'.format(
                     data, self.min, self.max
@@ -163,7 +132,7 @@ class ArraySchema(ElementarySchema):
     minsize = 0  #: minimal array size. Default 0.
     maxsize = maxsize  # maximal array size. Default sys.maxsize
     unique = False  #: are items unique ? False by default.
-    default = lambda: []
+    default = DynamicValue(lambda: [])
 
     def validate(self, data, *args, **kwargs):
 
@@ -198,4 +167,9 @@ class EnumSchema(ElementarySchema):
 class DateTimeSchema(ElementarySchema):
 
     __data_types__ = [datetime]
-    default = lambda: datetime.now()
+    default = DynamicValue(lambda: datetime.now())
+
+
+class FunctionSchema(ElementarySchema):
+
+    __data_types__ = [FunctionType, MethodType, LambdaType]
