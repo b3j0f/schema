@@ -28,13 +28,13 @@
 
 __all__ = ['MetaSchema', 'Schema', 'clsschemamaker', 'dynamicvalue']
 
-from b3j0f.utils.version import getcallargs
+from b3j0f.utils.version import OrderedDict
 
-from types import LambdaType
+from types import FunctionType, MethodType
 
 from inspect import getmembers, isclass
 
-from six import get_unbound_function, add_metaclass
+from six import get_unbound_function, add_metaclass, iteritems
 
 from uuid import uuid4
 
@@ -85,8 +85,8 @@ class Schema(property):
 
     name = ''  #: schema name. Default is self name.
     uuid = DynamicValue(lambda: uuid4())  #: schema universal unique identifier.
-    description = ''  #: schema description.
-    default = DynamicValue(lambda: Schema())  #: schema default value.
+    doc = ''  #: schema description.
+    default = None  #: schema default value.
     required = DynamicValue(lambda: [])  #: required schema names.
     version = '1'  #: schema version.
     nullable = True  #: if True (default), value can be None.
@@ -98,16 +98,34 @@ class Schema(property):
         """
 
         super(Schema, self).__init__(
-            fget=self._getter, fset=self._setter, fdel=self._deleter, doc=doc
+            fget=self._getter, fset=self._setter, fdel=self._deleter,
+            doc=doc
         )
 
-        # set all init parameters to related inner schema
-        callargs = getcallargs(self.__init__, self, **kwargs)
+        if doc is not None:
+            kwargs['doc']
 
-        for name, schema in self.schemas():
-            if name in callargs:
-                val = callargs[name]
+        for name, member in getmembers(
+            type(self),
+            lambda member: not isinstance(member, (FunctionType, MethodType))
+        ):
+
+            if name[0] != '_' and name not in [
+                'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter'
+            ]:
+
+                if name in kwargs:
+                    val = kwargs[name]
+
+                else:
+                    if isinstance(member, Schema):
+                        val = member.default
+
+                    else:
+                        val = member
+
                 setattr(self, name, val)
+
 
         self._fget = fget
         self._fset = fset
@@ -181,7 +199,7 @@ class Schema(property):
     def _validate(self, data):
         """Custom validation."""
 
-        for name, schema in self.schemas():
+        for name, schema in iteritems(self.schemas()):
             if name in self.required and not hasattr(data, name):
                 part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
                     format(name, self, data)
@@ -200,7 +218,8 @@ class Schema(property):
 
         result = {}
 
-        for name, schema in self.schemas():
+        for name, schema in iteritems(self.schemas()):
+
             if hasattr(self, name):
                 val = getattr(self, name)
                 result[name] = val
@@ -209,9 +228,19 @@ class Schema(property):
 
     @classmethod
     def schemas(cls):
-        """Get inner schemas by name."""
+        """Get inner schemas by name.
 
-        return getmembers(cls, lambda member: isinstance(member, Schema))
+        :return: ordered dict by name.
+        :rtype: ordered dict by name"""
+
+        members = getmembers(cls, lambda member: isinstance(member, Schema))
+
+        result = OrderedDict()
+
+        for name, member in members:
+            result[name] = member
+
+        return result
 
 
 @registermaker

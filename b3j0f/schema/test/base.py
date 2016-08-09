@@ -31,7 +31,16 @@ from unittest import main
 from b3j0f.utils.ut import UTCase
 
 from ..registry import registercls
-from ..base import Schema, clsschemamaker
+from ..base import Schema, clsschemamaker, DynamicValue
+
+
+class DynamicValueTest(UTCase):
+
+    def test(self):
+
+        res = DynamicValue(lambda: 1)()
+
+        self.assertEqual(res, 1)
 
 
 class CLSSchemaMaker(UTCase):
@@ -165,13 +174,13 @@ class SchemaTest(UTCase):
         self.assertRaises(TypeError, setattr, test, 'test', None)
         self.assertRaises(TypeError, setattr, test, 'test', 1)
 
-        test.test = lambda: Schema()
+        test.test = DynamicValue(lambda: Schema())
 
         self.assertRaises(TypeError, setattr, test, 'test', lambda: None)
         self.assertRaises(TypeError, setattr, test, 'test', lambda: 1)
 
         Test.test.nullable = True
-        test.test = lambda: None
+        test.test = DynamicValue(lambda: None)
 
         del test.test
         self.assertFalse(hasattr(test, '_value'))
@@ -208,19 +217,13 @@ class SchemaTest(UTCase):
 
         schemas = TestSchema.schemas()
 
-        self.assertEqual(len(names), len(schemas))
-
-        for index, (name, value) in enumerate(schemas):
-            self.assertEqual(names[index], name)
+        self.assertEqual(len(Schema.schemas()) + 2, len(schemas))
 
         schema = TestSchema()
 
         schemas = schema.schemas()
 
-        self.assertEqual(len(names), len(schemas))
-
-        for index, (name, value) in enumerate(schemas):
-            self.assertEqual(names[index], name)
+        self.assertEqual(len(Schema.schemas()) + 2, len(schemas))
 
     def test_dump(self):
 
@@ -228,13 +231,17 @@ class SchemaTest(UTCase):
 
         dump = schema.dump()
 
-        self.assertFalse(dump)
+        _dump = {}
+        for name, schema in schema.schemas().items():
+            _dump[name] = schema.default
+
+        self.assertEqual(dump, _dump)
 
     def test_dump_content(self):
 
         class TestSchema(Schema):
 
-            a = Schema()
+            a = Schema(default=Schema())
 
             b = Schema()
 
@@ -242,7 +249,11 @@ class SchemaTest(UTCase):
 
         dump = schema.dump()
 
-        self.assertEqual(dump, {'a': None, 'b': None})
+        _dump = {}
+        for name, schema in schema.schemas().items():
+            _dump[name] = schema.default
+
+        self.assertEqual(dump, _dump)
 
 if __name__ == '__main__':
     main()
