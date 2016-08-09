@@ -26,7 +26,7 @@
 
 """Base schema package."""
 
-__all__ = ['MetaSchema', 'Schema']
+__all__ = ['MetaSchema', 'Schema', 'clsschemamaker', 'dynamicvalue']
 
 from b3j0f.utils.version import getcallargs
 
@@ -38,34 +38,32 @@ from six import get_unbound_function, add_metaclass
 
 from uuid import uuid4
 
-from .registry import register, fromobj
+from .registry import register, fromobj, registercls
 from .factory import registermaker, getschemacls
 
 
-class MetaSchema(type):
-    """Automatically register schemas."""
+class DynamicValue(object):
+    """Handle a function in order to dynamically lead a value while cleaning a
+    schema.
 
-    def __new__(mcs, *args, **kwargs):
+    For example, the schema attribute ``uuid`` uses a DynamicValue in order to
+    ensure default generation per instanciation."""
 
-        result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
+    __slots__ = ['func']
 
-        clsschemamaker(resource=result)  # clean all new schema
-        if result.__data_types__:
-            registertype(schemacls=result, data_types=result.__data_types__)
+    def __init__(self, func, *args, **kwargs):
+        """
+        :param func: function to execute while cleaning a schema."""
 
-        return result
+        super(DynamicValue, self).__init__(*args, **kwargs)
 
-    def __call__(cls, *args, **kwargs):
+        self.func = func
 
-        result = super(MetaSchema, cls).__call__(*args, **kwargs)
+    def __call__(self):
 
-        if result.__register__:  # register all new schema
-            register(schema=result)
-
-        return result
+        return self.func()
 
 
-#@add_metaclass(MetaSchema)
 class Schema(property):
     """Schema description.
 
@@ -86,10 +84,10 @@ class Schema(property):
     __data_types__ = []  #: data types which can be instanciated by this schema.
 
     name = ''  #: schema name. Default is self name.
-    uuid = lambda: uuid4()  #: schema universal unique identifier.
+    uuid = DynamicValue(lambda: uuid4())  #: schema universal unique identifier.
     description = ''  #: schema description.
-    default = None  #: schema default value.
-    required = lambda: []  #: required schema names.
+    default = DynamicValue(lambda: Schema())  #: schema default value.
+    required = DynamicValue(lambda: [])  #: required schema names.
     version = '1'  #: schema version.
     nullable = True  #: if True (default), value can be None.
 
@@ -142,7 +140,7 @@ class Schema(property):
         :param value: new value to use. If lambda, updated with the lambda
             result."""
 
-        if isinstance(value, LambdaType):  # execute lambda values.
+        if isinstance(value, DynamicValue):  # execute lambda values.
             value = value()
 
         self.validate(value)
@@ -243,19 +241,43 @@ def clsschemamaker(resource, name=None):
 
         if name[0] != '_':  # parse only public members
 
+            if isinstance(member, DynamicValue):
+                member = member()
+
             if isinstance(member, Schema):
                 schema = member
 
             else:
-                try:
-                    schemacls = getbytype(type(member))
+                schema = fromobj(member)
 
-                except TypeError:
-                    continue
-
-                else:
-                    setattr(result, name, schemacls())
+            if schema is not None:
+                setattr(result, name, schema)
 
     return result
 
+
+class MetaSchema(type):
+    """Automatically register schemas."""
+
+    def __new__(mcs, *args, **kwargs):
+
+        result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
+
+        clsschemamaker(resource=result)  # clean all new schema
+        if result.__data_types__:
+            registercls(schemacls=result, data_types=result.__data_types__)
+
+        return result
+
+    def __call__(cls, *args, **kwargs):
+
+        result = super(MetaSchema, cls).__call__(*args, **kwargs)
+
+        if result.__register__:  # register all new schema
+            register(schema=result)
+
+        return result
+
+# use metaschema such as the schema metaclass
 Schema = add_metaclass(MetaSchema)(Schema)
+clsschemamaker(Schema)

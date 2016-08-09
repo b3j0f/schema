@@ -30,7 +30,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..factory import registermaker
+from ..registry import registercls
 from ..base import Schema, clsschemamaker
 
 
@@ -41,13 +41,10 @@ class CLSSchemaMaker(UTCase):
 
     def setUp(self):
 
-        @registermaker
-        def testmaker(resource):
+        class TestSchema(Schema):
+            pass
 
-            if not issubclass(resource, CLSSchemaMaker.Test):
-                raise TypeError()
-
-            return Schema
+        registercls(Schema, [CLSSchemaMaker.Test])
 
     def test_default(self):
 
@@ -55,7 +52,7 @@ class CLSSchemaMaker(UTCase):
         class TestSchema(object):
             pass
 
-        self.assertFalse(TestSchema.schemas())
+        self.assertEqual(TestSchema.schemas(), Schema.schemas())
 
     def test_schema(self):
 
@@ -63,9 +60,12 @@ class CLSSchemaMaker(UTCase):
         class TestSchema(Schema):
             pass
 
-        self.assertFalse(TestSchema.schemas())
+        self.assertEqual(TestSchema.schemas(), Schema.schemas())
 
     def test_content(self):
+
+        class Test(object):
+            pass
 
         @clsschemamaker
         class TestSchema(object):
@@ -86,6 +86,7 @@ class CLSSchemaMaker(UTCase):
 
         self.assertEqual(TestSchema.a, 'a')
         self.assertIsInstance(TestSchema.b, Schema)
+        self.assertEqual(TestSchema.b.default, None)
 
 
 class SchemaTest(UTCase):
