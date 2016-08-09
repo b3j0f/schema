@@ -95,7 +95,7 @@ class CLSSchemaMaker(UTCase):
 
         self.assertEqual(TestSchema.a, 'a')
         self.assertIsInstance(TestSchema.b, Schema)
-        self.assertEqual(TestSchema.b.default, None)
+        self.assertIsInstance(TestSchema.b.default, CLSSchemaMaker.Test)
 
 
 class SchemaTest(UTCase):
