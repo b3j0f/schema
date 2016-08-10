@@ -26,7 +26,7 @@
 # --------------------------------------------------------------------
 
 
-from unittest import main
+from unittest import main, skipIf
 
 from b3j0f.utils.ut import UTCase
 
@@ -44,35 +44,71 @@ from ..elementary import (
 
 class ElementaryTest(UTCase):
 
-    __class__ = None
+    __schemacls__ = None
 
-    def _assert(self, value, error=False, **kwargs):
+    def _assert(self, data, error=False, **kwargs):
 
-        schema = self.__class__(**kwargs)
+        schema = self.__schemacls__(**kwargs)
 
         if error:
-            self.assertRaises(Exception, schema.validate, value)
+            self.assertRaises(Exception, schema.validate, data=data)
 
         else:
-            schema.validate(value)
+            schema.validate(data)
 
 
-class IntegerSchemaTest(ElementaryTest):
-
-    __class__ = IntegerSchema
+class NumberSchemaTest(ElementaryTest):
 
     def test_default(self):
 
-        self._assert(0)
+        if self.__schemacls__ is None:
+            self.skipTest('base class')
+
+        self._assert(
+            self.__schemacls__.__data_types__[0](0)
+        )
 
     def test_min(self):
 
-        self._assert(min=0, value=-2, error=True)
+        if self.__schemacls__ is None:
+            self.skipTest('base class')
+
+        self._assert(
+            min=self.__schemacls__.__data_types__[0](0),
+            data=self.__schemacls__.__data_types__[0](-1),
+            error=True
+        )
 
     def test_max(self):
 
-        self._assert(max=0, value=2, error=True)
+        if self.__schemacls__ is None:
+            self.skipTest('base class')
 
+        self._assert(
+            max=self.__schemacls__.__data_types__[0](0),
+            data=self.__schemacls__.__data_types__[0](2),
+            error=True
+        )
+
+
+class IntegerSchemaTest(NumberSchemaTest):
+
+    __schemacls__ = IntegerSchema
+
+
+class LongSchemaTest(NumberSchemaTest):
+
+    __schemacls__ = LongSchema
+
+
+class ComplexSchemaTest(NumberSchemaTest):
+
+    __schemacls__ = ComplexSchema
+
+
+class FloatSchemaTest(NumberSchemaTest):
+
+    __schemacls__ = FloatSchema
 
 if __name__ == '__main__':
     main()

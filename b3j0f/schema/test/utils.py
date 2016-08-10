@@ -29,57 +29,66 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.utils.path import getpath
 
-from ...base import Schema
-from ..python import clsschemamaker, functionschemamaker
-
-from inspect import getmembers
+from ..utils import DynamicValue, fromobj
+from ..registry import registercls
 
 
-class CLSSchemaMakerTest(UTCase):
+class DynamicValueTest(UTCase):
+
+    def test(self):
+
+        dvalue = DynamicValue(lambda: 'test')
+
+        self.assertEqual('test', dvalue())
+
+
+class FromObjTest(UTCase):
+
+    class BaseTest(object):
+
+        def __init__(self, default=None, *args, **kwargs):
+
+            super(FromObjTest.BaseTest, self).__init__(*args, **kwargs)
+            self.default = default
+
+    class Test(BaseTest):
+        pass
+
+    def setUp(self):
+
+        registercls(FromObjTest.BaseTest, [FromObjTest.BaseTest])
 
     def test_default(self):
 
-        @clsschemamaker
-        class Test(object):
-            pass
+        self.assertIsNone(fromobj(True))
 
-        self.assertEqual(Test.getschemas(), Schema.getschemas())
+    def test_default_force(self):
 
-    def test_schema(self):
+        self.assertRaises(TypeError, fromobj, True, _force=True)
 
-        @clsschemamaker
-        class Test(Schema):
-            pass
+    def test_default_besteffort(self):
 
-        self.assertEqual(Test.getschemas(), Schema.getschemas())
+        self.assertIsNone(fromobj(True, _besteffort=False))
 
-    def test_innergetschemas(self):
+    def test_dynamicvalue(self):
 
-        @clsschemamaker
-        class Test(object):
+        self.assertIsNone(fromobj(DynamicValue(lambda: True)))
 
-            a = Schema()
+    def test_registered(self):
 
-        self.assertNotEqual(Test.getschemas(), Schema.getschemas())
+        test = FromObjTest.Test()
+        res = fromobj(test)
 
-        schemas = Test.getschemas()
+        self.assertEqual(res.default, test)
 
-        self.assertEqual(Test.getschemas()[0][0], 'a')
+    def test_registered_besteffort(self):
 
-    def test_innerschemas_schema(self):
+        test = FromObjTest.Test()
+        res = fromobj(test, _besteffort=False)
 
-        @clsschemamaker
-        class Test(Schema):
+        self.assertIsNone(res)
 
-            a = Schema()
-
-        self.assertNotEqual(Test.getschemas(), Schema.getschemas())
-
-        schemas = Test.getschemas()
-
-        self.assertEqual(Test.getschemas()[0][0], 'a')
 
 if __name__ == '__main__':
     main()

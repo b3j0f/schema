@@ -38,30 +38,9 @@ from six import get_unbound_function, add_metaclass, iteritems
 
 from uuid import uuid4
 
-from .registry import register, fromobj, registercls
+from .registry import register, registercls
 from .factory import registermaker, getschemacls
-
-
-class DynamicValue(object):
-    """Handle a function in order to dynamically lead a value while cleaning a
-    schema.
-
-    For example, the schema attribute ``uuid`` uses a DynamicValue in order to
-    ensure default generation per instanciation."""
-
-    __slots__ = ['func']
-
-    def __init__(self, func, *args, **kwargs):
-        """
-        :param func: function to execute while cleaning a schema."""
-
-        super(DynamicValue, self).__init__(*args, **kwargs)
-
-        self.func = func
-
-    def __call__(self):
-
-        return self.func()
+from .utils import fromobj, DynamicValue
 
 
 class Schema(property):
@@ -109,11 +88,11 @@ class Schema(property):
             type(self),
             lambda member: not isinstance(member, (FunctionType, MethodType))
         ):
-
+            if name == 'required':
+                print(self, name, member)
             if name[0] != '_' and name not in [
                 'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter'
             ]:
-
                 if name in kwargs:
                     val = kwargs[name]
 
@@ -126,7 +105,6 @@ class Schema(property):
 
                 setattr(self, name, val)
 
-
         self._fget = fget
         self._fset = fset
         self._fdel = fdel
@@ -134,13 +112,30 @@ class Schema(property):
         # set default value
         self._value = None
 
+    @property
+    def default(self):
+        """Proxy for self._value."""
+        return self._getter(self)
+
+    @default.setter
+    def default(self, value):
+        """Change of default value."""
+        self._setter(self, value)
+
+    @default.deleter
+    def default(self):
+        """Delete default value."""
+        self._deleter(self)
+
     def __eq__(self, other):
         """Compare schemas."""
 
-        return other is self or self.schemas() == other.schemas()
+        return other is self or self.getschemas() == other.getschemas()
 
     def _getter(self, obj, *args, **kwargs):
-        """Called when the parent element tries to get this property value."""
+        """Called when the parent element tries to get this property value.
+
+        :param obj: parent object."""
 
         result = None
 
@@ -155,9 +150,10 @@ class Schema(property):
     def _setter(self, obj, value):
         """Called when the parent element tries to set this property value.
 
+        :param obj: parent object.
         :param value: new value to use. If lambda, updated with the lambda
             result."""
-
+        print('SET', obj, value)
         if isinstance(value, DynamicValue):  # execute lambda values.
             value = value()
 
@@ -171,6 +167,8 @@ class Schema(property):
 
     def _deleter(self, obj):
         """Called when the parent element tries to delete this property value.
+
+        :param obj: parent object.
         """
 
         if self._fdel is not None:
@@ -189,12 +187,22 @@ class Schema(property):
             raise TypeError('Value can not be null')
 
         elif data is not None:
-            if not isinstance(data, type(self)):
+
+            if self.__data_types__:  # data must inherits from this data_types
+                if not isinstance(data, tuple(self.__data_types__)):
+                    raise TypeError(
+                        'Wrong data value: {0}. {1} expected.'.format(
+                            data, self.__data_types__
+                        )
+                    )
+
+            elif not isinstance(data, type(self)):  # or from this
                 raise TypeError(
                     'Wrong type {0}. {1} expected'.format(data, self)
                 )
+            print(self)
 
-            for name, schema in iteritems(self.schemas()):
+            for name, schema in iteritems(self.getschemas()):
                 if name in self.required and not hasattr(data, name):
                     part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
                         format(name, self, data)
@@ -213,7 +221,7 @@ class Schema(property):
 
         result = {}
 
-        for name, schema in iteritems(self.schemas()):
+        for name, schema in iteritems(self.getschemas()):
 
             if hasattr(self, name):
                 val = getattr(self, name)
@@ -222,7 +230,7 @@ class Schema(property):
         return result
 
     @classmethod
-    def schemas(cls):
+    def getschemas(cls):
         """Get inner schemas by name.
 
         :return: ordered dict by name.
@@ -265,8 +273,7 @@ def clsschemamaker(resource, name=None):
 
         if name[0] != '_':  # parse only public members
 
-            if isinstance(member, DynamicValue):
-                member = member()
+            schema = None
 
             if isinstance(member, Schema):
                 schema = member
@@ -288,6 +295,7 @@ class MetaSchema(type):
         result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
 
         clsschemamaker(resource=result)  # clean all new schema
+
         if result.__data_types__:
             registercls(schemacls=result, data_types=result.__data_types__)
 

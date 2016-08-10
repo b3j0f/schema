@@ -34,15 +34,6 @@ from ..registry import registercls
 from ..base import Schema, clsschemamaker, DynamicValue
 
 
-class DynamicValueTest(UTCase):
-
-    def test(self):
-
-        res = DynamicValue(lambda: 1)()
-
-        self.assertEqual(res, 1)
-
-
 class CLSSchemaMaker(UTCase):
 
     class Test(object):
@@ -61,7 +52,7 @@ class CLSSchemaMaker(UTCase):
         class TestSchema(object):
             pass
 
-        self.assertEqual(TestSchema.schemas(), Schema.schemas())
+        self.assertEqual(TestSchema.getschemas(), Schema.getschemas())
 
     def test_schema(self):
 
@@ -69,7 +60,7 @@ class CLSSchemaMaker(UTCase):
         class TestSchema(Schema):
             pass
 
-        self.assertEqual(TestSchema.schemas(), Schema.schemas())
+        self.assertEqual(TestSchema.getschemas(), Schema.getschemas())
 
     def test_content(self):
 
@@ -205,7 +196,7 @@ class SchemaTest(UTCase):
         schema.nullable = True
         schema.validate(None)
 
-    def test_schemas(self):
+    def test_getschemas(self):
 
         class TestSchema(Schema):
 
@@ -215,15 +206,15 @@ class SchemaTest(UTCase):
 
         names = ['a', 'b']
 
-        schemas = TestSchema.schemas()
+        schemas = TestSchema.getschemas()
 
-        self.assertEqual(len(Schema.schemas()) + 2, len(schemas))
+        self.assertEqual(len(Schema.getschemas()) + 2, len(schemas))
 
         schema = TestSchema()
 
-        schemas = schema.schemas()
+        schemas = schema.getschemas()
 
-        self.assertEqual(len(Schema.schemas()) + 2, len(schemas))
+        self.assertEqual(len(Schema.getschemas()) + 2, len(schemas))
 
     def test_dump(self):
 
@@ -232,7 +223,7 @@ class SchemaTest(UTCase):
         dump = schema.dump()
 
         _dump = {}
-        for name, schema in schema.schemas().items():
+        for name, schema in schema.getschemas().items():
             _dump[name] = schema.default
 
         self.assertEqual(dump, _dump)
@@ -250,7 +241,7 @@ class SchemaTest(UTCase):
         dump = schema.dump()
 
         _dump = {}
-        for name, schema in schema.schemas().items():
+        for name, schema in schema.getschemas().items():
             _dump[name] = schema.default
 
         self.assertEqual(dump, _dump)

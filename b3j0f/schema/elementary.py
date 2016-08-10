@@ -50,34 +50,47 @@ from datetime import datetime
 from .base import Schema, MetaSchema, DynamicValue
 from .registry import register
 
+from .base import clsschemamaker
+
 
 class ElementarySchema(Schema):
 
     nullable = False
 
-    def validate(self, data, *args, **kwargs):
 
-        if not isinstance(data, tuple(self.__data_types__)):
-            raise TypeError(
-                'Wrong data value: {0}. {1} expected.'.format(
-                    data, self.__data_types__
-                )
-            )
+class BooleanSchema(ElementarySchema):
+    """Boolean schema."""
+
+    __data_types__ = [bool]
+    default = False
+
+
+print(BooleanSchema.getschemas())
 
 
 class NumberSchema(ElementarySchema):
+    """Schema for number such as float, long, complex and float.
 
-    min = -maxsize
-    max = maxsize
+    If allows to bound data values."""
+
+    min = None  #: minimum allowed value if not None.
+    max = None  #: maximal allowed value if not None.
 
     def validate(self, data, *args, **kwargs):
 
         super(NumberSchema, self).validate(data, *args, **kwargs)
 
-        if self.min > data or data > self.max:
+        if self.min is not None and self.min > data:
             raise ValueError(
-                'data {0} must be in [{1}; {2}]'.format(
-                    data, self.min, self.max
+                'Data {0} must be greater or equal than {1}'.format(
+                    data, self.min
+                )
+            )
+
+        if self.max is not None and self.max < data:
+            raise ValueError(
+                'Data {0} must be lesser or equal than {1}'.format(
+                    data, self.max
                 )
             )
 
@@ -103,7 +116,7 @@ class ComplexSchema(NumberSchema):
     default = 0j
 
 
-class FloatSchema(ElementarySchema):
+class FloatSchema(NumberSchema):
     """Float Schema."""
 
     __data_types__ = [float]
@@ -117,20 +130,13 @@ class StringSchema(ElementarySchema):
     default = ''
 
 
-class BooleanSchema(ElementarySchema):
-    """Boolean schema."""
-
-    __data_types__ = [bool]
-    default = False
-
-
 class ArraySchema(ElementarySchema):
     """Array Schema."""
 
     __data_types__ = [list, tuple, set]
     item_types = object  #: item types. Default any.
     minsize = 0  #: minimal array size. Default 0.
-    maxsize = maxsize  # maximal array size. Default sys.maxsize
+    maxsize = None  # maximal array size. Default None
     unique = False  #: are items unique ? False by default.
     default = DynamicValue(lambda: [])
 
@@ -138,10 +144,17 @@ class ArraySchema(ElementarySchema):
 
         super(ArraySchema, self).validate(data, *args, **kwargs)
 
-        if self.minsize >= len(data) or len(data) >= self.maxsize:
+        if self.minsize > len(data):
             raise ValueError(
-                'length of data {0} must be in [{1}; {2}]'.format(
-                    data, self.minsize, self.maxsize
+                'length of data {0} must be greater than {1}.'.format(
+                    data, self.minsize
+                )
+            )
+
+        if self.maxsize is not None and len(data) >= self.maxsize:
+            raise ValueError(
+                'length of data {0} must be lesser than {1}.'.format(
+                    data, self.maxsize
                 )
             )
 

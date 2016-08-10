@@ -54,7 +54,7 @@ class TestSchema(object):
 
         return self.name == other.name and self.uuid == other.uuid
 
-    def schemas(self):
+    def getschemas(self):
 
         return {'one': self, 'two': self._testschema}
 
