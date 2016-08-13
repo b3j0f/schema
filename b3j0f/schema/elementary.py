@@ -35,7 +35,7 @@ __all__ = [
     'FunctionSchema'
 ]
 
-from six import string_types, add_metaclass
+from six import string_types
 
 from numbers import Number
 
@@ -43,30 +43,23 @@ from enum import Enum
 
 from types import FunctionType, MethodType, LambdaType
 
-from sys import maxsize
-
 from datetime import datetime
 
-from .base import Schema, MetaSchema, DynamicValue
+from .base import Schema, DynamicValue
 from .registry import register
-
-from .base import clsschemamaker
 
 
 class ElementarySchema(Schema):
 
     nullable = False
 
-
+print('ok')
 class BooleanSchema(ElementarySchema):
     """Boolean schema."""
 
     __data_types__ = [bool]
     default = False
-
-
-print(BooleanSchema.getschemas())
-
+print('ko')
 
 class NumberSchema(ElementarySchema):
     """Schema for number such as float, long, complex and float.

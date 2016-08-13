@@ -24,19 +24,11 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Base schema package."""
+"""Schema utilities package."""
 
-__all__ = ['MetaSchema', 'Schema', 'clsschemamaker', 'dynamicvalue']
-
-from b3j0f.utils.version import OrderedDict
+__all__ = ['DynamicValue', 'obj2schema']
 
 from types import FunctionType, MethodType
-
-from inspect import getmembers, isclass
-
-from six import get_unbound_function, add_metaclass, iteritems
-
-from uuid import uuid4
 
 from .registry import getbydatatype
 from .factory import make
@@ -64,7 +56,7 @@ class DynamicValue(object):
         return self.func()
 
 
-def fromobj(
+def obj2schema(
         obj, _force=False, _besteffort=True, registry=None, factory=None,
         *args, **kwargs
 ):
@@ -108,6 +100,6 @@ def fromobj(
         schemacls = make(cls)
 
     if schemacls:
-        result = schemacls(default=obj, *args, **kwargs)
+        result = schemacls(default=fobj, *args, **kwargs)
 
     return result

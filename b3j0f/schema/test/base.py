@@ -31,7 +31,7 @@ from unittest import main
 from b3j0f.utils.ut import UTCase
 
 from ..registry import registercls
-from ..base import Schema, clsschemamaker, DynamicValue
+from ..base import Schema, DynamicValue, resolveschema
 
 
 class CLSSchemaMaker(UTCase):
@@ -46,39 +46,15 @@ class CLSSchemaMaker(UTCase):
 
         registercls(Schema, [CLSSchemaMaker.Test])
 
-    def test_default(self):
-
-        @clsschemamaker
-        class TestSchema(object):
-            pass
-
-        self.assertEqual(TestSchema.getschemas(), Schema.getschemas())
-
     def test_schema(self):
 
-        @clsschemamaker
         class TestSchema(Schema):
             pass
 
         self.assertEqual(TestSchema.getschemas(), Schema.getschemas())
 
-    def test_content(self):
-
-        class Test(object):
-            pass
-
-        @clsschemamaker
-        class TestSchema(object):
-
-            a = 'a'
-            b = CLSSchemaMaker.Test()
-
-        self.assertEqual(TestSchema.a, 'a')
-        self.assertIsInstance(TestSchema.b, Schema)
-
     def test_content_schema(self):
 
-        @clsschemamaker
         class TestSchema(Schema):
 
             a = 'a'
@@ -245,6 +221,39 @@ class SchemaTest(UTCase):
             _dump[name] = schema.default
 
         self.assertEqual(dump, _dump)
+
+
+class TestResolveSchema(UTCase):
+
+    class Test(object):
+        pass
+
+    class SchemaTest(Schema):
+        pass
+
+    def setUp(self):
+
+        registercls(TestResolveSchema.SchemaTest, [TestResolveSchema.Test])
+
+    def test_default(self):
+
+        class Test(Schema):
+
+            default = TestResolveSchema.Test()
+
+        test = Test()
+
+        self.assertIsInstance(test.default, TestResolveSchema.SchemaTest)
+
+    def test_subtest(self):
+
+        class Test(Schema):
+
+            subtest = TestResolveSchema.Test()
+
+        test = Test()
+
+        self.assertIsInstance(test.subtest, TestResolveSchema.SchemaTest)
 
 if __name__ == '__main__':
     main()
