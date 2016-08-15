@@ -30,7 +30,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..utils import DynamicValue, fromobj
+from ..utils import DynamicValue, obj2schema
 from ..registry import registercls
 
 
@@ -61,31 +61,31 @@ class FromObjTest(UTCase):
 
     def test_default(self):
 
-        self.assertIsNone(fromobj(True))
+        self.assertIsNone(obj2schema(True))
 
     def test_default_force(self):
 
-        self.assertRaises(TypeError, fromobj, True, _force=True)
+        self.assertRaises(TypeError, obj2schema, True, _force=True)
 
     def test_default_besteffort(self):
 
-        self.assertIsNone(fromobj(True, _besteffort=False))
+        self.assertIsNone(obj2schema(True, _besteffort=False))
 
     def test_dynamicvalue(self):
 
-        self.assertIsNone(fromobj(DynamicValue(lambda: True)))
+        self.assertIsNone(obj2schema(DynamicValue(lambda: True)))
 
     def test_registered(self):
 
         test = FromObjTest.Test()
-        res = fromobj(test)
+        res = obj2schema(test)
 
         self.assertEqual(res.default, test)
 
     def test_registered_besteffort(self):
 
         test = FromObjTest.Test()
-        res = fromobj(test, _besteffort=False)
+        res = obj2schema(test, _besteffort=False)
 
         self.assertIsNone(res)
 

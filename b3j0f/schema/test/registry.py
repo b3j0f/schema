@@ -30,7 +30,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..registry import SchemaRegistry, getbyuuid, getbyname, unregister, fromobj
+from ..registry import SchemaRegistry, getbyuuid, getbyname, unregister
 
 from uuid import uuid4
 
@@ -114,32 +114,19 @@ class SchemaRegistryTest(UTCase):
         class NumberSchema(Schema):
             pass
 
-        self.assertIsNone(self.registry.fromobj(1))
-
-        self.assertIsNone(self.registry.fromobj(TestSchema()))
-
         self.registry.registercls(schemacls=IntSchema, data_types=[int])
         self.registry.registercls(schemacls=BoolSchema, data_types=[bool])
         self.registry.registercls(schemacls=NumberSchema, data_types=[Number])
 
         schemacls = self.registry.getbydatatype(int)
         self.assertIs(schemacls, IntSchema)
-        schema = self.registry.fromobj(1)
-        self.assertIsInstance(schema, IntSchema)
-        self.assertEqual(schema.default, 1)
 
         schemacls = self.registry.getbydatatype(bool)
         self.assertIs(schemacls, BoolSchema)
-        schema = self.registry.fromobj(True)
-        self.assertIsInstance(schema, BoolSchema)
-        self.assertEqual(schema.default, True)
 
         self.registry.unregistercls(schemacls=IntSchema)
         schemacls = self.registry.getbydatatype(int)
         self.assertIs(schemacls, NumberSchema)
-        schema = self.registry.fromobj(1)
-        self.assertIsInstance(schema, NumberSchema)
-        self.assertEqual(schema.default, 1)
 
 if __name__ == '__main__':
     main()
