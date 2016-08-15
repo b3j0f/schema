@@ -27,7 +27,7 @@
 """Base schema package."""
 
 __all__ = [
-    'MetaSchema', 'Schema', 'clsschemamaker', 'DynamicValue', 'DefaultSchema'
+    'MetaSchema', 'Schema', 'DynamicValue', 'RefSchema'
 ]
 
 from b3j0f.utils.version import OrderedDict
@@ -60,94 +60,6 @@ class _Schema(property):
     Once you defined your schema inheriting from this class, your schema will be
     automatically registered in the registry and becomes accessible from the
     `b3j0f.schema.reg.getschemabyuid` function."""
-
-
-class MetaSchema(type):
-    """Automatically register schemas."""
-
-    def __new__(mcs, *args, **kwargs):
-
-        result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
-
-        if result.__data_types__:
-            registercls(schemacls=result, data_types=result.__data_types__)
-
-        # update all sub schemas related to values
-        resolveschema(schemacls=result)
-
-        return result
-
-    def __call__(cls, *args, **kwargs):
-
-        result = super(MetaSchema, cls).__call__(*args, **kwargs)
-
-        if result.__register__:  # register all new schema
-            register(schema=result)
-
-        return result
-
-
-class RefSchema(_Schema):
-    """Schema which references another schema."""
-
-    def __init__(self, ref, *args, **kwargs):
-
-        super(RefSchema, self).__init__(*args, **kwargs)
-
-        self.ref = ref
-
-    def _setter(self, obj, value):
-
-        if isinstance(value, DynamicValue):  # execute lambda values.
-            value = value()
-
-        self.ref.validate(value)  # delegate validation to owner schema
-
-        setattr(obj, self.attrname, value)
-
-
-def resolveschema(schemacls):
-    """Parse schemacls and all its super classes and transform all values to
-    schema if schema classes are associated to simple types.
-
-    :param type schemacls: sub class of schema."""
-
-    for mro in schemacls.mro():
-
-        for name, member in getmembers(
-            mro,
-            lambda member: not isinstance(member, (FunctionType, MethodType))
-        ):
-
-            if name[0] != '_':
-
-                schema = None
-
-                if isinstance(member, _Schema):
-                    schema = member
-
-                else:
-                    if name == 'default':
-
-                        if isinstance(member, DynamicValue):
-                            member = member()
-
-                        schema = RefSchema(ref=self, default=member)
-
-                    else:
-                        schema = obj2schema(member)
-
-                if schema is not None:
-
-                    if schema.name is None:
-                        schema.name = name
-
-                    setattr(schemacls, name, schema)
-
-
-# use metaschema such as the schema metaclass
-@add_metaclass(MetaSchema)
-class Schema(_Schema):
 
     __register__ = True  #: automatically register it if True.
     __data_types__ = []  #: data types which can be instanciated by this schema.
@@ -184,14 +96,11 @@ class Schema(_Schema):
 
             if name[0] != '_' and name not in [
                     'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter',
-                    'default'
+                    'default', 'attrname'
             ]:
 
                 if name in kwargs:
                     val = kwargs[name]
-
-                elif isinstance(member, _Schema):
-                    val = member.default
 
                 else:
                     val = member
@@ -199,11 +108,18 @@ class Schema(_Schema):
                 if isinstance(val, DynamicValue):
                     val = val()
 
+                elif isinstance(val, _Schema):
+                    val = val.default
+
+                if isinstance(val, DynamicValue):
+                    val = val()
+
                 setattr(self, name, val)
 
-        if default is not None:
+        if default is None:
+            default = self.default
 
-            self.default = default
+        self.default = default
 
         self._fget = fget
         self._fset = fset
@@ -213,12 +129,16 @@ class Schema(_Schema):
     def attrname(self):
         """Get attribute name to set in order to keep the schema value."""
 
-        return '_{0}'.format(self.name or self.uid)
+        return '_{0}'.format(self.name or self.uuid)
 
     def __eq__(self, other):
         """Compare schemas."""
 
         return other is self or self.getschemas() == other.getschemas()
+
+    def __repr__(self):
+
+        return '{0}/{1}'.format(self.uuid, self.name)
 
     def _getter(self, obj, *args, **kwargs):
         """Called when the parent element tries to get this property value.
@@ -231,7 +151,7 @@ class Schema(_Schema):
             result = self._fget(obj)
 
         if result is None:
-            result = getattr(self, self.attrname)
+            result = getattr(obj, self.attrname, None)
 
         return result
 
@@ -245,7 +165,7 @@ class Schema(_Schema):
         if isinstance(value, DynamicValue):  # execute lambda values.
             value = value()
 
-        self.validate(value)
+        self.validate(data=value, owner=obj)
 
         if self._fset is not None:
             self._fset(obj, value)
@@ -263,12 +183,13 @@ class Schema(_Schema):
             self._fdel(obj)
 
         else:
-            delattr(self, self.attrname)
+            delattr(obj, self.attrname)
 
-    def validate(self, data):
+    def validate(self, data, owner=None):
         """Validate input data in returning an empty list if true.
 
         :param data: data to validate with this schema.
+        :param Schema owner: schema owner.
         :raises: Exception if the data is not validated"""
 
         if data is None and not self.nullable:
@@ -289,7 +210,7 @@ class Schema(_Schema):
                 )
 
             for name, schema in iteritems(self.getschemas()):
-                print('validate', self, name, schema)
+
                 if name in self.required and not hasattr(data, name):
                     part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
                         format(name, self, data)
@@ -333,4 +254,86 @@ class Schema(_Schema):
         return result
 
 
-Schema.default = RefSchema()
+class RefSchema(_Schema):
+    """Schema which references another schema."""
+
+    def __init__(self, ref=None, *args, **kwargs):
+
+        super(RefSchema, self).__init__(*args, **kwargs)
+
+        self.ref = ref
+
+    def validate(self, data, owner=None, *args, **kwargs):
+
+        ref = owner if self.ref is None else self.ref
+
+        return ref.validate(data=data, owner=owner)
+
+
+class MetaSchema(type):
+    """Automatically register schemas."""
+
+    def __new__(mcs, *args, **kwargs):
+
+        result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
+
+        if result.__data_types__:
+            registercls(schemacls=result, data_types=result.__data_types__)
+
+        # update all sub schemas related to values
+        updatecontent(schemacls=result)
+
+        return result
+
+    def __call__(cls, *args, **kwargs):
+
+        result = super(MetaSchema, cls).__call__(*args, **kwargs)
+
+        if result.__register__:  # register all new schema
+            register(schema=result)
+
+        return result
+
+
+def updatecontent(schemacls):
+    """Transform all schema class attributes to schemas.
+
+    :param type schemacls: sub class of _Schema"""
+
+    for mro in schemacls.mro():
+
+        for name, member in getmembers(
+            mro,
+            lambda member: not isinstance(member, (FunctionType, MethodType))
+        ):
+
+            if name[0] != '_':
+
+                schema = None
+
+                if isinstance(member, _Schema):
+                    schema = member
+
+                else:
+                    if name == 'default':
+
+                        if isinstance(member, DynamicValue):
+                            member = member()
+
+                        schema = RefSchema(default=member)
+
+                    else:
+                        schema = obj2schema(member)
+
+                if schema is not None:
+
+                    if schema.name is None:
+                        schema.name = name
+
+                    setattr(schemacls, name, schema)
+
+
+# use metaschema such as the schema metaclass
+@add_metaclass(MetaSchema)
+class Schema(_Schema):
+    pass

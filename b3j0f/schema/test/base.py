@@ -30,39 +30,103 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
+from numbers import Number
+from six import string_types
+
 from ..registry import registercls
-from ..base import Schema, DynamicValue, resolveschema
+from ..base import Schema, DynamicValue, updatecontent, RefSchema
 
 
-class CLSSchemaMaker(UTCase):
+class UpdateContentTest(UTCase):
 
-    class Test(object):
-        pass
+    class NumberSchema(Schema):
+        def validate(self, data, *args, **kwargs):
+            return isinstance(data, Number)
+
+
+    class StrSchema(Schema):
+        def validate(self, data, *args, **kwargs):
+            return isinstance(data, string_types)
+
+
+    class ObjectSchema(Schema):
+        def validate(self, data, *args, **kwargs):
+            return isinstance(data, type)
 
     def setUp(self):
 
-        class TestSchema(Schema):
-            pass
+        registercls(UpdateContentTest.NumberSchema, [Number])
+        registercls(UpdateContentTest.StrSchema, [string_types])
+        registercls(UpdateContentTest.ObjectSchema, [type])
 
-        registercls(Schema, [CLSSchemaMaker.Test])
+    def _assert(self, schemacls):
+
+        self.assertIsInstance(schemacls.a, UpdateContentTest.NumberSchema)
+        self.assertIsInstance(schemacls.b, UpdateContentTest.NumberSchema)
+        self.assertIsInstance(schemacls.c, UpdateContentTest.StrSchema)
+        self.assertIsInstance(schemacls.d, UpdateContentTest.ObjectSchema)
+        self.assertIsNone(schemacls.e)
+
+    def test_object(self):
+
+        class TestSchema(object):
+
+            a = 1
+            b = 2.
+            c = str()
+            d = object
+            e = None
+
+        updatecontent(TestSchema)
+
+        self._assert(TestSchema)
 
     def test_schema(self):
 
         class TestSchema(Schema):
-            pass
 
-        self.assertEqual(TestSchema.getschemas(), Schema.getschemas())
+            a = 1
+            b = 2.
+            c = str()
+            d = object
+            e = None
 
-    def test_content_schema(self):
+        self._assert(TestSchema)
 
-        class TestSchema(Schema):
 
-            a = 'a'
-            b = CLSSchemaMaker.Test()
+class RefSchemaTest(UTCase):
 
-        self.assertEqual(TestSchema.a, 'a')
-        self.assertIsInstance(TestSchema.b, Schema)
-        self.assertIsInstance(TestSchema.b.default, CLSSchemaMaker.Test)
+    def test_default(self):
+
+        schema = RefSchema()
+
+        self.assertRaises(AttributeError, schema.validate, 0)
+
+    def test_owner(self):
+
+        schema = RefSchema()
+
+        class NumberSchema(Schema):
+            def validate(self, data, *args, **kwargs):
+
+                return isinstance(data, Number)
+
+        numberschema = NumberSchema()
+
+        schema.validate(0, owner=numberschema)
+
+    def test_ref(self):
+
+        class NumberSchema(Schema):
+            def validate(self, data, *args, **kwargs):
+
+                return isinstance(data, Number)
+
+        numberschema = NumberSchema()
+
+        schema = RefSchema(ref= numberschema)
+
+        schema.validate(0)
 
 
 class SchemaTest(UTCase):
@@ -74,7 +138,6 @@ class SchemaTest(UTCase):
         self.assertIsNone(schema._fget)
         self.assertIsNone(schema._fset)
         self.assertIsNone(schema._fdel)
-        self.assertIsNone(schema._value)
 
     def test_init_gsd(self):
 
@@ -93,7 +156,7 @@ class SchemaTest(UTCase):
         self.assertIsInstance(test.test, Schema)
 
         del test.test
-        self.assertFalse(hasattr(test, 'test'))
+        self.assertFalse(hasattr(test, Test.test.attrname))
 
         test.test = Schema()
         self.assertIsInstance(test.test, Schema)
@@ -222,38 +285,6 @@ class SchemaTest(UTCase):
 
         self.assertEqual(dump, _dump)
 
-
-class TestResolveSchema(UTCase):
-
-    class Test(object):
-        pass
-
-    class SchemaTest(Schema):
-        pass
-
-    def setUp(self):
-
-        registercls(TestResolveSchema.SchemaTest, [TestResolveSchema.Test])
-
-    def test_default(self):
-
-        class Test(Schema):
-
-            default = TestResolveSchema.Test()
-
-        test = Test()
-
-        self.assertIsInstance(test.default, TestResolveSchema.SchemaTest)
-
-    def test_subtest(self):
-
-        class Test(Schema):
-
-            subtest = TestResolveSchema.Test()
-
-        test = Test()
-
-        self.assertIsInstance(test.subtest, TestResolveSchema.SchemaTest)
 
 if __name__ == '__main__':
     main()

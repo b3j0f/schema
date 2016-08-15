@@ -53,13 +53,13 @@ class ElementarySchema(Schema):
 
     nullable = False
 
-print('ok')
+
 class BooleanSchema(ElementarySchema):
     """Boolean schema."""
 
     __data_types__ = [bool]
     default = False
-print('ko')
+
 
 class NumberSchema(ElementarySchema):
     """Schema for number such as float, long, complex and float.
