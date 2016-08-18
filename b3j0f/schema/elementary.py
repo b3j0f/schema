@@ -45,7 +45,10 @@ from types import FunctionType, MethodType, LambdaType
 
 from datetime import datetime
 
-from .base import Schema, DynamicValue
+from sys import maxsize
+
+from .base import Schema, RefSchema
+from .utils import DynamicValue
 from .registry import register
 
 
@@ -66,8 +69,10 @@ class NumberSchema(ElementarySchema):
 
     If allows to bound data values."""
 
-    min = None  #: minimum allowed value if not None.
-    max = None  #: maximal allowed value if not None.
+    __data_types__ = [Number]
+
+    min = RefSchema()  #: minimum allowed value if not None.
+    max = RefSchema()  #: maximal allowed value if not None.
 
     def validate(self, data, *args, **kwargs):
 
@@ -127,9 +132,10 @@ class ArraySchema(ElementarySchema):
     """Array Schema."""
 
     __data_types__ = [list, tuple, set]
+
     item_types = object  #: item types. Default any.
     minsize = 0  #: minimal array size. Default 0.
-    maxsize = None  # maximal array size. Default None
+    maxsize = maxsize  # maximal array size. Default None
     unique = False  #: are items unique ? False by default.
     default = DynamicValue(lambda: [])
 
@@ -173,9 +179,20 @@ class EnumSchema(ElementarySchema):
 class DateTimeSchema(ElementarySchema):
 
     __data_types__ = [datetime]
+
+    ms = 0
+    s = 0
+    mn = 0
+    hr = 0
+    day = 1
+    month = 1
+    year = 1974
+
     default = DynamicValue(lambda: datetime.now())
 
 
 class FunctionSchema(ElementarySchema):
 
     __data_types__ = [FunctionType, MethodType, LambdaType]
+    params = []
+    rtype = object

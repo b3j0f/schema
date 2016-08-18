@@ -61,14 +61,13 @@ class _Schema(property):
     automatically registered in the registry and becomes accessible from the
     `b3j0f.schema.reg.getschemabyuid` function."""
 
-    __register__ = True  #: automatically register it if True.
     __data_types__ = []  #: data types which can be instanciated by this schema.
 
     name = ''  #: schema name. Default is self name.
-    uuid = DynamicValue(lambda: uuid4())  #: schema universal unique identifier.
+    uuid = DynamicValue(lambda: str(uuid4()))  #: schema universal unique identifier.
     doc = ''  #: schema description.
     default = None  #: schema default value.
-    required = DynamicValue(lambda: [])  #: required schema names.
+    required = []  #: required schema names.
     version = '1'  #: schema version.
     nullable = True  #: if True (default), value can be None.
 
@@ -105,11 +104,12 @@ class _Schema(property):
                 else:
                     val = member
 
-                if isinstance(val, DynamicValue):
-                    val = val()
+                    if isinstance(val, DynamicValue):
+                        val = val()
 
-                elif isinstance(val, _Schema):
-                    val = val.default
+                    if isinstance(val, _Schema):
+                        val = getattr(self, name)
+                        #val = val._default
 
                 if isinstance(val, DynamicValue):
                     val = val()
@@ -119,7 +119,7 @@ class _Schema(property):
         if default is None:
             default = self.default
 
-        self.default = default
+        self._default = default
 
         self._fget = fget
         self._fset = fset
@@ -138,7 +138,7 @@ class _Schema(property):
 
     def __repr__(self):
 
-        return '{0}/{1}'.format(self.uuid, self.name)
+        return '{0}({1}/{2})'.format(type(self).__name__, self.uuid, self.name)
 
     def _getter(self, obj, *args, **kwargs):
         """Called when the parent element tries to get this property value.
@@ -151,7 +151,7 @@ class _Schema(property):
             result = self._fget(obj)
 
         if result is None:
-            result = getattr(obj, self.attrname, None)
+            result = getattr(obj, self.attrname, self._default)
 
         return result
 
@@ -209,18 +209,18 @@ class _Schema(property):
                     'Wrong type {0}. {1} expected'.format(data, type(self))
                 )
 
-            for name, schema in iteritems(self.getschemas()):
+                for name, schema in iteritems(self.getschemas()):
 
-                if name in self.required and not hasattr(data, name):
-                    part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
-                        format(name, self, data)
-                    )
-                    part2 = '{3} expected.'.format(schema)
-                    error = '{0} {1}'.format(part1, part2)
-                    raise ValueError(error)
+                    if name in self.required and not hasattr(data, name):
+                        part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
+                            format(name, self, data)
+                        )
+                        part2 = '{3} expected.'.format(schema)
+                        error = '{0} {1}'.format(part1, part2)
+                        raise ValueError(error)
 
-                elif hasattr(data, name):
-                    schema.validate(getattr(data, name))
+                    elif hasattr(data, name):
+                        schema.validate(getattr(data, name))
 
     def dump(self):
         """Get a serialized value of this schema.
@@ -244,7 +244,7 @@ class _Schema(property):
         :return: ordered dict by name.
         :rtype: ordered dict by name"""
 
-        members = getmembers(cls, lambda member: isinstance(member, Schema))
+        members = getmembers(cls, lambda member: isinstance(member, _Schema))
 
         result = OrderedDict()
 
@@ -257,17 +257,63 @@ class _Schema(property):
 class RefSchema(_Schema):
     """Schema which references another schema."""
 
-    def __init__(self, ref=None, *args, **kwargs):
-
-        super(RefSchema, self).__init__(*args, **kwargs)
-
-        self.ref = ref
+    ref = _Schema()  #: the reference must be a schema.
 
     def validate(self, data, owner=None, *args, **kwargs):
 
         ref = owner if self.ref is None else self.ref
 
         return ref.validate(data=data, owner=owner)
+
+
+def updatecontent(schemacls, updateparents=True):
+    """Transform all schema class attributes to schemas.
+
+    :param type schemacls: sub class of _Schema.
+    :param bool updateparents: if True (default), update parent content."""
+
+    if updateparents:
+        schemaclasses = reversed(list(schemacls.mro()))
+        print(list(schemaclasses))
+
+    else:
+        schemaclasses = [schemacls]
+    #print(list(schemaclasses))
+    for schemaclass in schemaclasses:
+
+        for name, member in getmembers(
+            schemaclass,
+            lambda member: not isinstance(member, ( FunctionType, MethodType))
+        ):
+            # search if public member is defined in schema class and not in a
+            # parent class
+
+            if name[0] != '_' and name in getattr(schemaclass, '__dict__', []):
+
+                if isinstance(member, DynamicValue):
+                    member = member()
+
+                if isinstance(member, _Schema):
+                    schema = member
+
+                else:
+                    if name == 'default':
+                        schema = RefSchema(default=member)
+
+                    else:
+                        schema = obj2schema(obj=member)
+
+                if schema is not None:
+                    if not schema.name:
+                        schema.name = name
+
+                    try:
+                        setattr(schemaclass, name, schema)
+
+                    except (AttributeError, TypeError):
+                        break
+
+updatecontent(RefSchema)  #: update content of RefSchema.
 
 
 class MetaSchema(type):
@@ -295,45 +341,9 @@ class MetaSchema(type):
         return result
 
 
-def updatecontent(schemacls):
-    """Transform all schema class attributes to schemas.
-
-    :param type schemacls: sub class of _Schema"""
-
-    for mro in schemacls.mro():
-
-        for name, member in getmembers(
-            mro,
-            lambda member: not isinstance(member, (FunctionType, MethodType))
-        ):
-
-            if name[0] != '_':
-
-                schema = None
-
-                if isinstance(member, _Schema):
-                    schema = member
-
-                else:
-                    if name == 'default':
-
-                        if isinstance(member, DynamicValue):
-                            member = member()
-
-                        schema = RefSchema(default=member)
-
-                    else:
-                        schema = obj2schema(member)
-
-                if schema is not None:
-
-                    if schema.name is None:
-                        schema.name = name
-
-                    setattr(schemacls, name, schema)
-
-
 # use metaschema such as the schema metaclass
 @add_metaclass(MetaSchema)
 class Schema(_Schema):
-    pass
+
+    #: Register instances in the registry if True (False by default).
+    __register__ = False

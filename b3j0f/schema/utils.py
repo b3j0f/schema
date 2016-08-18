@@ -82,22 +82,14 @@ def obj2schema(
 
     cls = type(fobj)
 
-    if registry is not None:
-        getbydatatype = registry.getbydatatype
+    gbdt = getbydatatype if registry is None else registry.getbydatatype
 
-    else:
-        getbydatatype = globals()['getbydatatype']
-
-    schemacls = getbydatatype(cls, besteffort=_besteffort)
+    schemacls = gbdt(cls, besteffort=_besteffort)
 
     if schemacls is None and _force:
-        if factory is not None:
-            make = factory.make
+        fmake = make if factory is None else factory.make
 
-        else:
-            make = globals()['make']
-
-        schemacls = make(cls)
+        schemacls = fmake(cls)
 
     if schemacls:
         result = schemacls(default=fobj, *args, **kwargs)

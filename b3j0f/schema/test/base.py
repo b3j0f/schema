@@ -33,31 +33,47 @@ from b3j0f.utils.ut import UTCase
 from numbers import Number
 from six import string_types
 
-from ..registry import registercls
+from ..registry import registercls, getbydatatype
 from ..base import Schema, DynamicValue, updatecontent, RefSchema
 
 
 class UpdateContentTest(UTCase):
 
     class NumberSchema(Schema):
+
+        __data_types__ = [Number]
+
         def validate(self, data, *args, **kwargs):
             return isinstance(data, Number)
 
-
     class StrSchema(Schema):
+
+        __data_types__  = [string_types]
+
         def validate(self, data, *args, **kwargs):
             return isinstance(data, string_types)
 
-
     class ObjectSchema(Schema):
+
+        __data_types__ = [type]
+
         def validate(self, data, *args, **kwargs):
             return isinstance(data, type)
 
-    def setUp(self):
+    def test_number(self):
 
-        registercls(UpdateContentTest.NumberSchema, [Number])
-        registercls(UpdateContentTest.StrSchema, [string_types])
-        registercls(UpdateContentTest.ObjectSchema, [type])
+        schemacls = getbydatatype(int)
+        self.assertIs(schemacls, UpdateContentTest.NumberSchema)
+
+    def test_str(self):
+
+        schemacls = getbydatatype(str)
+        self.assertIs(schemacls, UpdateContentTest.StrSchema)
+
+    def test_object(self):
+
+        schemacls = getbydatatype(type)
+        self.assertIs(schemacls, UpdateContentTest.ObjectSchema)
 
     def _assert(self, schemacls):
 
@@ -124,7 +140,7 @@ class RefSchemaTest(UTCase):
 
         numberschema = NumberSchema()
 
-        schema = RefSchema(ref= numberschema)
+        schema = RefSchema(ref=numberschema)
 
         schema.validate(0)
 
@@ -152,7 +168,9 @@ class SchemaTest(UTCase):
         res = test.test
         self.assertIsNone(res)
 
-        test.test = Schema()
+        schema = Schema()
+
+        test.test = schema
         self.assertIsInstance(test.test, Schema)
 
         del test.test
