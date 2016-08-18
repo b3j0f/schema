@@ -26,9 +26,7 @@
 
 """Base schema package."""
 
-__all__ = [
-    'MetaSchema', 'Schema', 'DynamicValue', 'RefSchema'
-]
+__all__ = ['MetaSchema', 'Schema', 'DynamicValue', 'RefSchema', 'This']
 
 from b3j0f.utils.version import OrderedDict
 
@@ -43,6 +41,30 @@ from uuid import uuid4
 from .registry import register, registercls
 from .factory import registermaker, getschemacls
 from .utils import obj2schema, DynamicValue
+
+
+class This(object):
+    """Tool Used to set inner schemas with the same type with specific arguments
+    .
+
+    ..example::
+
+        class Test(Schema):
+            # contain an inner schema nullable 'test' of type Test.
+            test = This(nullable=False)
+
+    :param args: schema class vargs to use.
+    :param kwargs: schema class kwargs to use.
+
+    :return: input args and kwargs.
+    :rtype: tuple"""
+
+    def __init__(self, *args, **kwargs):
+
+        super(This, self).__init__()
+
+        self.args = args
+        self.kwargs = kwargs
 
 
 class _Schema(property):
@@ -114,6 +136,7 @@ class _Schema(property):
                 if isinstance(val, DynamicValue):
                     val = val()
 
+                setattr(self, self.attrname(name=name), val)
                 setattr(self, name, val)
 
         if default is None:
@@ -125,11 +148,14 @@ class _Schema(property):
         self._fset = fset
         self._fdel = fdel
 
-    @property
-    def attrname(self):
-        """Get attribute name to set in order to keep the schema value."""
+    def attrname(self, name=None):
+        """Get attribute name to set in order to keep the schema value.
 
-        return '_{0}'.format(self.name or self.uuid)
+        :param str name: attribute name. Default is this name or uuid.
+        :return:
+        :rtype: str"""
+
+        return '_{0}'.format(name or self._name or self._uuid)
 
     def __eq__(self, other):
         """Compare schemas."""
@@ -140,7 +166,7 @@ class _Schema(property):
 
         return '{0}({1}/{2})'.format(type(self).__name__, self.uuid, self.name)
 
-    def _getter(self, obj, *args, **kwargs):
+    def _getter(self, obj):
         """Called when the parent element tries to get this property value.
 
         :param obj: parent object."""
@@ -151,7 +177,7 @@ class _Schema(property):
             result = self._fget(obj)
 
         if result is None:
-            result = getattr(obj, self.attrname, self._default)
+            result = getattr(obj, self.attrname(), self._default)
 
         return result
 
@@ -171,7 +197,7 @@ class _Schema(property):
             self._fset(obj, value)
 
         else:
-            setattr(obj, self.attrname, value)
+            setattr(obj, self.attrname(), value)
 
     def _deleter(self, obj):
         """Called when the parent element tries to delete this property value.
@@ -183,7 +209,7 @@ class _Schema(property):
             self._fdel(obj)
 
         else:
-            delattr(obj, self.attrname)
+            delattr(obj, self.attrname())
 
     def validate(self, data, owner=None):
         """Validate input data in returning an empty list if true.
@@ -274,11 +300,10 @@ def updatecontent(schemacls, updateparents=True):
 
     if updateparents:
         schemaclasses = reversed(list(schemacls.mro()))
-        print(list(schemaclasses))
 
     else:
         schemaclasses = [schemacls]
-    #print(list(schemaclasses))
+
     for schemaclass in schemaclasses:
 
         for name, member in getmembers(
@@ -290,22 +315,31 @@ def updatecontent(schemacls, updateparents=True):
 
             if name[0] != '_' and name in getattr(schemaclass, '__dict__', []):
 
+                toset = False  # flag for setting schemas
+
                 if isinstance(member, DynamicValue):
                     member = member()
+                    toset = True
 
                 if isinstance(member, _Schema):
                     schema = member
 
-                else:
-                    if name == 'default':
-                        schema = RefSchema(default=member)
-
-                    else:
-                        schema = obj2schema(obj=member)
-
-                if schema is not None:
                     if not schema.name:
                         schema.name = name
+
+                else:
+                    toset = True
+
+                    if name == 'default':
+                        schema = RefSchema(default=member, name=name)
+
+                    elif isinstance(member, This):
+                        schema = schemaclass(*member.args, **member.kwargs)
+
+                    else:
+                        schema = obj2schema(obj=member, name=name)
+
+                if schema is not None and toset:
 
                     try:
                         setattr(schemaclass, name, schema)

@@ -49,12 +49,27 @@ from sys import maxsize
 
 from .base import Schema, RefSchema
 from .utils import DynamicValue
-from .registry import register
+
+from sys import maxsize
 
 
 class ElementarySchema(Schema):
 
     nullable = False
+
+
+def neschema(schemacls, default=None, **kwargs):
+    """Generate an nullable elementary schema.
+
+    Default value is None.
+
+    :param type schemacls: elementary schema to instanciate.
+    :param dict kwargs: elementary schema kwargs.
+    :rtype: ElementarySchema"""
+
+    kwargs['default'] = kwargs.get('default', default)
+
+    return schemacls(nullable=True, **kwargs)
 
 
 class BooleanSchema(ElementarySchema):
@@ -71,8 +86,10 @@ class NumberSchema(ElementarySchema):
 
     __data_types__ = [Number]
 
-    min = RefSchema()  #: minimum allowed value if not None.
-    max = RefSchema()  #: maximal allowed value if not None.
+    #: minimum allowed value if not None.
+    min = DynamicValue(lambda: neschema(NumberSchema))
+    #: maximal allowed value if not None.
+    max = DynamicValue(lambda: neschema(NumberSchema))
 
     def validate(self, data, *args, **kwargs):
 
@@ -128,14 +145,24 @@ class StringSchema(ElementarySchema):
     default = ''
 
 
+class TypeSchema(ElementarySchema):
+    """Type schema."""
+
+    __data_types__ = [type]
+    default = object
+
+
 class ArraySchema(ElementarySchema):
     """Array Schema."""
 
     __data_types__ = [list, tuple, set]
 
-    item_types = object  #: item types. Default any.
-    minsize = 0  #: minimal array size. Default 0.
-    maxsize = maxsize  # maximal array size. Default None
+    #: item types. Default any.
+    item_type = DynamicValue(lambda: TypeSchema(nullable=True, default=None))
+    #: minimal array size. Default None.
+    minsize = DynamicValue(lambda: IntegerSchema(nullable=True, default=None))
+    #: maximal array size. Default None
+    maxsize = DynamicValue(lambda: IntegerSchema(nullable=True, default=None))
     unique = False  #: are items unique ? False by default.
     default = DynamicValue(lambda: [])
 
@@ -162,10 +189,42 @@ class ArraySchema(ElementarySchema):
                 raise ValueError('Duplicated items in {0}'.format(result))
 
             for index, item in enumerate(data):
-                if not isinstance(item, item_types):
+                if not isinstance(item, self.item_type):
                     raise TypeError(
                         'Wrong type of {0} at pos {1}. {2} expected.'.format(
-                            item, index, item_types
+                            item, index, self.item_type
+                        )
+                    )
+
+
+class DictSchema(ArraySchema):
+    """Array Schema."""
+
+    __data_types__ = [dict]
+
+    value_type = object  #: item types. Default any.
+    default = DynamicValue(lambda: {})
+
+    def validate(self, data, *args, **kwargs):
+
+        super(DictSchema, self).validate(data, *args, **kwargs)
+
+        if self.maxsize is not None and len(data) >= self.maxsize:
+            raise ValueError(
+                'length of data {0} must be lesser than {1}.'.format(
+                    data, self.maxsize
+                )
+            )
+
+        if data:
+            if self.unique and len(set(data.values())) != len(data):
+                raise ValueError('Duplicated items in {0}'.format(result))
+
+            for key, item in data.items():
+                if not isinstance(value, self.value_type):
+                    raise TypeError(
+                        'Wrong type of {0} at pos {1}. {2} expected.'.format(
+                            item, key, self.value_type
                         )
                     )
 
@@ -177,16 +236,17 @@ class EnumSchema(ElementarySchema):
 
 
 class DateTimeSchema(ElementarySchema):
+    """Date time schema."""
 
     __data_types__ = [datetime]
 
-    ms = 0
-    s = 0
-    mn = 0
-    hr = 0
-    day = 1
-    month = 1
-    year = 1974
+    ms = IntegerSchema(nullable=True, default=None)
+    s = IntegerSchema(nullable=True, default=None)
+    mn = IntegerSchema(nullable=True, default=None)
+    hr = IntegerSchema(nullable=True, default=None)
+    day = IntegerSchema(nullable=True, default=None)
+    month = IntegerSchema(nullable=True, default=None)
+    year = IntegerSchema(nullable=True, default=None)
 
     default = DynamicValue(lambda: datetime.now())
 

@@ -34,7 +34,23 @@ from numbers import Number
 from six import string_types
 
 from ..registry import registercls, getbydatatype
-from ..base import Schema, DynamicValue, updatecontent, RefSchema
+from ..base import Schema, DynamicValue, updatecontent, RefSchema, This
+
+
+from sys import setrecursionlimit
+setrecursionlimit(70)
+
+
+class ThisTest(UTCase):
+
+    def test(self):
+
+        class Test(Schema):
+
+            test = This(default='test')
+
+        self.assertIsInstance(Test.test, Test)
+        self.assertEqual(Test.test.default, 'test')
 
 
 class UpdateContentTest(UTCase):
@@ -44,6 +60,7 @@ class UpdateContentTest(UTCase):
         __data_types__ = [Number]
 
         def validate(self, data, *args, **kwargs):
+
             return isinstance(data, Number)
 
     class StrSchema(Schema):
@@ -51,6 +68,7 @@ class UpdateContentTest(UTCase):
         __data_types__  = [string_types]
 
         def validate(self, data, *args, **kwargs):
+
             return isinstance(data, string_types)
 
     class ObjectSchema(Schema):
@@ -58,6 +76,7 @@ class UpdateContentTest(UTCase):
         __data_types__ = [type]
 
         def validate(self, data, *args, **kwargs):
+
             return isinstance(data, type)
 
     def test_number(self):
@@ -174,7 +193,7 @@ class SchemaTest(UTCase):
         self.assertIsInstance(test.test, Schema)
 
         del test.test
-        self.assertFalse(hasattr(test, Test.test.attrname))
+        self.assertFalse(hasattr(test, Test.test.attrname()))
 
         test.test = Schema()
         self.assertIsInstance(test.test, Schema)

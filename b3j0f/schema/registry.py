@@ -37,7 +37,7 @@ from six import iteritems
 #: class attribute for Schema data_type association
 __DATA_TYPES__ = '__data_types__'
 from sys import setrecursionlimit
-#setrecursionlimit(50)
+setrecursionlimit(38)
 
 class SchemaRegistry(object):
     """In charge of register schemas."""
