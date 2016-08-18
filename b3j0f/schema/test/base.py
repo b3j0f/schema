@@ -47,10 +47,11 @@ class ThisTest(UTCase):
 
         class Test(Schema):
 
-            test = This(default='test')
+            test = This(default='test', nullable=False)
 
         self.assertIsInstance(Test.test, Test)
         self.assertEqual(Test.test.default, 'test')
+        self.assertFalse(Test.test.nullable)
 
 
 class UpdateContentTest(UTCase):
