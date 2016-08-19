@@ -179,7 +179,17 @@ class _Schema(property):
         if result is None:
             result = getattr(obj, self.attrname(), self._default)
 
+        # notify parent schema about returned value
+        if isinstance(obj, _Schema):
+            obj._getvalue(self, result)
+
         return result
+
+    def _getvalue(self, schema, value):
+        """Fired when inner schema returns a value.
+
+        :param Schema schema: inner schema.
+        :param value: returned value."""
 
     def _setter(self, obj, value):
         """Called when the parent element tries to set this property value.
@@ -199,6 +209,16 @@ class _Schema(property):
         else:
             setattr(obj, self.attrname(), value)
 
+        # notify obj about the new value.
+        if isinstance(obj, _Schema):
+            obj._setvalue(self, value)
+
+    def _setvalue(self, schema, value):
+        """Fired when inner schema change of value.
+
+        :param Schema schema: inner schema.
+        :param value: new value."""
+
     def _deleter(self, obj):
         """Called when the parent element tries to delete this property value.
 
@@ -210,6 +230,15 @@ class _Schema(property):
 
         else:
             delattr(obj, self.attrname())
+
+        # notify parent schema about value deletion.
+        if isinstance(obj, _Schema):
+            obj._delvalue(self)
+
+    def _delvalue(self, schema):
+        """Fired when inner schema delete its value.
+
+        :param Schema schema: inner schema."""
 
     def validate(self, data, owner=None):
         """Validate input data in returning an empty list if true.
@@ -308,10 +337,7 @@ def updatecontent(schemacls, updateparents=True):
 
         for name, member in getattr(schemaclass, '__dict__', {}).items():
 
-            # search if public member is defined in schema class and not in a
-            # parent class
-
-            if name[0] != '_':
+            if name[0] != '_':  # transform only public members
 
                 toset = False  # flag for setting schemas
 

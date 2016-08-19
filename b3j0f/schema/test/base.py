@@ -319,6 +319,71 @@ class SchemaTest(UTCase):
 
         self.assertEqual(dump, _dump)
 
+    def test_notify_get(self):
+
+        class TestSchema(Schema):
+
+            test = Schema()
+            schema = None
+            value = None
+
+            def _getvalue(self, schema, value):
+
+                if schema.name == 'test':
+                    self.schema = schema
+                    self.value = value
+
+        self.assertIsNone(TestSchema.schema)
+        self.assertIsNone(TestSchema.value)
+
+        schema = TestSchema()
+        schema.test = Schema()
+        schema.test
+
+        self.assertIs(schema.schema, TestSchema.test)
+        self.assertIs(schema.value, schema.test)
+
+    def test_notify_set(self):
+
+        class TestSchema(Schema):
+
+            test = Schema()
+            schema = None
+            value = None
+
+            def _setvalue(self, schema, value):
+
+                if schema.name == 'test':
+                    self.schema = schema
+                    self.value = value
+
+        self.assertIsNone(TestSchema.schema)
+        self.assertIsNone(TestSchema.value)
+
+        schema = TestSchema()
+        schema.test = Schema()
+
+        self.assertIs(schema.schema, TestSchema.test)
+        self.assertIs(schema.value, schema.test)
+
+    def test_notify_del(self):
+
+        class TestSchema(Schema):
+
+            test = Schema()
+            schema = None
+
+            def _delvalue(self, schema):
+
+                if schema.name == 'test':
+                    self.schema = schema
+
+        self.assertIsNone(TestSchema.schema)
+
+        schema = TestSchema()
+        del schema.test
+
+        self.assertIs(schema.schema, TestSchema.test)
 
 if __name__ == '__main__':
     main()

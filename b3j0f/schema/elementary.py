@@ -45,27 +45,15 @@ from types import FunctionType, MethodType, LambdaType
 
 from datetime import datetime
 
-from .base import Schema, RefSchema
+from inspect import getargspec
+
+from .base import Schema, RefSchema, This
 from .utils import DynamicValue
 
 
 class ElementarySchema(Schema):
 
     nullable = False
-
-
-def neschema(schemacls, **kwargs):
-    """Generate an nullable elementary schema.
-
-    Default value is None.
-
-    :param type schemacls: elementary schema to instanciate.
-    :param dict kwargs: elementary schema kwargs.
-    :rtype: ElementarySchema"""
-
-    kwargs['default'] = kwargs.get('default')
-
-    return schemacls(nullable=True, **kwargs)
 
 
 class BooleanSchema(ElementarySchema):
@@ -83,9 +71,9 @@ class NumberSchema(ElementarySchema):
     __data_types__ = [Number]
 
     #: minimum allowed value if not None.
-    min = DynamicValue(lambda: neschema(NumberSchema))
+    min = This(nullable=True, default=None)
     #: maximal allowed value if not None.
-    max = DynamicValue(lambda: neschema(NumberSchema))
+    max = This(nullable=True, default=None)
 
     def validate(self, data, *args, **kwargs):
 
@@ -154,11 +142,11 @@ class ArraySchema(ElementarySchema):
     __data_types__ = [list, tuple, set]
 
     #: item types. Default any.
-    item_type = DynamicValue(lambda: TypeSchema(nullable=True, default=None))
+    item_type = TypeSchema(nullable=True, default=None)
     #: minimal array size. Default None.
-    minsize = DynamicValue(lambda: IntegerSchema(nullable=True, default=None))
+    minsize = IntegerSchema(nullable=True, default=None)
     #: maximal array size. Default None
-    maxsize = DynamicValue(lambda: IntegerSchema(nullable=True, default=None))
+    maxsize = IntegerSchema(nullable=True, default=None)
     unique = False  #: are items unique ? False by default.
     default = DynamicValue(lambda: [])
 
@@ -184,13 +172,14 @@ class ArraySchema(ElementarySchema):
             if self.unique and len(set(data)) != len(data):
                 raise ValueError('Duplicated items in {0}'.format(result))
 
-            for index, item in enumerate(data):
-                if not isinstance(item, self.item_type):
-                    raise TypeError(
-                        'Wrong type of {0} at pos {1}. {2} expected.'.format(
-                            item, index, self.item_type
+            if self.item_type is not None:
+                for index, item in enumerate(data):
+                    if not isinstance(item, self.item_type):
+                        raise TypeError(
+                            'Wrong type of {0} at pos {1}. {2} expected.'.format(
+                                item, index, self.item_type
+                            )
                         )
-                    )
 
 
 class DictSchema(ArraySchema):
@@ -198,7 +187,8 @@ class DictSchema(ArraySchema):
 
     __data_types__ = [dict]
 
-    value_type = object  #: item types. Default any.
+    #: value type
+    value_type = TypeSchema(nullable=True, default=None)
     default = DynamicValue(lambda: {})
 
     def validate(self, data, *args, **kwargs):
@@ -216,13 +206,14 @@ class DictSchema(ArraySchema):
             if self.unique and len(set(data.values())) != len(data):
                 raise ValueError('Duplicated items in {0}'.format(result))
 
-            for key, item in data.items():
-                if not isinstance(value, self.value_type):
-                    raise TypeError(
-                        'Wrong type of {0} at pos {1}. {2} expected.'.format(
-                            item, key, self.value_type
+            if self.value_type is not None:
+                for key, item in data.items():
+                    if not isinstance(value, self.value_type):
+                        raise TypeError(
+                            'Wrong type of {0} at pos {1}. {2} expected.'.format(
+                                item, key, self.value_type
+                            )
                         )
-                    )
 
 
 class EnumSchema(ElementarySchema):
@@ -248,7 +239,46 @@ class DateTimeSchema(ElementarySchema):
 
 
 class FunctionSchema(ElementarySchema):
+    """Function schema.
+
+    Dedicated to describe functions, methods and lambda objects."""
+
+    class ParamSchema(Schema):
+        """Function parameter schema."""
+
+        type = object
+        hasvalue = False
 
     __data_types__ = [FunctionType, MethodType, LambdaType]
-    params = []
-    rtype = object
+
+    params = ArraySchema(item_type=ParamSchema)
+    rtype = TypeSchema(nullable=True, default=None)
+    impl = ''
+
+    def validate(self, data, *args, **kwargs):
+
+        result = super(FunctionSchema, self).validate(
+            data=data, *args, **kwargs
+        )
+
+        if result:
+            args, vargs, kwargs, default = getargspec(data)
+
+            params = []
+
+            indexlen = len(args) - (0 if default is None else len(default))
+
+            for index, arg in enumerate(args):
+
+                pkwargs = {name: arg}  # param kwargs
+                if index == indexlen:
+                    value = default[index - len(default)]
+                    pkwargs['default'] = value
+                    pkwargs['type'] = type(value)
+                    pkwargs['hasvalue'] = True
+                    indexlen += 1
+
+                param = FunctionSchema.ParamSchema(**pkwargs)
+                params.append(param)
+
+        return result
