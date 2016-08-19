@@ -37,10 +37,6 @@ from ..registry import registercls, getbydatatype
 from ..base import Schema, DynamicValue, updatecontent, RefSchema, This
 
 
-from sys import setrecursionlimit
-setrecursionlimit(70)
-
-
 class ThisTest(UTCase):
 
     def test(self):

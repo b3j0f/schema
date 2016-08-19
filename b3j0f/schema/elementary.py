@@ -45,12 +45,8 @@ from types import FunctionType, MethodType, LambdaType
 
 from datetime import datetime
 
-from sys import maxsize
-
 from .base import Schema, RefSchema
 from .utils import DynamicValue
-
-from sys import maxsize
 
 
 class ElementarySchema(Schema):
@@ -58,7 +54,7 @@ class ElementarySchema(Schema):
     nullable = False
 
 
-def neschema(schemacls, default=None, **kwargs):
+def neschema(schemacls, **kwargs):
     """Generate an nullable elementary schema.
 
     Default value is None.
@@ -67,7 +63,7 @@ def neschema(schemacls, default=None, **kwargs):
     :param dict kwargs: elementary schema kwargs.
     :rtype: ElementarySchema"""
 
-    kwargs['default'] = kwargs.get('default', default)
+    kwargs['default'] = kwargs.get('default')
 
     return schemacls(nullable=True, **kwargs)
 

@@ -306,14 +306,12 @@ def updatecontent(schemacls, updateparents=True):
 
     for schemaclass in schemaclasses:
 
-        for name, member in getmembers(
-            schemaclass,
-            lambda member: not isinstance(member, ( FunctionType, MethodType))
-        ):
+        for name, member in getattr(schemaclass, '__dict__', {}).items():
+
             # search if public member is defined in schema class and not in a
             # parent class
 
-            if name[0] != '_' and name in getattr(schemaclass, '__dict__', []):
+            if name[0] != '_':
 
                 toset = False  # flag for setting schemas
 
