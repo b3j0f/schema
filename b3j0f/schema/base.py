@@ -70,8 +70,7 @@ class _Schema(property):
     nullable = True  #: if True (default), value can be None.
 
     def __init__(
-            self, fget=None, fset=None, fdel=None, doc=None, default=None,
-            **kwargs
+            self, fget=None, fset=None, fdel=None, doc=None, **kwargs
     ):
         """Instance attributes are setted related to arguments or inner schemas.
 
@@ -114,10 +113,7 @@ class _Schema(property):
                 setattr(self, self.attrname(name=name), val)
                 setattr(self, name, val)
 
-        if default is None:
-            default = self.default
-
-        self._default = default
+        self._default = kwargs.get('default', self.default)
 
         self._fget = fget
         self._fset = fset

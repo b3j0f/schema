@@ -37,7 +37,9 @@ from ..elementary import (
         StringSchema,
         ArraySchema,
         BooleanSchema,
-        EnumSchema
+        EnumSchema,
+        TypeSchema,
+        DictSchema
     )
 
 
@@ -55,17 +57,28 @@ class ElementaryTest(UTCase):
         else:
             schema.validate(data)
 
-
-class NumberSchemaTest(ElementaryTest):
-
     def test_default(self):
 
         if self.__schemacls__ is None:
             self.skipTest('base class')
 
-        self._assert(
-            self.__schemacls__.__data_types__[0](0)
-        )
+        schema = self.__schemacls__()
+
+        data = schema.default
+
+        schema.validate(data=data)
+
+    def test_none(self):
+
+        if self.__schemacls__ is None:
+            self.skipTest('base class')
+
+        schema = self.__schemacls__()
+
+        self.assertRaises(TypeError, schema.validate, data=None)
+
+
+class NumberSchemaTest(ElementaryTest):
 
     def test_min(self):
 
@@ -108,6 +121,136 @@ class ComplexSchemaTest(NumberSchemaTest):
 class FloatSchemaTest(NumberSchemaTest):
 
     __schemacls__ = FloatSchema
+
+
+class StringSchemaTest(ElementaryTest):
+
+    __schemacls__ = StringSchema
+
+
+class TypeSchemaTest(ElementaryTest):
+
+    __schemacls__ = TypeSchema
+
+    def test_cls(self):
+
+        self._assert(data=type)
+
+
+class ArraySchemaTest(ElementaryTest):
+
+    __schemacls__ = ArraySchema
+
+    def test_maxsize(self):
+
+        self._assert(maxsize=0, data=[])
+
+    def test_maxsize_1(self):
+
+        self._assert(maxsize=1, data=[1])
+
+    def test_maxsize_1_0(self):
+
+        self._assert(maxsize=1, data=[])
+
+    def test_maxsize_error(self):
+
+        self._assert(maxsize=1, data=[1, 0], error=True)
+
+    def test_minsize(self):
+
+        self._assert(minsize=0, data=[])
+
+    def test_minsize_0(self):
+
+        self._assert(minsize=0, data=[1])
+
+    def test_minsize_1(self):
+
+        self._assert(minsize=1, data=[1])
+
+    def test_minsize_error(self):
+
+        self._assert(minsize=1, data=[], error=True)
+
+    def test_itemtype(self):
+
+        self._assert(data=[1, 2], itemtype=int)
+
+    def test_itemtype_error(self):
+
+        self._assert(data=[1, 2.], itemtype=int, error=True)
+
+    def test_unique(self):
+
+        self._assert(data=[1, 2], unique=True)
+
+    def test_unique_error(self):
+
+        self._assert(data=[1, 1], unique=True, error=True)
+
+
+
+class DictSchemaTest(ElementaryTest):
+
+    __schemacls__ = DictSchema
+
+    def test_maxsize(self):
+
+        self._assert(maxsize=0, data={})
+
+    def test_maxsize_1(self):
+
+        self._assert(maxsize=1, data={None: None})
+
+    def test_maxsize_1_0(self):
+
+        self._assert(maxsize=1, data={})
+
+    def test_maxsize_error(self):
+
+        self._assert(maxsize=1, data={None: None, 1: 1}, error=True)
+
+    def test_minsize(self):
+
+        self._assert(minsize=0, data={})
+
+    def test_minsize_0(self):
+
+        self._assert(minsize=0, data={None: None})
+
+    def test_minsize_1(self):
+
+        self._assert(minsize=1, data={None: None})
+
+    def test_minsize_error(self):
+
+        self._assert(minsize=1, data={}, error=True)
+
+    def test_itemtype(self):
+
+        self._assert(data={1: 1, 2: 2}, itemtype=int)
+
+    def test_itemtype_error(self):
+
+        self._assert(data={1: None, 2.: None}, itemtype=int, error=True)
+
+    def test_valuetype(self):
+
+        self._assert(data={1: 1, 2.: 2}, valuetype=int)
+
+    def test_valuetype_error(self):
+
+        self._assert(data={1: 1, 2: 2.}, valuetype=int, error=True)
+
+    def test_unique(self):
+
+        self._assert(data={1: 1, 2: 2}, unique=True)
+
+    def test_unique_error(self):
+
+        self._assert(data={1: 1, 2: 1}, unique=True, error=True)
+
 
 if __name__ == '__main__':
     main()

@@ -141,7 +141,7 @@ class ArraySchema(ElementarySchema):
     __data_types__ = [list, tuple, set]
 
     #: item types. Default any.
-    item_type = TypeSchema(nullable=True, default=None)
+    itemtype = TypeSchema(nullable=True, default=None)
     #: minimal array size. Default None.
     minsize = IntegerSchema(nullable=True, default=None)
     #: maximal array size. Default None.
@@ -171,12 +171,12 @@ class ArraySchema(ElementarySchema):
             if self.unique and len(set(data)) != len(data):
                 raise ValueError('Duplicated items in {0}'.format(result))
 
-            if self.item_type is not None:
+            if self.itemtype is not None:
                 for index, item in enumerate(data):
-                    if not isinstance(item, self.item_type):
+                    if not isinstance(item, self.itemtype):
                         raise TypeError(
                             'Wrong type of {0} at pos {1}. {2} expected.'.format(
-                                item, index, self.item_type
+                                item, index, self.itemtype
                             )
                         )
 
@@ -187,30 +187,23 @@ class DictSchema(ArraySchema):
     __data_types__ = [dict]
 
     #: value type
-    value_type = TypeSchema(nullable=True, default=None)
+    valuetype = TypeSchema(nullable=True, default=None)
     default = DynamicValue(lambda: {})
 
     def validate(self, data, *args, **kwargs):
 
         super(DictSchema, self).validate(data, *args, **kwargs)
 
-        if self.maxsize is not None and len(data) >= self.maxsize:
-            raise ValueError(
-                'length of data {0} must be lesser than {1}.'.format(
-                    data, self.maxsize
-                )
-            )
-
         if data:
             if self.unique and len(set(data.values())) != len(data):
                 raise ValueError('Duplicated items in {0}'.format(result))
 
-            if self.value_type is not None:
+            if self.valuetype is not None:
                 for key, item in data.items():
-                    if not isinstance(value, self.value_type):
+                    if not isinstance(item, self.valuetype):
                         raise TypeError(
                             'Wrong type of {0} at pos {1}. {2} expected.'.format(
-                                item, key, self.value_type
+                                item, key, self.valuetype
                             )
                         )
 

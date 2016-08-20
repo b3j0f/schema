@@ -91,6 +91,21 @@ class ThisTest(UTCase):
         self.assertFalse(Test.test.nullable)
 
 
+class DefaultTest(UTCase):
+
+    def test(self):
+
+        class TestSchema(Schema):
+
+            default = 0
+
+        schema = TestSchema()
+        self.assertEqual(schema.default, 0)
+
+        schema = TestSchema(default=None)
+        self.assertIsNone(schema.default)
+
+
 class UpdateContentTest(UTCase):
 
     class NumberSchema(Schema):
