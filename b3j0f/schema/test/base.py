@@ -39,11 +39,52 @@ from ..base import Schema, DynamicValue, updatecontent, RefSchema, This
 
 class ThisTest(UTCase):
 
+    def test_error(self):
+
+        def definition():
+
+            class Test(Schema):
+
+                test = This(default='test', nullable=False)
+
+                def __init__(self, *args, **kwargs):
+
+                    super(Test, self).__init__(*args, **kwargs)
+
+        self.assertRaises(NameError, definition)
+
+    def test_error_deco(self):
+
+        def definition():
+
+            @updatecontent
+            class Test(Schema):
+
+                __update_content__ = False
+
+                test = This(default='test', nullable=False)
+
+                def __init__(self, *args, **kwargs):
+
+                    super(Test, self).__init__(*args, **kwargs)
+
+        self.assertRaises(NameError, definition)
+
     def test(self):
 
         class Test(Schema):
 
+            __update_content__ = False
+
             test = This(default='test', nullable=False)
+
+            def __init__(self, *args, **kwargs):
+
+                super(Test, self).__init__(*args, **kwargs)
+
+        self.assertIsInstance(Test.test, This)
+
+        updatecontent(Test)
 
         self.assertIsInstance(Test.test, Test)
         self.assertEqual(Test.test.default, 'test')
@@ -115,6 +156,7 @@ class UpdateContentTest(UTCase):
 
     def test_schema(self):
 
+        @updatecontent
         class TestSchema(Schema):
 
             a = 1

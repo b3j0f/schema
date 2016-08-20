@@ -106,8 +106,7 @@ class _Schema(property):
                         val = val()
 
                     if isinstance(val, _Schema):
-                        val = getattr(self, name)
-                        #val = val._default
+                        val = val.default
 
                 if isinstance(val, DynamicValue):
                     val = val()
@@ -297,11 +296,27 @@ class RefSchema(_Schema):
         return ref.validate(data=data, owner=owner)
 
 
-def updatecontent(schemacls, updateparents=True):
+def updatecontent(schemacls=None, updateparents=True, exclude=None):
     """Transform all schema class attributes to schemas.
 
+    It can be used such as a decorator in order to ensure to update attributes
+    with the decorated schema but take care to the limitation to use old style
+    method call for overidden methods.
+
+    .. example:
+        @updatecontent  # update content at the end of its definition.
+        class Test(Schema):
+            this = This()  # instance of Test.
+            def __init__(self, *args, **kwargs):
+                Test.__init__(self, *args, **kwargs)  # old style method call.
+
     :param type schemacls: sub class of _Schema.
-    :param bool updateparents: if True (default), update parent content."""
+    :param bool updateparents: if True (default), update parent content.
+    :param list exclude: attribute names to exclude from updating.
+    :return: schemacls"""
+
+    if schemacls is None:
+        return updatecontent
 
     if updateparents:
         schemaclasses = reversed(list(schemacls.mro()))
@@ -313,7 +328,8 @@ def updatecontent(schemacls, updateparents=True):
 
         for name, member in getattr(schemaclass, '__dict__', {}).items():
 
-            if name[0] != '_':  # transform only public members
+            # transform only public members
+            if name[0] != '_' and (exclude is None or name not in exclude):
 
                 toset = False  # flag for setting schemas
 
@@ -347,6 +363,8 @@ def updatecontent(schemacls, updateparents=True):
                     except (AttributeError, TypeError):
                         break
 
+    return schemacls
+
 updatecontent(RefSchema)  #: update content of RefSchema.
 
 
@@ -361,7 +379,8 @@ class MetaSchema(type):
             registercls(schemacls=result, data_types=result.__data_types__)
 
         # update all sub schemas related to values
-        updatecontent(schemacls=result)
+        if result.__update_content__:
+            updatecontent(schemacls=result)
 
         return result
 
@@ -381,3 +400,18 @@ class Schema(_Schema):
 
     #: Register instances in the registry if True (False by default).
     __register__ = False
+    """update automatically the content if True (default).
+
+    If True, take care to not having called the class in overidden methods.
+    In such case, take a look to the using of the class This which recommands to
+    use old style method call for overriden methods.
+
+    ..example:
+        class Test(Schema):
+            __udpate_content__ = True  # set update content to True
+            test = This()
+            def __init__(self, *args, **kwargs):
+                Schema.__init__(self, *args, **kwargs)  # old style call.
+        """
+
+    __update_content__ = True

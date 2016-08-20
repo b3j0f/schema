@@ -31,8 +31,7 @@ __all__ = [
     'StringSchema',
     'ArraySchema',
     'BooleanSchema',
-    'EnumSchema',
-    'FunctionSchema'
+    'EnumSchema'
 ]
 
 from six import string_types
@@ -77,7 +76,7 @@ class NumberSchema(ElementarySchema):
 
     def validate(self, data, *args, **kwargs):
 
-        super(NumberSchema, self).validate(data, *args, **kwargs)
+        ElementarySchema.validate(self, data, *args, **kwargs)
 
         if self.min is not None and self.min > data:
             raise ValueError(
@@ -145,23 +144,23 @@ class ArraySchema(ElementarySchema):
     item_type = TypeSchema(nullable=True, default=None)
     #: minimal array size. Default None.
     minsize = IntegerSchema(nullable=True, default=None)
-    #: maximal array size. Default None
+    #: maximal array size. Default None.
     maxsize = IntegerSchema(nullable=True, default=None)
     unique = False  #: are items unique ? False by default.
     default = DynamicValue(lambda: [])
 
     def validate(self, data, *args, **kwargs):
 
-        super(ArraySchema, self).validate(data, *args, **kwargs)
+        ElementarySchema.validate(self, data, *args, **kwargs)
 
-        if self.minsize > len(data):
+        if self.minsize is not None and self.minsize > len(data):
             raise ValueError(
                 'length of data {0} must be greater than {1}.'.format(
                     data, self.minsize
                 )
             )
 
-        if self.maxsize is not None and len(data) >= self.maxsize:
+        if self.maxsize is not None and len(data) > self.maxsize:
             raise ValueError(
                 'length of data {0} must be lesser than {1}.'.format(
                     data, self.maxsize
@@ -236,93 +235,3 @@ class DateTimeSchema(ElementarySchema):
     year = IntegerSchema(nullable=True, default=None)
 
     default = DynamicValue(lambda: datetime.now())
-
-
-class FunctionSchema(ElementarySchema):
-    """Function schema.
-
-    Dedicated to describe functions, methods and lambda objects."""
-
-    class ParamSchema(Schema):
-        """Function parameter schema."""
-
-        type = object
-        hasvalue = False
-
-    __data_types__ = [FunctionType, MethodType, LambdaType]
-
-    params = ArraySchema(item_type=ParamSchema)
-    rtype = TypeSchema(nullable=True, default=None)
-    impl = ''
-    fget = This()
-    fset = This()
-    fdel = This()
-
-    def validate(self, data, *args, **kwargs):
-
-        result = super(FunctionSchema, self).validate(
-            data=data, *args, **kwargs
-        )
-
-        if result:
-
-            args, vargs, kwargs, default = getargspec(data)
-
-            for param in self.params:
-                if param.validate(args, )
-
-            params = []
-
-            indexlen = len(args) - (0 if default is None else len(default))
-
-            for index, arg in enumerate(args):
-
-                pkwargs = {name: arg}  # param kwargs
-                if index == indexlen:
-                    value = default[index - len(default)]
-                    pkwargs['default'] = value
-                    pkwargs['type'] = type(value)
-                    pkwargs['hasvalue'] = True
-                    indexlen += 1
-
-                param = FunctionSchema.ParamSchema(**pkwargs)
-                params.append(param)
-
-        return result
-
-    def _setvalue(self, schema, value, *args, **kwargs):
-
-        if schema.name == 'default':
-
-            self.params = FunctionSchema._getparams(value)
-
-
-    @staticmethod
-    def _getparams(function):
-        """Get function params from input function.
-
-        :return: list of param schema.
-        :rtype: list"""
-
-        result = []
-
-        args, vargs, _, default = getargspec(function)
-
-        indexlen = len(args) - (0 if default is None else len(default))
-
-        for index, arg in enumerate(args):
-
-            pkwargs = {name: arg}  # param kwargs
-
-            if index >= indexlen:  # has default value
-                value = default[index - indexlen]
-                pkwargs['default'] = value
-                pkwargs['type'] = type(value)
-                pkwargs['hasvalue'] = True
-
-            param = FunctionSchema.ParamSchema(**pkwargs)
-            params.append(param)
-
-        return result
-
-        self.params = params

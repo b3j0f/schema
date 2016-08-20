@@ -101,11 +101,20 @@ class This(object):
     """Tool Used to set inner schemas with the same type with specific arguments
     .
 
+    This one might be use at the condition instanciation methods must not
+    reference the class.
+
     ..example::
 
         class Test(Schema):
             # contain an inner schema nullable 'test' of type Test.
             test = This(nullable=False)
+
+            def __init__(self, *args, **kwargs):
+
+                # old style call because when the schema will be automatically
+                # updated, the class Test does not exist in the scope
+                Schema.__init__(self, *args, **kwargs)
 
     :param args: schema class vargs to use.
     :param kwargs: schema class kwargs to use.

@@ -24,6 +24,14 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+"""Python language schemas utilities"""
+
+__all__ = ['clsschemamaker', 'FunctionSchema']
+
+from re import compile as re_compile
+
+from b3j0f.utils.version import OrderedDict
+
 from ..factory import registermaker, getschemacls
 from ..base import Schema
 
@@ -53,3 +61,124 @@ def clsschemamaker(resource, name=None):
             result = type(resname, (Schema, resource), {})
 
     return result
+
+
+
+class FunctionSchema(ElementarySchema):
+    """Function schema.
+
+    Dedicated to describe functions, methods and lambda objects."""
+
+    class ParamSchema(Schema):
+        """Function parameter schema."""
+
+        type = object
+        hasvalue = False
+
+    PDESC = r':param (?P<ptype1>[\w_]+) (?P<pname1>\w+):'
+    PTYPE = r':type (?P<pname2>[\w_]+):(?P<ptype2>[^\n]+)'
+    RTYPE = r':rtype:(?P<rtype>[^\n]+)'
+
+    rec = re_compile('{0}|{1}|{2}'.format(PDESC, PTYPE, RTYPE))
+
+    __data_types__ = [FunctionType, MethodType, LambdaType]
+
+    params = ArraySchema(item_type=ParamSchema)
+    rtype = TypeSchema(nullable=True, default=None)
+    impl = ''
+    fget = This()
+    fset = This()
+    fdel = This()
+
+    def validate(self, data, *args, **kwargs):
+
+        result = super(FunctionSchema, self).validate(
+            data=data, *args, **kwargs
+        )
+
+        if result:
+
+            args, vargs, kwargs, default = getargspec(data)
+
+            for param in self.params:
+                if param.validate(args, )
+
+            params = []
+
+            indexlen = len(args) - (0 if default is None else len(default))
+
+            for index, arg in enumerate(args):
+
+                pkwargs = {name: arg}  # param kwargs
+                if index == indexlen:
+                    value = default[index - len(default)]
+                    pkwargs['default'] = value
+                    pkwargs['type'] = type(value)
+                    pkwargs['hasvalue'] = True
+                    indexlen += 1
+
+                param = FunctionSchema.ParamSchema(**pkwargs)
+                params.append(param)
+
+        return result
+
+    def _setvalue(self, schema, value, *args, **kwargs):
+
+        if schema.name == 'default':
+
+            self.params = FunctionSchema._getparams(value)
+
+
+    @staticmethod
+    def _getparams_rtype(function):
+        """Get function params from input function and rtype.
+
+        :return: OrderedDict or param schema by name and rtype.
+        :rtype: tuple"""
+
+        result = []
+
+        args, vargs, _, default = getargspec(function)
+
+        indexlen = len(args) - (0 if default is None else len(default))
+
+        params = OrderedDict()
+
+        for index, arg in enumerate(args):
+
+            pkwargs = {name: arg}  # param kwargs
+
+            if index >= indexlen:  # has default value
+                value = default[index - indexlen]
+                pkwargs['default'] = value
+                pkwargs['type'] = type(value)
+                pkwargs['hasvalue'] = True
+
+            param = FunctionSchema.ParamSchema(**pkwargs)
+            params[arg] = param
+
+        rtype = None
+
+        # parse docstring
+        for match in FunctionSchema.rec.findall(function.__dic__):
+
+            if not rtype:
+                rtype = match.group('rtype')
+                if rtype:
+                    continue
+
+            pname = match.group('pname1') or match.group('pname2')
+
+            if pname:
+                ptype = match.group('ptype1') or match.group('ptype2')
+
+                try:
+                    ptype = lookup(ptype)
+
+                except ImportError:
+                    pass
+
+                else:
+                    params[pname].type = ptype
+
+        return params, rtype

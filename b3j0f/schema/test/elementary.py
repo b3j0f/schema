@@ -37,8 +37,7 @@ from ..elementary import (
         StringSchema,
         ArraySchema,
         BooleanSchema,
-        EnumSchema,
-        FunctionSchema
+        EnumSchema
     )
 
 
