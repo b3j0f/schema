@@ -254,6 +254,9 @@ class FunctionSchema(ElementarySchema):
     params = ArraySchema(item_type=ParamSchema)
     rtype = TypeSchema(nullable=True, default=None)
     impl = ''
+    fget = This()
+    fset = This()
+    fdel = This()
 
     def validate(self, data, *args, **kwargs):
 
@@ -262,7 +265,11 @@ class FunctionSchema(ElementarySchema):
         )
 
         if result:
+
             args, vargs, kwargs, default = getargspec(data)
+
+            for param in self.params:
+                if param.validate(args, )
 
             params = []
 
@@ -282,3 +289,40 @@ class FunctionSchema(ElementarySchema):
                 params.append(param)
 
         return result
+
+    def _setvalue(self, schema, value, *args, **kwargs):
+
+        if schema.name == 'default':
+
+            self.params = FunctionSchema._getparams(value)
+
+
+    @staticmethod
+    def _getparams(function):
+        """Get function params from input function.
+
+        :return: list of param schema.
+        :rtype: list"""
+
+        result = []
+
+        args, vargs, _, default = getargspec(function)
+
+        indexlen = len(args) - (0 if default is None else len(default))
+
+        for index, arg in enumerate(args):
+
+            pkwargs = {name: arg}  # param kwargs
+
+            if index >= indexlen:  # has default value
+                value = default[index - indexlen]
+                pkwargs['default'] = value
+                pkwargs['type'] = type(value)
+                pkwargs['hasvalue'] = True
+
+            param = FunctionSchema.ParamSchema(**pkwargs)
+            params.append(param)
+
+        return result
+
+        self.params = params

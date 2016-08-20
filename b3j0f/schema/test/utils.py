@@ -30,7 +30,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..utils import DynamicValue, obj2schema
+from ..utils import DynamicValue, obj2schema, This
 from ..registry import registercls
 
 
@@ -89,6 +89,15 @@ class FromObjTest(UTCase):
 
         self.assertIsNone(res)
 
+
+class ThisTest(UTCase):
+
+    def test(self):
+
+        this = This(1, 2, a=3, b=4)
+
+        self.assertEqual(this.args, (1, 2))
+        self.assertEqual(this.kwargs, {'a': 3, 'b': 4})
 
 if __name__ == '__main__':
     main()

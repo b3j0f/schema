@@ -40,31 +40,7 @@ from uuid import uuid4
 
 from .registry import register, registercls
 from .factory import registermaker, getschemacls
-from .utils import obj2schema, DynamicValue
-
-
-class This(object):
-    """Tool Used to set inner schemas with the same type with specific arguments
-    .
-
-    ..example::
-
-        class Test(Schema):
-            # contain an inner schema nullable 'test' of type Test.
-            test = This(nullable=False)
-
-    :param args: schema class vargs to use.
-    :param kwargs: schema class kwargs to use.
-
-    :return: input args and kwargs.
-    :rtype: tuple"""
-
-    def __init__(self, *args, **kwargs):
-
-        super(This, self).__init__()
-
-        self.args = args
-        self.kwargs = kwargs
+from .utils import obj2schema, DynamicValue, This
 
 
 class _Schema(property):

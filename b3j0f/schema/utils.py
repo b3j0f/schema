@@ -95,3 +95,27 @@ def obj2schema(
         result = schemacls(default=fobj, *args, **kwargs)
 
     return result
+
+
+class This(object):
+    """Tool Used to set inner schemas with the same type with specific arguments
+    .
+
+    ..example::
+
+        class Test(Schema):
+            # contain an inner schema nullable 'test' of type Test.
+            test = This(nullable=False)
+
+    :param args: schema class vargs to use.
+    :param kwargs: schema class kwargs to use.
+
+    :return: input args and kwargs.
+    :rtype: tuple"""
+
+    def __init__(self, *args, **kwargs):
+
+        super(This, self).__init__()
+
+        self.args = args
+        self.kwargs = kwargs
