@@ -30,7 +30,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..factory import SchemaFactory
+from ..factory import SchemaFactory, SchemaBuilder
 
 
 class TestFactory(UTCase):
@@ -39,90 +39,99 @@ class TestFactory(UTCase):
 
         self.factory = SchemaFactory()
 
-    def maker(self, _type):
-        """maker generator."""
+        self.builder = lambda _type: TestFactory.SchemaBuilderTest(_type)
 
-        def result(resource):
-            if not isinstance(resource, _type):
+    class SchemaBuilderTest(SchemaBuilder):
+
+        def __init__(self, _type, *args, **kwargs):
+
+            super(TestFactory.SchemaBuilderTest, self).__init__(*args, **kwargs)
+            self.type = _type
+
+        def build(self, resource):
+
+            if not isinstance(resource, self.type):
                 raise TypeError()
 
             return resource
 
-        return result
+        def getresource(self, schemacls):
+
+            return schemacls
 
     def test_register(self):
 
-        makerstr = self.maker(str)
-        makerint = self.maker(int)
+        makerstr = self.builder(str)
+        makerint = self.builder(int)
 
         schemastr = 'test'
         schemaint = 2
 
         self.factory = SchemaFactory()
 
-        self.assertRaises(TypeError, self.factory.make, schemaint)
+        self.assertRaises(TypeError, self.factory.build, schemaint)
         self.assertRaises(KeyError, self.factory.getschemacls, schemaint)
-        self.assertRaises(TypeError, self.factory.make, schemastr)
+        self.assertRaises(TypeError, self.factory.build, schemastr)
         self.assertRaises(KeyError, self.factory.getschemacls, schemastr)
 
-        self.factory.registermaker(name='str', maker=makerstr)
+        self.factory.registerbuilder(name='str', builder=makerstr)
 
-        self.assertRaises(TypeError, self.factory.make, schemaint)
+        self.assertRaises(TypeError, self.factory.build, schemaint)
         self.assertRaises(KeyError, self.factory.getschemacls, schemaint)
 
-        schemacls = self.factory.make(schemastr)
+        schemacls = self.factory.build(schemastr)
         self.assertEqual(schemacls, schemastr)
 
         schemacls = self.factory.getschemacls(schemastr)
         self.assertEqual(schemacls, schemastr)
 
-        self.factory.registermaker(name='int', maker=makerint)
+        self.factory.registerbuilder(name='int', builder=makerint)
 
-        schemacls = self.factory.make(schemaint)
+        schemacls = self.factory.build(schemaint)
         self.assertEqual(schemacls, schemaint)
 
         schemacls = self.factory.getschemacls(schemaint)
         self.assertEqual(schemacls, schemaint)
 
-        schemacls = self.factory.make(schemastr)
+        schemacls = self.factory.build(schemastr)
         self.assertEqual(schemacls, schemastr)
 
         schemacls = self.factory.getschemacls(schemastr)
         self.assertEqual(schemacls, schemastr)
 
-        self.factory.unregistermaker('str')
+        self.factory.unregisterbuilder('str')
 
-        schemacls = self.factory.make(schemastr)
+        schemacls = self.factory.build(schemastr)
         self.assertEqual(schemacls, schemastr)
 
         self.assertRaises(
-            TypeError, self.factory.make, schemastr, cache=False
+            TypeError, self.factory.build, schemastr, cache=False
         )
 
         schemacls = self.factory.getschemacls(schemastr)
         self.assertEqual(schemacls, schemastr)
 
-        schemacls = self.factory.make(schemaint)
+        schemacls = self.factory.build(schemaint)
         self.assertEqual(schemacls, schemaint)
 
-        schemacls = self.factory.make(schemastr)
+        schemacls = self.factory.build(schemastr)
         self.assertEqual(schemacls, schemastr)
 
     def test_decorator(self):
 
-        @self.factory.registermaker
-        def make():
+        @self.factory.registerbuilder
+        def build():
             pass
 
-        self.assertIn('make', self.factory._makers)
+        self.assertIn('build', self.factory._builders)
 
     def test_decorator_name(self):
 
-        @self.factory.registermaker('test')
-        def make():
+        @self.factory.registerbuilder('test')
+        def build():
             pass
 
-        self.assertIn('test', self.factory._makers)
+        self.assertIn('test', self.factory._builders)
 
 
 if __name__ == '__main__':

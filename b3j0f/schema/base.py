@@ -39,7 +39,6 @@ from six import get_unbound_function, add_metaclass, iteritems
 from uuid import uuid4
 
 from .registry import register, registercls
-from .factory import registermaker, getschemacls
 from .utils import obj2schema, DynamicValue, This
 
 
@@ -414,7 +413,7 @@ class MetaSchema(type):
 class Schema(_Schema):
 
     #: Register instances in the registry if True (False by default).
-    __register__ = False
+    __register__ = True
     """update automatically the content if True (default).
 
     If True, take care to not having called the class in overidden methods.

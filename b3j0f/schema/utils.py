@@ -31,7 +31,7 @@ __all__ = ['DynamicValue', 'obj2schema']
 from types import FunctionType, MethodType
 
 from .registry import getbydatatype
-from .factory import make
+from .lang.factory import build
 
 
 class DynamicValue(object):
@@ -57,7 +57,7 @@ class DynamicValue(object):
 
 
 def obj2schema(
-        obj, _force=False, _besteffort=True, registry=None, factory=None,
+        obj, _force=False, _besteffort=True, _registry=None, _factory=None,
         *args, **kwargs
 ):
     """Get the schema able to instanciate input object.
@@ -69,7 +69,7 @@ def obj2schema(
         on the fly if it does not exist.
     :param bool _besteffort: if True (default), find a schema class able to
         validate object class by inheritance.
-    :param SchemaRegistry registry: default registry to use. Global by default.
+    :param SchemaRegistry _registry: default registry to use. Global by default.
     :param SchemaFactory factory: default factory to use. Global by default.
     :param args: schema class vargs.
     :param kwargs: schema class kwargs.
@@ -82,14 +82,14 @@ def obj2schema(
 
     cls = type(fobj)
 
-    gbdt = getbydatatype if registry is None else registry.getbydatatype
+    gbdt = getbydatatype if _registry is None else _registry.getbydatatype
 
     schemacls = gbdt(cls, besteffort=_besteffort)
 
     if schemacls is None and _force:
-        fmake = make if factory is None else factory.make
+        fbuild = build if _factory is None else _factory.build
 
-        schemacls = fmake(cls)
+        schemacls = fbuild(cls)
 
     if schemacls:
         result = schemacls(default=fobj, *args, **kwargs)
