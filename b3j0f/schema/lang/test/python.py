@@ -25,7 +25,6 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-
 from unittest import main
 
 from b3j0f.utils.ut import UTCase

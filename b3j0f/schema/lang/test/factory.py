@@ -30,7 +30,7 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..factory import SchemaFactory, SchemaBuilder
+from ..factory import SchemaFactory, SchemaBuilder, getbuilder
 
 
 class TestFactory(UTCase):
@@ -42,6 +42,8 @@ class TestFactory(UTCase):
         self.builder = lambda _type: TestFactory.SchemaBuilderTest(_type)
 
     class SchemaBuilderTest(SchemaBuilder):
+
+        __register__ = False
 
         def __init__(self, _type, *args, **kwargs):
 
@@ -117,21 +119,14 @@ class TestFactory(UTCase):
         schemacls = self.factory.build(schemastr)
         self.assertEqual(schemacls, schemastr)
 
-    def test_decorator(self):
+    def test_autoregister(self):
 
-        @self.factory.registerbuilder
-        def build():
+        class TestSchemaBuilder(SchemaBuilder):
             pass
 
-        self.assertIn('build', self.factory._builders)
+        builder = getbuilder(TestSchemaBuilder.__name__)
 
-    def test_decorator_name(self):
-
-        @self.factory.registerbuilder('test')
-        def build():
-            pass
-
-        self.assertIn('test', self.factory._builders)
+        self.assertIsInstance(builder, TestSchemaBuilder)
 
 
 if __name__ == '__main__':

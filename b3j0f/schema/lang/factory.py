@@ -26,27 +26,17 @@
 
 """Schema factory module."""
 
-__all__ = ['SchemaFactory', 'registerbuilder', 'unregisterbuilder', 'build']
+__all__ = [
+    'SchemaFactory', 'registerbuilder', 'unregisterbuilder', 'build',
+    'getbuilder'
+]
 
 
 from uuid import uuid4 as uuid
 
-from six import string_types
+from six import string_types, add_metaclass
 
-
-class SchemaBuilder(object):
-    """Schema builder interface for building schema from a resource, and
-    reciprocally."""
-
-    def build(self, resource):
-        """Build a schema class from input resource."""
-
-        raise NotImplementedError()
-
-    def getresource(self, schemacls):
-        """Get a schema resource from input schema."""
-
-        raise NotImplementedError()
+from b3j0f.utils.path import getpath
 
 
 class SchemaFactory(object):
@@ -61,37 +51,22 @@ class SchemaFactory(object):
         self._schemasbyresource = schemasbyresource or {}
         self._builders = builders or {}
 
-    def registerbuilder(self, builder=None, name=None):
+    def registerbuilder(self, builder, name=None):
         """Register a schema builder with a key name.
 
         Can be used such as a decorator where the builder can be the name for a
         short use.
 
-        :param builder: callable object which takes in parameter a schema resource
-            and generate a schema class in return. If the resource is not in the
-            right format, the builder must raise a TypeError exception.
+        :param SchemaBuilder builder: schema builder.
         :param str name: builder name. Default is builder name or generated.
         """
 
-        def _register(
-                builder, name=builder if isinstance(builder, string_types) else name
-        ):
+        if name is None:
+            name = uuid()
 
-            if name is None:
-                name = getattr(builder, '__name__', uuid())
+        self._builders[name] = builder
 
-            self._builders[name] = builder
-
-            return builder
-
-        if builder is None:
-            return _register
-
-        elif isinstance(builder, string_types):
-            return _register
-
-        else:
-            return _register(builder)
+        return builder
 
     def unregisterbuilder(self, name):
         """Unregister a builder by its name.
@@ -108,6 +83,13 @@ class SchemaFactory(object):
         :rtype: list"""
 
         return list(self._builders.keys())
+
+    def getbuilder(self, name):
+        """Get a builder instance from a name.
+
+        :param str name: builder name to retrieve."""
+
+        return self._builders[name]
 
     def build(self, resource, cache=True):
         """build a schema class from input resource.
@@ -155,7 +137,6 @@ class SchemaFactory(object):
 
         return self_builders[name].getresource(schemacls=schemacls)
 
-
 _SCHEMAFACTORY = SchemaFactory()  #: global schema factory
 
 
@@ -187,6 +168,13 @@ def build(resource, cache=True):
 
     return _SCHEMAFACTORY.build(resource=resource, cache=True)
 
+def getbuilder(name):
+    """Get a builder instance from a name.
+
+    :param str name: builder name to retrieve."""
+
+    return _SCHEMAFACTORY.getbuilder(name)
+
 def getschemacls(resource):
     """Get schema class related to input resource.
 
@@ -203,3 +191,34 @@ def getresource(self, schemacls, name):
     :return: resource returned by the right builder.getresource(schema)."""
 
     return _SCHEMAFACTORY.getresource(schemacls=schemacls, name=name)
+
+
+class MetaSchemaBuilder(type):
+
+    def __new__(mcs, *args, **kwargs):
+
+        result = super(MetaSchemaBuilder, mcs).__new__(mcs, *args, **kwargs)
+
+        if result.__register__:
+            registerbuilder(result(), name=result.__name__)
+
+        return result
+
+
+@add_metaclass(MetaSchemaBuilder)
+class SchemaBuilder(object):
+    """Schema builder interface for building schema from a resource, and
+    reciprocally."""
+
+    __register__ = True  #: if True (default), automatically register this.
+    __name__ = None  #: schema builder name. Default is generated.
+
+    def build(self, resource):
+        """Build a schema class from input resource."""
+
+        raise NotImplementedError()
+
+    def getresource(self, schemacls):
+        """Get a schema resource from input schema."""
+
+        raise NotImplementedError()
