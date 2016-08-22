@@ -44,4 +44,5 @@ from ..elementary import (
 
 
 class XSDSchemaBuilder(SchemaBuilder):
-    pass
+
+    __name__ = 'xsd'

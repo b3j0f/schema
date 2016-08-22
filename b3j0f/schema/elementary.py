@@ -27,6 +27,7 @@
 """Elementary schema package."""
 
 __all__ = [
+    'NoneSchema',
     'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
     'StringSchema',
     'ArraySchema',
@@ -42,7 +43,7 @@ from numbers import Number
 
 from enum import Enum
 
-from types import FunctionType, MethodType, LambdaType
+from types import FunctionType, MethodType, LambdaType, NoneType
 
 from datetime import datetime
 
@@ -53,8 +54,16 @@ from .utils import DynamicValue
 
 
 class ElementarySchema(Schema):
+    """Base elementary schema."""
 
     nullable = False
+
+
+class NoneSchema(ElementarySchema):
+    """None schema."""
+
+    __data_types__ = [NoneType]
+    nullable = True
 
 
 class BooleanSchema(ElementarySchema):

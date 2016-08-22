@@ -33,6 +33,7 @@ from b3j0f.utils.ut import UTCase
 from ..base import Schema
 
 from ..elementary import (
+        NoneSchema,
         IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
         StringSchema,
         ArraySchema,
@@ -75,7 +76,16 @@ class ElementaryTest(UTCase):
 
         schema = self.__schemacls__()
 
-        self.assertRaises(TypeError, schema.validate, data=None)
+        if schema.nullable:
+            schema.validate(data=None)
+
+        else:
+            self.assertRaises(TypeError, schema.validate, data=None)
+
+
+class NoneSchema(ElementaryTest):
+
+    __schemacls__ = NoneSchema
 
 
 class NumberSchemaTest(ElementaryTest):
