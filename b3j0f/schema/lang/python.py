@@ -33,7 +33,7 @@ from re import compile as re_compile
 from b3j0f.utils.version import OrderedDict
 
 from ..factory import registermaker, getschemacls
-from ..base import Schema
+from ..base import _Schema, Schema
 
 
 @registermaker
@@ -49,7 +49,7 @@ def clsschemamaker(resource, name=None):
     if not isinstance(resource, type):
         raise TypeError('Wrong type {0}, \'type\' expected'.format(resource))
 
-    if issubclass(resource, Schema):
+    if issubclass(resource, _Schema):
         result = resource
 
     else:

@@ -85,9 +85,11 @@ class _Schema(property):
         if doc is not None:
             kwargs['doc'] = doc
 
+        cls = type(self)
+
         for name, member in getmembers(
-            type(self),
-            lambda member: not isinstance(member, (FunctionType, MethodType))
+            cls,
+            #lambda member: not isinstance(member, (FunctionType, MethodType))
         ):
 
             if name[0] != '_' and name not in [
@@ -110,8 +112,9 @@ class _Schema(property):
                 if isinstance(val, DynamicValue):
                     val = val()
 
+                if member != val:
+                    setattr(self, name, val)
                 setattr(self, self.attrname(name=name), val)
-                setattr(self, name, val)
 
         self._default = kwargs.get('default', self.default)
 
@@ -388,6 +391,22 @@ class MetaSchema(type):
             register(schema=result)
 
         return result
+
+    def __instancecheck__(mcs, obj, *args, **kwargs):
+
+        return (
+            super(MetaSchema, mcs).__instancecheck__(obj, *args, **kwargs)
+            or
+            isinstance(obj, _Schema)
+        )
+
+    def __subclasscheck__(mcs, cls, *args, **kwargs):
+
+        return (
+            super(MetaSchema, mcs).__subclasscheck__(cls, *args, **kwargs)
+            or
+            issubclass(cls, _Schema)
+        )
 
 
 # use metaschema such as the schema metaclass
