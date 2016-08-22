@@ -28,52 +28,74 @@
 
 from __future__ import absolute_import
 
-__all__ = ['JSONProperty', 'JSONSchema']
+__all__ = ['JSONSchemaBuilder']
 
 from ..base import Schema
-from ..prop import Property
+from .python import FunctionSchema
+from .factory import SchemaBuilder
+from ..elementary import (
+    ElementarySchema,
+    NumberSchema, IntegerSchema, FloatSchema, LongSchema, ComplexSchema,
+    BooleanSchema,
+    ArraySchema, DictSchema,
+    EnumSchema,
+    StringSchema,
+    DateTimeSchema
+)
 
-from json import loads, load, dump
+from json import loads, dump
 
 from jsonschema import validate
 
 
-class JSONProperty(Property):
+_SCHEMASBYJSONNAME = {
+    'integer': IntegerSchema,
+    'long': LongSchema,
+    'complex': ComplexSchema,
+    'float': FloatSchema,
+    'string': StringSchema,
+    'array': ArraySchema,
+    'dict': DictSchema,
+    'boolean': BooleanSchema,
+    'function': FunctionSchema,
+    'datetime': DateTimeSchema,
+    'enum': EnumSchema
+}
 
-    def __init__(self, jsonproperty, *args, **kwargs):
 
-        super(JSONProperty, self).__init__(*args, **kwargs)
+class JSONSchemaBuilder(SchemaBuilder):
 
-        self.jsonproperty = jsonproperty
+    __name__ = 'json'
 
+    def build(self, resource):
 
-class JSONSchema(Schema):
-    """Schema for json resources."""
+        if isinstance(resource, string_types):
+            fresource = loads(resource)
 
-    def __init__(self, *args, **kwargs):
+        _dict = {}
 
-        super(JSONSchema, self).__init__(*args, **kwargs)
+        for name in resource:
+            try:
+                schemacls = _SCHEMASBYJSONNAME[name]
 
-        try:
-            self._schema = loads(self.resource)
+            except KeyError:
+                value = self.build(resource[name])
 
-        except TypeError:
-            with open(self.resource) as jsonfile:
-                self._schema = load(jsonfile)
+            else:
+                schemacls(**resource[name])
 
-        self.uid = self._schema['id']
+            _dict[name] = value
 
-        for name in self._schema['property']:
+        return type(resource['name'], Schema, _dict)
 
-            jsonproperty = self._schema['property'][name]
+    def getresource(self, schemacls):
 
-            self[name] = JSONProperty(name=name, jsonproperty=jsonproperty)
+        json = {}
 
-    def validate(self, data):
+        for schema in schemacls.getschemas():
 
-        return validate(data, self._schema)
+            json[schema.name] = self.getresource(schema)
 
-    def save(self, resource):
+        result = dumps(json)
 
-        with open(resource, "w") as rstream:
-            dump(self._schema, rstream)
+        return result

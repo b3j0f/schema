@@ -30,8 +30,10 @@ __all__ = [
     'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
     'StringSchema',
     'ArraySchema',
+    'DictSchema',
     'BooleanSchema',
-    'EnumSchema'
+    'EnumSchema',
+    'DateTimeSchema'
 ]
 
 from six import string_types

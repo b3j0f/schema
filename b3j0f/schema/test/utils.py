@@ -65,7 +65,7 @@ class FromObjTest(UTCase):
 
     def test_default_force(self):
 
-        self.assertRaises(TypeError, obj2schema, True, _force=True)
+        self.assertRaises(NotImplementedError, obj2schema, True, _force=True)
 
     def test_default_besteffort(self):
 

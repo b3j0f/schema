@@ -32,36 +32,35 @@ from re import compile as re_compile
 
 from b3j0f.utils.version import OrderedDict
 
-from ..factory import registermaker, getschemacls
+from .factory import SchemaBuilder, getschemacls
 from ..base import _Schema, Schema
 
 
-@registermaker
-def clsschemamaker(resource, name=None):
-    """Default function which make a schema class from a resource.
+class PythonSchemaBuilder(SchemaBuilder):
 
-    :param type resource: input resource is a class.
-    :param str name: schema type name to use. Default is resource name.
-    :param type schemacls: sub class of schema to inherit from.
-    :rtype: type
-    :raise: TypeError if resource is not a class."""
+    __name__ = 'python'
 
-    if not isinstance(resource, type):
-        raise TypeError('Wrong type {0}, \'type\' expected'.format(resource))
+    def build(self, resource):
 
-    if issubclass(resource, _Schema):
-        result = resource
+        if not isinstance(resource, type):
+            raise TypeError('Wrong type {0}, \'type\' expected'.format(resource))
 
-    else:
-        try:
-            result = getschemacls(resource)
+        if issubclass(resource, _Schema):
+            result = resource
 
-        except KeyError:
-            resname = resource.__name__ if name is None else name
-            result = type(resname, (Schema, resource), {})
+        else:
+            try:
+                result = getschemacls(resource)
 
-    return result
+            except KeyError:
+                resname = resource.__name__ if name is None else name
+                result = type(resname, (Schema, resource), {})
 
+        return result
+
+    def getresource(self, schemacls):
+
+        return schemacls.__bases__[1]
 
 
 class FunctionSchema(ElementarySchema):

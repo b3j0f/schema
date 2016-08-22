@@ -26,27 +26,22 @@
 
 """XSD schema package."""
 
-__all__ = ['XSDProperty', 'XSDSchema']
+__all__ = ['XSDSchemaBuilder']
+
 
 from ..base import Schema
-from ..prop import Property
+from .python import FunctionSchema
+from .factory import SchemaBuilder
+from ..elementary import (
+    ElementarySchema,
+    NumberSchema, IntegerSchema, FloatSchema, LongSchema, ComplexSchema,
+    BooleanSchema,
+    ArraySchema, DictSchema,
+    EnumSchema,
+    StringSchema,
+    DateTimeSchema
+)
 
 
-class XSDProperty(Property):
-    """xsd property"""
-
-    def __init__(self, xsdprop, *args, **kwargs):
-
-        super(XSDProperty, self).__init__(*args, **kwargs)
-
-        self.xsdprop = xsdprop
-
-
-class XSDSchema(Schema):
-    """Schema for xml resources."""
-
-    def __init__(self, *args, **kwargs):
-
-        super(XSDSchema, self).__init__(*args, **kwargs)
-
-        raise NotImplementedError()
+class XSDSchemaBuilder(SchemaBuilder):
+    pass
