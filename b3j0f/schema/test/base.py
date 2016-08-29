@@ -228,6 +228,13 @@ class SchemaTest(UTCase):
         self.assertIsNone(schema._fset)
         self.assertIsNone(schema._fdel)
 
+    def test_uuid(self):
+
+        schema1 = Schema()
+        schema2 = Schema()
+
+        self.assertNotEqual(schema1.uuid, schema2.uuid)
+
     def test_init_gsd(self):
 
         processing = []
@@ -354,7 +361,13 @@ class SchemaTest(UTCase):
 
         _dump = {}
         for name, schema in schema.getschemas().items():
-            _dump[name] = schema.default
+            val = schema.default
+
+            if isinstance(val, DynamicValue):
+                del dump[name]
+
+            else:
+                _dump[name] = val
 
         self.assertEqual(dump, _dump)
 
@@ -372,7 +385,13 @@ class SchemaTest(UTCase):
 
         _dump = {}
         for name, schema in schema.getschemas().items():
-            _dump[name] = schema.default
+            val = schema.default
+
+            if isinstance(val, DynamicValue):
+                del dump[name]
+
+            else:
+                _dump[name] = val
 
         self.assertEqual(dump, _dump)
 

@@ -92,7 +92,8 @@ def obj2schema(
         schemacls = fbuild(cls)
 
     if schemacls:
-        result = schemacls(default=fobj, *args, **kwargs)
+        print('fromobj', schemacls, fobj, obj)
+        result = schemacls(default=obj, *args, **kwargs)
 
     return result
 

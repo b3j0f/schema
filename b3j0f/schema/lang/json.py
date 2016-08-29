@@ -30,11 +30,14 @@ from __future__ import absolute_import
 
 __all__ = ['JSONSchemaBuilder']
 
+from copy import deepcopy
+
 from ..base import Schema
 from .python import FunctionSchema
 from .factory import SchemaBuilder
 from ..elementary import (
     ElementarySchema,
+    NoneSchema,
     NumberSchema, IntegerSchema, FloatSchema, LongSchema, ComplexSchema,
     BooleanSchema,
     ArraySchema, DictSchema,
@@ -49,7 +52,9 @@ from jsonschema import validate
 
 
 _SCHEMASBYJSONNAME = {
+    'null': NoneSchema,
     'integer': IntegerSchema,
+    'number': FloatSchema,
     'long': LongSchema,
     'complex': ComplexSchema,
     'float': FloatSchema,
@@ -59,7 +64,16 @@ _SCHEMASBYJSONNAME = {
     'boolean': BooleanSchema,
     'function': FunctionSchema,
     'datetime': DateTimeSchema,
-    'enum': EnumSchema
+    'enum': EnumSchema,
+    'object': Schema,
+    'datetime': DateTimeSchema
+}
+
+_PARAMSBYNAME = {
+    'defaultValue': 'default',
+    'title': 'name',
+    'id': 'uuid'
+    'items': 'items'
 }
 
 
@@ -72,30 +86,53 @@ class JSONSchemaBuilder(SchemaBuilder):
         if isinstance(resource, string_types):
             fresource = loads(resource)
 
-        _dict = {}
+        _resource = deepcopy(resource)
 
-        for name in resource:
-            try:
-                schemacls = _SCHEMASBYJSONNAME[name]
+        def _fill(resource):
 
-            except KeyError:
-                value = self.build(resource[name])
+            name = resource.pop('title')
 
-            else:
-                schemacls(**resource[name])
+            _type = _resource.pop('type')
 
-            _dict[name] = value
+            schemacls = _SCHEMASBYJSONNAME[_type]
 
-        return type(resource['name'], Schema, _dict)
+            properties = _resource.pop('properties', {})
+
+            kwargs = {}
+
+            for name, prop in properties.items():
+
+                if name in _PARAMSBYNAME:
+                    name = _PARAMSBYNAME[name]
+
+                kwargs[name] = _fill(prop)
+
+            return schemacls(**kwargs)
+
+        schema = _fill(_resource)
+
+        return type(schema)
 
     def getresource(self, schemacls):
 
-        json = {}
+        def _getdict(schema):
 
-        for schema in schemacls.getschemas():
+            result = {}
 
-            json[schema.name] = self.getresource(schema)
+            for innerschema in schema.getschemas():
 
-        result = dumps(json)
+                if isinstance(innerschema, ElementarySchema):
+                    val = getattr(schema, innerschema.name)
 
-        return result
+                else:
+                    val = _getdict(innerschema)
+
+                result[innerschema.name] = val
+
+            return result
+
+        json = _getdict(schemacls)
+
+        dump = dumps(json)
+
+        return dump

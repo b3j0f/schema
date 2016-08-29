@@ -31,54 +31,30 @@ from b3j0f.utils.ut import UTCase
 from b3j0f.utils.path import getpath
 
 from ...base import Schema
-from ..python import clsschemamaker, functionschemamaker
+from ..python import PythonSchemaBuilder, FunctionSchema, buildschema
 
 from inspect import getmembers
 
 
-class CLSSchemaMakerTest(UTCase):
+class BuildSchemaTest(UTCase):
 
     def test_default(self):
 
-        @clsschemamaker
+        @buildschema
         class Test(object):
             pass
 
-        self.assertEqual(Test.getschemas(), Schema.getschemas())
+        self.assertTrue(issubclass(Test, Schema))
+        self.assertEqual(Test.name, 'Test')
 
-    def test_schema(self):
+    def test_name(self):
 
-        @clsschemamaker
-        class Test(Schema):
+        @buildschema(name='test')
+        class Test(self):
             pass
 
-        self.assertEqual(Test.getschemas(), Schema.getschemas())
-
-    def test_innergetschemas(self):
-
-        @clsschemamaker
-        class Test(object):
-
-            a = Schema()
-
-        self.assertNotEqual(Test.getschemas(), Schema.getschemas())
-
-        schemas = Test.getschemas()
-
-        self.assertEqual(Test.getschemas()[0][0], 'a')
-
-    def test_innerschemas_schema(self):
-
-        @clsschemamaker
-        class Test(Schema):
-
-            a = Schema()
-
-        self.assertNotEqual(Test.getschemas(), Schema.getschemas())
-
-        schemas = Test.getschemas()
-
-        self.assertEqual(Test.getschemas()[0][0], 'a')
+        self.assertTrue(issubclass(Test, Schema))
+        self.assertEqual(Test.name, 'test')
 
 if __name__ == '__main__':
     main()

@@ -26,14 +26,20 @@
 
 """Python language schemas utilities"""
 
-__all__ = ['clsschemamaker', 'FunctionSchema']
+__all__ = ['PythonSchemaBuilder', 'FunctionSchema']
 
 from re import compile as re_compile
 
 from b3j0f.utils.version import OrderedDict
 
-from .factory import SchemaBuilder, getschemacls
+from .factory import SchemaBuilder, getschemacls, build
+from ..utils import This
 from ..base import _Schema, Schema
+from ..elementary import ElementarySchema, ArraySchema, TypeSchema
+
+from types import FunctionType, MethodType, LambdaType
+
+from inspect import getargspec
 
 
 class PythonSchemaBuilder(SchemaBuilder):
@@ -60,29 +66,67 @@ class PythonSchemaBuilder(SchemaBuilder):
 
     def getresource(self, schemacls):
 
-        return schemacls.__bases__[1]
+        result = None
+
+        for mro in schemacls.mro():
+            if issubclass(mro, Schema):
+                result = mro
+                break
+
+        return result
 
 
-class FunctionSchema(ElementarySchema):
-    """Function schema.
+def buildschema(_cls=None, **kwars):
+    """Class decorator used to build a schema from the decorate class.
 
-    Dedicated to describe functions, methods and lambda objects."""
+    :param type _cls: class to decorate.
+    :param kwargs: schema attributes to set.
+    :rtype: type
+    :return: schema class.
+    """
 
-    class ParamSchema(Schema):
+    def _buildschema(cls, **kwargs):
+
+        result = build(cls)
+
+        for name, arg in iteritems(kwargs):
+            setattr(result, name, arg)
+
+        return result
+
+    if _cls is None:
+        result = lambda cls: _buildschema(_cls, **kwargs)
+
+    else:
+        result = _buildschema(cls=_cls, **kwargs)
+
+    return result
+
+
+class ParamSchema(Schema):
         """Function parameter schema."""
 
         type = object
         hasvalue = False
 
-    PDESC = r':param (?P<ptype1>[\w_]+) (?P<pname1>\w+):'
-    PTYPE = r':type (?P<pname2>[\w_]+):(?P<ptype2>[^\n]+)'
-    RTYPE = r':rtype:(?P<rtype>[^\n]+)'
 
-    rec = re_compile('{0}|{1}|{2}'.format(PDESC, PTYPE, RTYPE))
+import sys
+sys.setrecursionlimit(60)
+print('STAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAART')
+class FunctionSchema(ElementarySchema):
+    """Function schema.
+
+    Dedicated to describe functions, methods and lambda objects."""
+
+    _PDESC = r':param (?P<ptype1>[\w_]+) (?P<pname1>\w+):'
+    _PTYPE = r':type (?P<pname2>[\w_]+):(?P<ptype2>[^\n]+)'
+    _RTYPE = r':rtype:(?P<rtype>[^\n]+)'
+
+    _REC = re_compile('{0}|{1}|{2}'.format(_PDESC, _PTYPE, _RTYPE))
 
     __data_types__ = [FunctionType, MethodType, LambdaType]
 
-    params = ArraySchema(item_type=ParamSchema)
+    params = ArraySchema(itemtype=ParamSchema)
     rtype = TypeSchema(nullable=True, default=None)
     impl = ''
     fget = This()
@@ -90,43 +134,49 @@ class FunctionSchema(ElementarySchema):
     fdel = This()
 
     def validate(self, data, *args, **kwargs):
+        print(('validate', self, data, args, kwargs))
+        ElementarySchema.validate(self, data=data, *args, **kwargs)
 
-        result = super(FunctionSchema, self).validate(
-            data=data, *args, **kwargs
-        )
+        params, rtype = self._getparams_rtype(function=data)
 
-        if result:
+        if len(params) != len(self.params):
+            raise TypeError(
+                'Wrong param length: {0}. {1} expected.'.format(
+                    len(params), len(self.params)
+                )
+            )
 
-            args, vargs, kwargs, default = getargspec(data)
+        self.rtype.validate(data=rtype)
 
-            for param in self.params:
-                if param.validate(args, )
+        for index, item in enumerate(params.items()):
+            name, param = item
+            selfparam = self.params[index]
 
-            params = []
+            if selfparam.name != name:
+                raise TypeError(
+                    'Wrong parameter name {0} at {1}. Expected {2}.'.format(
+                        name, index, selfparam.name
+                    )
+                )
 
-            indexlen = len(args) - (0 if default is None else len(default))
+            if selfparam.default != param.default:
+                raise TypeError(
+                    'Wrong default value {0} at {1}. Expected {2}.'.format(
+                        param.default, index, selfparam.default
+                    )
+                )
 
-            for index, arg in enumerate(args):
-
-                pkwargs = {name: arg}  # param kwargs
-                if index == indexlen:
-                    value = default[index - len(default)]
-                    pkwargs['default'] = value
-                    pkwargs['type'] = type(value)
-                    pkwargs['hasvalue'] = True
-                    indexlen += 1
-
-                param = FunctionSchema.ParamSchema(**pkwargs)
-                params.append(param)
-
-        return result
+            if not issubclass(param.type, selfparam.type):
+                raise TypeError(
+                    'Wrong param type {0} at {1}. Expected {2}.'.format(
+                        param.type, index, selfparam.type
+                    )
+                )
 
     def _setvalue(self, schema, value, *args, **kwargs):
 
         if schema.name == 'default':
-
-            self.params = FunctionSchema._getparams(value)
-
+            self.params, self.rtype = FunctionSchema._getparams_rtype(value)
 
     @staticmethod
     def _getparams_rtype(function):
@@ -145,7 +195,7 @@ class FunctionSchema(ElementarySchema):
 
         for index, arg in enumerate(args):
 
-            pkwargs = {name: arg}  # param kwargs
+            pkwargs = {'name': arg}  # param kwargs
 
             if index >= indexlen:  # has default value
                 value = default[index - indexlen]
@@ -153,13 +203,13 @@ class FunctionSchema(ElementarySchema):
                 pkwargs['type'] = type(value)
                 pkwargs['hasvalue'] = True
 
-            param = FunctionSchema.ParamSchema(**pkwargs)
+            param = ParamSchema(**pkwargs)
             params[arg] = param
 
         rtype = None
 
         # parse docstring
-        for match in FunctionSchema.rec.findall(function.__dic__):
+        for match in FunctionSchema._REC.findall(function.__dic__):
 
             if not rtype:
                 rtype = match.group('rtype')

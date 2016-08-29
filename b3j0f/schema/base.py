@@ -93,9 +93,12 @@ class _Schema(property):
 
             if name[0] != '_' and name not in [
                     'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter',
-                    'default', 'attrname'
+                    'default'
             ]:
-
+                if name == 'attrname':
+                    print('__init__', self, name)
+                if name == 'uuid':
+                    print(self, name, member)
                 if name in kwargs:
                     val = kwargs[name]
 
@@ -110,7 +113,8 @@ class _Schema(property):
 
                 if isinstance(val, DynamicValue):
                     val = val()
-
+                if name == 'uuid':
+                    print(self, name, member, val)
                 if member != val:
                     setattr(self, name, val)
                 setattr(self, self.attrname(name=name), val)
@@ -220,6 +224,9 @@ class _Schema(property):
         :param Schema owner: schema owner.
         :raises: Exception if the data is not validated"""
 
+        if isinstance(data, DynamicValue):
+            data = data()
+
         if data is None and not self.nullable:
             raise TypeError('Value can not be null')
 
@@ -261,6 +268,10 @@ class _Schema(property):
 
             if hasattr(self, name):
                 val = getattr(self, name)
+
+                if isinstance(val, DynamicValue):
+                    val = val()
+
                 result[name] = val
 
         return result
@@ -328,15 +339,18 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
 
             # transform only public members
             if name[0] != '_' and (exclude is None or name not in exclude):
-
+                if name == 'attrname':
+                    print('updatecontent', schemaclass, name, member)
                 toset = False  # flag for setting schemas
 
-                if isinstance(member, DynamicValue):
-                    member = member()
+                fmember = member
+
+                if isinstance(fmember, DynamicValue):
+                    fmember = fmember()
                     toset = True
 
-                if isinstance(member, _Schema):
-                    schema = member
+                if isinstance(fmember, _Schema):
+                    schema = fmember
 
                     if not schema.name:
                         schema.name = name
@@ -347,8 +361,8 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
                     if name == 'default':
                         schema = RefSchema(default=member, name=name)
 
-                    elif isinstance(member, This):
-                        schema = schemaclass(*member.args, **member.kwargs)
+                    elif isinstance(fmember, This):
+                        schema = schemaclass(*fmember.args, **fmember.kwargs)
 
                     else:
                         schema = obj2schema(obj=member, name=name)
@@ -357,7 +371,8 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
 
                     try:
                         setattr(schemaclass, name, schema)
-
+                        if name == 'attrname':
+                            print('setattr', schemaclass, name, schema)
                     except (AttributeError, TypeError):
                         break
 
@@ -372,7 +387,7 @@ class MetaSchema(type):
     def __new__(mcs, *args, **kwargs):
 
         result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
-
+        print('__new__', result)
         if result.__data_types__:
             registercls(schemacls=result, data_types=result.__data_types__)
 
