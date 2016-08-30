@@ -110,9 +110,6 @@ class ParamSchema(Schema):
         hasvalue = False
 
 
-import sys
-sys.setrecursionlimit(60)
-print('STAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAART')
 class FunctionSchema(ElementarySchema):
     """Function schema.
 
@@ -129,49 +126,59 @@ class FunctionSchema(ElementarySchema):
     params = ArraySchema(itemtype=ParamSchema)
     rtype = TypeSchema(nullable=True, default=None)
     impl = ''
+    impltype = 'python'
     fget = This()
     fset = This()
     fdel = This()
 
-    def validate(self, data, *args, **kwargs):
-        print(('validate', self, data, args, kwargs))
+    def validate(self, data, owner, *args, **kwargs):
+
         ElementarySchema.validate(self, data=data, *args, **kwargs)
 
-        params, rtype = self._getparams_rtype(function=data)
+        if data != self.default:
 
-        if len(params) != len(self.params):
-            raise TypeError(
-                'Wrong param length: {0}. {1} expected.'.format(
-                    len(params), len(self.params)
-                )
-            )
-
-        self.rtype.validate(data=rtype)
-
-        for index, item in enumerate(params.items()):
-            name, param = item
-            selfparam = self.params[index]
-
-            if selfparam.name != name:
+            if data.__name__ != self.name:
                 raise TypeError(
-                    'Wrong parameter name {0} at {1}. Expected {2}.'.format(
-                        name, index, selfparam.name
+                    'Wrong function name {0}. {1} expected.'.format(
+                        data.__name__, self.name
                     )
                 )
 
-            if selfparam.default != param.default:
+            params, rtype = self._getparams_rtype(function=data)
+
+            if len(params) != len(self.params):
                 raise TypeError(
-                    'Wrong default value {0} at {1}. Expected {2}.'.format(
-                        param.default, index, selfparam.default
+                    'Wrong param length: {0}. {1} expected.'.format(
+                        len(params), len(self.params)
                     )
                 )
 
-            if not issubclass(param.type, selfparam.type):
-                raise TypeError(
-                    'Wrong param type {0} at {1}. Expected {2}.'.format(
-                        param.type, index, selfparam.type
+            self.rtype.validate(data=rtype)
+
+            for index, item in enumerate(params.items()):
+                name, param = item
+                selfparam = self.params[index]
+
+                if selfparam.name != name:
+                    raise TypeError(
+                        'Wrong parameter name {0} at {1}. {2} expected.'.format(
+                            name, index, selfparam.name
+                        )
                     )
-                )
+
+                if selfparam.default != param.default:
+                    raise TypeError(
+                        'Wrong default value {0} at {1}. Expected {2}.'.format(
+                            param.default, index, selfparam.default
+                        )
+                    )
+
+                if not issubclass(param.type, selfparam.type):
+                    raise TypeError(
+                        'Wrong param type {0} at {1}. Expected {2}.'.format(
+                            param.type, index, selfparam.type
+                        )
+                    )
 
     def _setvalue(self, schema, value, *args, **kwargs):
 
@@ -231,3 +238,21 @@ class FunctionSchema(ElementarySchema):
                     params[pname].type = ptype
 
         return params, rtype
+
+    def __call__(self, *args, **kwargs):
+
+        return self.default(*args, **kwargs)
+
+    def _getter(self, obj, *args, **kwargs):
+
+        result = ElementarySchema._getter(self, obj, *args, **kwargs)
+
+        def func(*args, **kwargs):
+
+            try:
+                return result(obj, *args, **kwargs)
+
+            except TypeError:
+                return result(*args, **kwargs)
+
+        return func

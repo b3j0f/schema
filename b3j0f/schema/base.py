@@ -95,10 +95,7 @@ class _Schema(property):
                     'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter',
                     'default'
             ]:
-                if name == 'attrname':
-                    print('__init__', self, name)
-                if name == 'uuid':
-                    print(self, name, member)
+
                 if name in kwargs:
                     val = kwargs[name]
 
@@ -113,19 +110,23 @@ class _Schema(property):
 
                 if isinstance(val, DynamicValue):
                     val = val()
-                if name == 'uuid':
-                    print(self, name, member, val)
+
+                setattr(self, self._attrname(name=name), val)
                 if member != val:
                     setattr(self, name, val)
-                setattr(self, self.attrname(name=name), val)
 
         self._default = kwargs.get('default', self.default)
 
-        self._fget = fget
-        self._fset = fset
-        self._fdel = fdel
+        if fget or not hasattr(self, '_fget'):
+            self._fget = fget
 
-    def attrname(self, name=None):
+        if fset or not hasattr(self, '_fset'):
+            self._fset = fset
+
+        if fdel or not hasattr(self, '_fdel'):
+            self._fdel = fdel
+
+    def _attrname(self, name=None):
         """Get attribute name to set in order to keep the schema value.
 
         :param str name: attribute name. Default is this name or uuid.
@@ -154,7 +155,7 @@ class _Schema(property):
             result = self._fget(obj)
 
         if result is None:
-            result = getattr(obj, self.attrname(), self._default)
+            result = getattr(obj, self._attrname(), self._default)
 
         # notify parent schema about returned value
         if isinstance(obj, _Schema):
@@ -184,7 +185,7 @@ class _Schema(property):
             self._fset(obj, value)
 
         else:
-            setattr(obj, self.attrname(), value)
+            setattr(obj, self._attrname(), value)
 
         # notify obj about the new value.
         if isinstance(obj, _Schema):
@@ -206,7 +207,7 @@ class _Schema(property):
             self._fdel(obj)
 
         else:
-            delattr(obj, self.attrname())
+            delattr(obj, self._attrname())
 
         # notify parent schema about value deletion.
         if isinstance(obj, _Schema):
@@ -339,8 +340,7 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
 
             # transform only public members
             if name[0] != '_' and (exclude is None or name not in exclude):
-                if name == 'attrname':
-                    print('updatecontent', schemaclass, name, member)
+
                 toset = False  # flag for setting schemas
 
                 fmember = member
@@ -371,8 +371,7 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
 
                     try:
                         setattr(schemaclass, name, schema)
-                        if name == 'attrname':
-                            print('setattr', schemaclass, name, schema)
+
                     except (AttributeError, TypeError):
                         break
 
@@ -387,7 +386,7 @@ class MetaSchema(type):
     def __new__(mcs, *args, **kwargs):
 
         result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
-        print('__new__', result)
+
         if result.__data_types__:
             registercls(schemacls=result, data_types=result.__data_types__)
 
@@ -427,7 +426,7 @@ class MetaSchema(type):
 @add_metaclass(MetaSchema)
 class Schema(_Schema):
 
-    #: Register instances in the registry if True (False by default).
+    #: Register instances in the registry if True (default).
     __register__ = True
     """update automatically the content if True (default).
 
@@ -442,5 +441,4 @@ class Schema(_Schema):
             def __init__(self, *args, **kwargs):
                 Schema.__init__(self, *args, **kwargs)  # old style call.
         """
-
     __update_content__ = True

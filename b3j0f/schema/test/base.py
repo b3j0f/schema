@@ -254,7 +254,7 @@ class SchemaTest(UTCase):
         self.assertIsInstance(test.test, Schema)
 
         del test.test
-        self.assertFalse(hasattr(test, Test.test.attrname()))
+        self.assertFalse(hasattr(test, Test.test._attrname()))
 
         test.test = Schema()
         self.assertIsInstance(test.test, Schema)
