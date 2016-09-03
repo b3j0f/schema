@@ -34,7 +34,9 @@ from numbers import Number
 from six import string_types
 
 from ..registry import registercls, getbydatatype
-from ..base import Schema, DynamicValue, updatecontent, RefSchema, This
+from ..base import (
+    Schema, DynamicValue, updatecontent, RefSchema, This, dump, validate
+)
 
 
 class ThisTest(UTCase):
@@ -112,7 +114,7 @@ class UpdateContentTest(UTCase):
 
         __data_types__ = [Number]
 
-        def validate(self, data, *args, **kwargs):
+        def _validate(self, data, *args, **kwargs):
 
             return isinstance(data, Number)
 
@@ -120,7 +122,7 @@ class UpdateContentTest(UTCase):
 
         __data_types__  = [string_types]
 
-        def validate(self, data, *args, **kwargs):
+        def _validate(self, data, *args, **kwargs):
 
             return isinstance(data, string_types)
 
@@ -128,7 +130,7 @@ class UpdateContentTest(UTCase):
 
         __data_types__ = [type]
 
-        def validate(self, data, *args, **kwargs):
+        def _validate(self, data, *args, **kwargs):
 
             return isinstance(data, type)
 
@@ -189,25 +191,27 @@ class RefSchemaTest(UTCase):
 
         schema = RefSchema()
 
-        self.assertRaises(AttributeError, schema.validate, 0)
+        self.assertRaises(AttributeError, schema._validate, 0)
 
     def test_owner(self):
 
         schema = RefSchema()
 
         class NumberSchema(Schema):
-            def validate(self, data, *args, **kwargs):
+
+            def _validate(self, data, *args, **kwargs):
 
                 return isinstance(data, Number)
 
         numberschema = NumberSchema()
 
-        schema.validate(0, owner=numberschema)
+        schema._validate(0, owner=numberschema)
 
     def test_ref(self):
 
         class NumberSchema(Schema):
-            def validate(self, data, *args, **kwargs):
+
+            def _validate(self, data, *args, **kwargs):
 
                 return isinstance(data, Number)
 
@@ -215,7 +219,7 @@ class RefSchemaTest(UTCase):
 
         schema = RefSchema(ref=numberschema)
 
-        schema.validate(0)
+        schema._validate(0)
 
 
 class SchemaTest(UTCase):
@@ -322,16 +326,27 @@ class SchemaTest(UTCase):
         self.assertIn('setter', processing)
         self.assertIn('deleter', processing)
 
+    def test__validate(self):
+
+        schema = Schema()
+
+        schema._validate(None)
+        self.assertRaises(TypeError, schema._validate, 1)
+        schema.nullable = False
+        self.assertRaises(TypeError, schema._validate, None)
+        schema.nullable = True
+        schema._validate(None)
+
     def test_validate(self):
 
         schema = Schema()
 
-        schema.validate(None)
-        self.assertRaises(TypeError, schema.validate, 1)
+        validate(schema, None)
+        self.assertRaises(TypeError, validate, schema, 1)
         schema.nullable = False
-        self.assertRaises(TypeError, schema.validate, None)
+        self.assertRaises(TypeError, validate, schema, None)
         schema.nullable = True
-        schema.validate(None)
+        validate(schema, None)
 
     def test_getschemas(self):
 
@@ -357,21 +372,21 @@ class SchemaTest(UTCase):
 
         schema = Schema()
 
-        dump = schema.dump()
+        dumped = dump(schema)
 
-        _dump = {}
-        for name, schema in schema.getschemas().items():
-            val = schema.default
+        self.assertEqual(
+            dumped,
+            {
+                'default': schema.default,
+                'doc': schema.doc,
+                'name': schema.name,
+                'nullable': schema.nullable,
+                'uuid': schema.uuid,
+                'version': schema.version
+            }
+        )
 
-            if isinstance(val, DynamicValue):
-                del dump[name]
-
-            else:
-                _dump[name] = val
-
-        self.assertEqual(dump, _dump)
-
-    def test_dump_content(self):
+    def test_dumped_content(self):
 
         class TestSchema(Schema):
 
@@ -381,19 +396,28 @@ class SchemaTest(UTCase):
 
         schema = TestSchema()
 
-        dump = schema.dump()
+        dumped = dump(schema)
 
-        _dump = {}
-        for name, schema in schema.getschemas().items():
-            val = schema.default
-
-            if isinstance(val, DynamicValue):
-                del dump[name]
-
-            else:
-                _dump[name] = val
-
-        self.assertEqual(dump, _dump)
+        self.assertEqual(
+            dumped,
+            {
+                'a': {
+                    'default': schema.a.default,
+                    'doc': schema.a.doc,
+                    'name': schema.a.name,
+                    'nullable': schema.a.nullable,
+                    'uuid': schema.a.uuid,
+                    'version': schema.a.version
+                },
+                'b': None,
+                'default': schema.default,
+                'doc': schema.doc,
+                'name': schema.name,
+                'nullable': schema.nullable,
+                'uuid': schema.uuid,
+                'version': schema.version
+            }
+        )
 
     def test_notify_get(self):
 

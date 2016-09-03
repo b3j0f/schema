@@ -136,7 +136,6 @@ class _Schema(property):
         return '_{0}'.format(name or self._name or self._uuid)
 
     def __eq__(self, other):
-        """Compare schemas."""
 
         return other is self or self.getschemas() == other.getschemas()
 
@@ -179,7 +178,7 @@ class _Schema(property):
         if isinstance(value, DynamicValue):  # execute lambda values.
             value = value()
 
-        self.validate(data=value, owner=obj)
+        self._validate(data=value, owner=obj)
 
         if self._fset is not None:
             self._fset(obj, value)
@@ -218,7 +217,7 @@ class _Schema(property):
 
         :param Schema schema: inner schema."""
 
-    def validate(self, data, owner=None):
+    def _validate(self, data, owner=None):
         """Validate input data in returning an empty list if true.
 
         :param data: data to validate with this schema.
@@ -256,26 +255,7 @@ class _Schema(property):
                         raise ValueError(error)
 
                     elif hasattr(data, name):
-                        schema.validate(getattr(data, name))
-
-    def dump(self):
-        """Get a serialized value of this schema.
-
-        :rtype: dict"""
-
-        result = {}
-
-        for name, schema in iteritems(self.getschemas()):
-
-            if hasattr(self, name):
-                val = getattr(self, name)
-
-                if isinstance(val, DynamicValue):
-                    val = val()
-
-                result[name] = val
-
-        return result
+                        schema._validate(getattr(data, name))
 
     @classmethod
     def getschemas(cls):
@@ -299,11 +279,11 @@ class RefSchema(_Schema):
 
     ref = _Schema()  #: the reference must be a schema.
 
-    def validate(self, data, owner=None, *args, **kwargs):
+    def _validate(self, data, owner=None, *args, **kwargs):
 
         ref = owner if self.ref is None else self.ref
 
-        return ref.validate(data=data, owner=owner)
+        ref._validate(data=data, owner=owner)
 
 
 def updatecontent(schemacls=None, updateparents=True, exclude=None):
@@ -407,19 +387,11 @@ class MetaSchema(type):
 
     def __instancecheck__(mcs, obj, *args, **kwargs):
 
-        return (
-            super(MetaSchema, mcs).__instancecheck__(obj, *args, **kwargs)
-            or
-            isinstance(obj, _Schema)
-        )
+        return isinstance(obj, _Schema)
 
     def __subclasscheck__(mcs, cls, *args, **kwargs):
 
-        return (
-            super(MetaSchema, mcs).__subclasscheck__(cls, *args, **kwargs)
-            or
-            issubclass(cls, _Schema)
-        )
+        return issubclass(cls, _Schema)
 
 
 # use metaschema such as the schema metaclass
@@ -428,6 +400,7 @@ class Schema(_Schema):
 
     #: Register instances in the registry if True (default).
     __register__ = True
+
     """update automatically the content if True (default).
 
     If True, take care to not having called the class in overidden methods.
@@ -442,3 +415,36 @@ class Schema(_Schema):
                 Schema.__init__(self, *args, **kwargs)  # old style call.
         """
     __update_content__ = True
+
+
+def validate(schema, data):
+    """Validate input data with input schema.
+
+    :param Schema schema: schema able to validate input data.
+    :param data: data to validate.
+    """
+
+    schema._validate(data=data)
+
+def dump(schema):
+    """Get a serialized value of input schema.
+
+    :param Schema schema: schema to serialize.
+    :rtype: dict"""
+
+    result = {}
+
+    for name, _ in iteritems(schema.getschemas()):
+
+        if hasattr(schema, name):
+            val = getattr(schema, name)
+
+            if isinstance(val, DynamicValue):
+                val = val()
+
+            if isinstance(val, Schema):
+                val = dump(val)
+
+            result[name] = val
+
+    return result

@@ -31,13 +31,17 @@ __all__ = ['PythonSchemaBuilder', 'FunctionSchema']
 from re import compile as re_compile
 
 from b3j0f.utils.version import OrderedDict
+from b3j0f.utils.path import lookup
 
 from .factory import SchemaBuilder, getschemacls, build
+from ..registry import getbyid
 from ..utils import This
-from ..base import _Schema, Schema
-from ..elementary import ElementarySchema, ArraySchema, TypeSchema
+from ..base import _Schema, Schema, RefSchema
+from ..elementary import ElementarySchema, ArraySchema, TypeSchema, StringSchema
 
 from types import FunctionType, MethodType, LambdaType
+
+from six import iteritems
 
 from inspect import getargspec
 
@@ -103,12 +107,16 @@ def buildschema(_cls=None, **kwars):
     return result
 
 
-class ParamSchema(Schema):
-        """Function parameter schema."""
+class ParamSchema(RefSchema):
+    """Function parameter schema."""
 
-        type = object
-        hasvalue = False
+    type = StringSchema(nullable=True, default=None)
+    hasvalue = False
 
+    validate = None  # validation is deleguated to the function schema.
+
+from sys import setrecursionlimit
+setrecursionlimit(60)
 
 class FunctionSchema(ElementarySchema):
     """Function schema.
@@ -124,18 +132,18 @@ class FunctionSchema(ElementarySchema):
     __data_types__ = [FunctionType, MethodType, LambdaType]
 
     params = ArraySchema(itemtype=ParamSchema)
-    rtype = TypeSchema(nullable=True, default=None)
+    rtype = StringSchema(nullable=True, default=None)
     impl = ''
     impltype = 'python'
     fget = This()
     fset = This()
     fdel = This()
 
-    def validate(self, data, owner, *args, **kwargs):
+    def _validate(self, data, owner, *args, **kwargs):
 
-        ElementarySchema.validate(self, data=data, *args, **kwargs)
+        ElementarySchema._validate(self, data=data, *args, **kwargs)
 
-        if data != self.default:
+        if data != self._default or data is not self._default:
 
             if data.__name__ != self.name:
                 raise TypeError(
@@ -153,10 +161,12 @@ class FunctionSchema(ElementarySchema):
                     )
                 )
 
-            self.rtype.validate(data=rtype)
+            self.rtype._validate(data=rtype)
 
-            for index, item in enumerate(params.items()):
-                name, param = item
+            for index, pkwargs in enumerate(params.values()):
+                name = pkwargs['name']
+                default = pkwargs['default']
+                ptype = pkwargs['type']
                 selfparam = self.params[index]
 
                 if selfparam.name != name:
@@ -166,27 +176,48 @@ class FunctionSchema(ElementarySchema):
                         )
                     )
 
-                if selfparam.default != param.default:
+                if selfparam.default != default:
                     raise TypeError(
                         'Wrong default value {0} at {1}. Expected {2}.'.format(
-                            param.default, index, selfparam.default
+                            default, index, selfparam.default
                         )
                     )
 
-                if not issubclass(param.type, selfparam.type):
+                if not issubclass(ptype, selfparam.type):
                     raise TypeError(
                         'Wrong param type {0} at {1}. Expected {2}.'.format(
-                            param.type, index, selfparam.type
+                            ptype, index, selfparam.type
                         )
                     )
 
-    def _setvalue(self, schema, value, *args, **kwargs):
+    def _setter(self, obj, value, *args, **kwargs):
 
-        if schema.name == 'default':
-            self.params, self.rtype = FunctionSchema._getparams_rtype(value)
+        ElementarySchema._setter(self, obj, value, *args, **kwargs)
 
-    @staticmethod
-    def _getparams_rtype(function):
+        pkwargs, self.rtype = self._getparams_rtype(value)
+
+        for index, pkwarg in enumerate(pkwargs.values()):
+
+            try:
+                selfparam = self.params[index]
+
+            except IndexError:
+                selfparam = None
+
+            if selfparam is None:
+                selfparam = ParamSchema(**pkwarg)
+                self.params.insert(index, selfparam)
+
+            else:
+                selfparam.name = pkwarg['name']
+                selfparam.type = pkwarg['type']
+                selfparam.default = pkwarg['default']
+                selfparam.hasvalue = pkwarg['hasvalue']
+
+        self.params = self.params[:index]
+
+    @classmethod
+    def _getparams_rtype(cls, function):
         """Get function params from input function and rtype.
 
         :return: OrderedDict or param schema by name and rtype.
@@ -202,7 +233,12 @@ class FunctionSchema(ElementarySchema):
 
         for index, arg in enumerate(args):
 
-            pkwargs = {'name': arg}  # param kwargs
+            pkwargs = {
+                'name': arg,
+                'default': None,
+                'type': None,
+                'hasvalue': False
+            }  # param kwargs
 
             if index >= indexlen:  # has default value
                 value = default[index - indexlen]
@@ -210,32 +246,27 @@ class FunctionSchema(ElementarySchema):
                 pkwargs['type'] = type(value)
                 pkwargs['hasvalue'] = True
 
-            param = ParamSchema(**pkwargs)
-            params[arg] = param
+            params[arg] = pkwargs
 
         rtype = None
 
         # parse docstring
-        for match in FunctionSchema._REC.findall(function.__dic__):
+        if function.__doc__ is not None:
 
-            if not rtype:
-                rtype = match.group('rtype')
-                if rtype:
-                    continue
+            for match in cls._REC.findall(function.__doc__):
 
-            pname = match.group('pname1') or match.group('pname2')
+                if rtype is None:
+                    rtype = match[4] or None
 
-            if pname:
-                ptype = match.group('ptype1') or match.group('ptype2')
+                    if rtype:
+                        continue
 
-                try:
-                    ptype = lookup(ptype)
+                pname = match[1] or match[3]
 
-                except ImportError:
-                    pass
+                if pname:
+                    ptype = match[0] or match[2]
 
-                else:
-                    params[pname].type = ptype
+                    params[pname]['type'] = ptype
 
         return params, rtype
 
@@ -245,14 +276,16 @@ class FunctionSchema(ElementarySchema):
 
     def _getter(self, obj, *args, **kwargs):
 
-        result = ElementarySchema._getter(self, obj, *args, **kwargs)
+        func = ElementarySchema._getter(self, obj, *args, **kwargs)
 
-        def func(*args, **kwargs):
+        def result(*args, **kwargs):
 
             try:
-                return result(obj, *args, **kwargs)
+                result = func(obj, *args, **kwargs)
 
-            except TypeError:
-                return result(*args, **kwargs)
+            except TypeError as te:
+                result = func(*args, **kwargs)
 
-        return func
+            return result
+
+        return result

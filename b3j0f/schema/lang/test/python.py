@@ -36,6 +36,21 @@ from ..python import PythonSchemaBuilder, FunctionSchema, buildschema
 from inspect import getmembers
 
 
+class FunctionSchemaTest(UTCase):
+
+    def test_lambda_default(self):
+
+        schema = FunctionSchema(default=lambda: None)
+
+        self.assertFalse(schema.params)
+
+    def test_lambda_params(self):
+
+        schema = FunctionSchema(default=lambda a, b=2: None)
+
+        self.assertTrue(schema.params)
+
+
 class BuildSchemaTest(UTCase):
 
     def test_default(self):

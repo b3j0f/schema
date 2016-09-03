@@ -85,9 +85,9 @@ class NumberSchema(ElementarySchema):
     #: maximal allowed value if not None.
     max = This(nullable=True, default=None)
 
-    def validate(self, data, *args, **kwargs):
+    def _validate(self, data, *args, **kwargs):
 
-        ElementarySchema.validate(self, data, *args, **kwargs)
+        ElementarySchema._validate(self, data, *args, **kwargs)
 
         if self.min is not None and self.min > data:
             raise ValueError(
@@ -160,9 +160,9 @@ class ArraySchema(ElementarySchema):
     unique = False  #: are items unique ? False by default.
     default = DynamicValue(lambda: [])
 
-    def validate(self, data, *args, **kwargs):
+    def _validate(self, data, *args, **kwargs):
 
-        ElementarySchema.validate(self, data, *args, **kwargs)
+        ElementarySchema._validate(self, data, *args, **kwargs)
 
         if self.minsize is not None and self.minsize > len(data):
             raise ValueError(
@@ -201,9 +201,9 @@ class DictSchema(ArraySchema):
     valuetype = TypeSchema(nullable=True, default=None)
     default = DynamicValue(lambda: {})
 
-    def validate(self, data, *args, **kwargs):
+    def _validate(self, data, *args, **kwargs):
 
-        super(DictSchema, self).validate(data, *args, **kwargs)
+        super(DictSchema, self)._validate(data, *args, **kwargs)
 
         if data:
             if self.unique and len(set(data.values())) != len(data):

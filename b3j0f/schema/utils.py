@@ -30,6 +30,8 @@ __all__ = ['DynamicValue', 'obj2schema']
 
 from types import FunctionType, MethodType
 
+from six import iteritems
+
 from .registry import getbydatatype
 from .lang.factory import build
 
