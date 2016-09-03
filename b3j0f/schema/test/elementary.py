@@ -30,7 +30,7 @@ from unittest import main, skipIf
 
 from b3j0f.utils.ut import UTCase
 
-from ..base import Schema
+from ..base import Schema, validate
 
 from ..elementary import (
         NoneSchema,
@@ -53,10 +53,10 @@ class ElementaryTest(UTCase):
         schema = self.__schemacls__(**kwargs)
 
         if error:
-            self.assertRaises(Exception, schema.validate, data=data)
+            self.assertRaises(Exception, validate, schema, data=data)
 
         else:
-            schema.validate(data)
+            validate(schema, data)
 
     def test_default(self):
 
@@ -67,7 +67,7 @@ class ElementaryTest(UTCase):
 
         data = schema.default
 
-        schema.validate(data=data)
+        validate(schema, data=data)
 
     def test_none(self):
 
@@ -77,10 +77,10 @@ class ElementaryTest(UTCase):
         schema = self.__schemacls__()
 
         if schema.nullable:
-            schema.validate(data=None)
+            validate(schema, data=None)
 
         else:
-            self.assertRaises(TypeError, schema.validate, data=None)
+            self.assertRaises(TypeError, validate, schema, data=None)
 
 
 class NoneSchema(ElementaryTest):
