@@ -37,7 +37,7 @@ __all__ = [
     'DateTimeSchema'
 ]
 
-from six import string_types
+from six import string_types, add_metaclass
 
 from numbers import Number
 
@@ -49,20 +49,77 @@ from datetime import datetime
 
 from inspect import getargspec
 
-from .base import Schema, RefSchema, This
+from .base import RegisteredSchema, RefSchema, This
 from .utils import DynamicValue
 
 
-class ElementarySchema(Schema):
+class MetaElementarySchema(MetaRegisteredSchema):
+    """Automatically register schemas with data types."""
+
+    def __new__(mcs, *args, **kwargs):
+
+        result = super(MetaElementarySchema, mcs).__new__(mcs, *args, **kwargs)
+
+        if result.__data_types__:
+            registercls(data_types=result.__data_types__, schemacls=result)
+
+        return result
+
+
+@add_metaclass(MetaElementarySchema)
+class ElementarySchema(RegisteredSchema):
     """Base elementary schema."""
 
     nullable = False
+
+    __data_types__ = []  #: data types which can be instanciated by this schema.
+
+    def _validate(self, data, owner=None):
+        """Validate input data in returning an empty list if true.
+
+        :param data: data to validate with this schema.
+        :param Schema owner: schema owner.
+        :raises: Exception if the data is not validated"""
+
+        if isinstance(data, DynamicValue):
+            data = data()
+
+        if data is None and not self.nullable:
+            raise TypeError('Value can not be null')
+
+        elif data is not None:
+            if self.__data_types__:  # data must inherits from this data_types
+                if not isinstance(data, tuple(self.__data_types__)):
+                    raise TypeError(
+                        'Wrong data value: {0}. {1} expected.'.format(
+                            data, self.__data_types__
+                        )
+                    )
+
+            elif not isinstance(data, type(self)):  # or from this
+                raise TypeError(
+                    'Wrong type {0}. {1} expected'.format(data, type(self))
+                )
+
+                for name, schema in iteritems(self.getschemas()):
+
+                    if name in self.required and not hasattr(data, name):
+                        part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
+                            format(name, self, data)
+                        )
+                        part2 = '{3} expected.'.format(schema)
+                        error = '{0} {1}'.format(part1, part2)
+                        raise ValueError(error)
+
+                    elif hasattr(data, name):
+                        schema._validate(getattr(data, name))
 
 
 class NoneSchema(ElementarySchema):
     """None schema."""
 
     __data_types__ = [NoneType]
+
     nullable = True
 
 

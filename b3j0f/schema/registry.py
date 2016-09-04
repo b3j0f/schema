@@ -103,15 +103,32 @@ class SchemaRegistry(object):
 
         return result
 
-    def registercls(self, schemacls, data_types):
+    def registercls(self, data_types, schemacls=None):
         """Register schema class with associated data_types.
 
-        :param type schemacls: schema class to register.
+        Can be used such as a decorator.
+
         :param list data_types: data types to associate with schema class.
+        :param type schemacls: schema class to register.
+        :return: schemacls.
+        :rtype: type
         """
 
-        for data_type in data_types:
-            self._schbytype[data_type] = schemacls
+        def _registercls(data_types=data_types, schemacls=schemacls):
+
+            for data_type in data_types:
+                self._schbytype[data_type] = schemacls
+
+            return schemacls
+
+        if schemacls is None:
+            return lambda schemacls: _registercls(
+                data_types=data_types, schemacls=schemacls
+            )
+
+        _registercls()
+
+        return schemacls
 
     def unregister(self, uuid):
         """Unregister a schema registered with input uuid.
@@ -253,14 +270,18 @@ def getbydatatype(data_type, besteffort=True):
     return _REGISTRY.getbydatatype(data_type=data_type, besteffort=besteffort)
 
 
-def registercls(schemacls, data_types):
+def registercls(data_types, schemacls=None):
     """Register schema class with associated data_types.
 
-    :param type schemacls: schema class to register.
+    Can be used such as a decorator.
+
     :param list data_types: data types to associate with schema class.
+    :param type schemacls: schema class to register.
+    :return: schemacls.
+    :rtype: type
     """
 
-    return _REGISTRY.registercls(schemacls=schemacls, data_types=data_types)
+    return _REGISTRY.registercls(data_types=data_types, schemacls=schemacls)
 
 
 def unregistercls(self, schemacls=None, data_types=None):

@@ -34,7 +34,7 @@ from b3j0f.utils.version import OrderedDict
 from b3j0f.utils.path import lookup
 
 from .factory import SchemaBuilder, getschemacls, build
-from ..registry import getbyid
+from ..registry import getbyuuid
 from ..utils import This
 from ..base import _Schema, Schema, RefSchema
 from ..elementary import ElementarySchema, ArraySchema, TypeSchema, StringSchema

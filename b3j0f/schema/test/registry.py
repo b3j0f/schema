@@ -128,5 +128,35 @@ class SchemaRegistryTest(UTCase):
         schemacls = self.registry.getbydatatype(int)
         self.assertIs(schemacls, NumberSchema)
 
+    def test_registertype_decorator(self):
+
+        class Schema(object):
+
+            def __init__(self, default, *args, **kwargs):
+                super(Schema, self).__init__(*args, **kwargs)
+                self.default = default
+
+        @self.registry.registercls([int])
+        class IntSchema(Schema):
+            pass
+
+        @self.registry.registercls([bool])
+        class BoolSchema(Schema):
+            pass
+
+        @self.registry.registercls([Number])
+        class NumberSchema(Schema):
+            pass
+
+        schemacls = self.registry.getbydatatype(int)
+        self.assertIs(schemacls, IntSchema)
+
+        schemacls = self.registry.getbydatatype(bool)
+        self.assertIs(schemacls, BoolSchema)
+
+        self.registry.unregistercls(schemacls=IntSchema)
+        schemacls = self.registry.getbydatatype(int)
+        self.assertIs(schemacls, NumberSchema)
+
 if __name__ == '__main__':
     main()

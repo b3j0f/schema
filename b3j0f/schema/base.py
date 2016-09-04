@@ -26,7 +26,7 @@
 
 """Base schema package."""
 
-__all__ = ['MetaSchema', 'Schema', 'DynamicValue', 'RefSchema', 'This']
+__all__ = ['MetaRegisteredSchema', 'Schema', 'DynamicValue', 'RefSchema', 'This']
 
 from b3j0f.utils.version import OrderedDict
 
@@ -42,7 +42,7 @@ from .registry import register, registercls
 from .utils import obj2schema, DynamicValue, This
 
 
-class _Schema(property):
+class Schema(property):
     """Schema description.
 
     A schema is identified by a string such as an universal unique identifier,
@@ -57,8 +57,6 @@ class _Schema(property):
     Once you defined your schema inheriting from this class, your schema will be
     automatically registered in the registry and becomes accessible from the
     `b3j0f.schema.reg.getschemabyuid` function."""
-
-    __data_types__ = []  #: data types which can be instanciated by this schema.
 
     name = ''  #: schema name. Default is self name.
     uuid = DynamicValue(lambda: str(uuid4()))  #: schema universal unique identifier.
@@ -76,7 +74,7 @@ class _Schema(property):
         :param default: default value. If lambda, called at initialization.
         """
 
-        super(_Schema, self).__init__(
+        super(Schema, self).__init__(
             fget=self._getter, fset=self._setter, fdel=self._deleter,
             doc=doc
         )
@@ -105,7 +103,7 @@ class _Schema(property):
                     if isinstance(val, DynamicValue):
                         val = val()
 
-                    if isinstance(val, _Schema):
+                    if isinstance(val, Schema):
                         val = val.default
 
                 if isinstance(val, DynamicValue):
@@ -157,7 +155,7 @@ class _Schema(property):
             result = getattr(obj, self._attrname(), self._default)
 
         # notify parent schema about returned value
-        if isinstance(obj, _Schema):
+        if isinstance(obj, Schema):
             obj._getvalue(self, result)
 
         return result
@@ -187,7 +185,7 @@ class _Schema(property):
             setattr(obj, self._attrname(), value)
 
         # notify obj about the new value.
-        if isinstance(obj, _Schema):
+        if isinstance(obj, Schema):
             obj._setvalue(self, value)
 
     def _setvalue(self, schema, value):
@@ -209,7 +207,7 @@ class _Schema(property):
             delattr(obj, self._attrname())
 
         # notify parent schema about value deletion.
-        if isinstance(obj, _Schema):
+        if isinstance(obj, Schema):
             obj._delvalue(self)
 
     def _delvalue(self, schema):
@@ -231,15 +229,7 @@ class _Schema(property):
             raise TypeError('Value can not be null')
 
         elif data is not None:
-            if self.__data_types__:  # data must inherits from this data_types
-                if not isinstance(data, tuple(self.__data_types__)):
-                    raise TypeError(
-                        'Wrong data value: {0}. {1} expected.'.format(
-                            data, self.__data_types__
-                        )
-                    )
-
-            elif not isinstance(data, type(self)):  # or from this
+            if not isinstance(data, type(self)):  # or from this
                 raise TypeError(
                     'Wrong type {0}. {1} expected'.format(data, type(self))
                 )
@@ -264,7 +254,7 @@ class _Schema(property):
         :return: ordered dict by name.
         :rtype: ordered dict by name"""
 
-        members = getmembers(cls, lambda member: isinstance(member, _Schema))
+        members = getmembers(cls, lambda member: isinstance(member, Schema))
 
         result = OrderedDict()
 
@@ -274,10 +264,10 @@ class _Schema(property):
         return result
 
 
-class RefSchema(_Schema):
+class RefSchema(Schema):
     """Schema which references another schema."""
 
-    ref = _Schema()  #: the reference must be a schema.
+    ref = Schema()  #: the reference must be a schema.
 
     def _validate(self, data, owner=None, *args, **kwargs):
 
@@ -300,7 +290,7 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
             def __init__(self, *args, **kwargs):
                 Test.__init__(self, *args, **kwargs)  # old style method call.
 
-    :param type schemacls: sub class of _Schema.
+    :param type schemacls: sub class of Schema.
     :param bool updateparents: if True (default), update parent content.
     :param list exclude: attribute names to exclude from updating.
     :return: schemacls"""
@@ -329,7 +319,7 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
                     fmember = fmember()
                     toset = True
 
-                if isinstance(fmember, _Schema):
+                if isinstance(fmember, Schema):
                     schema = fmember
 
                     if not schema.name:
@@ -360,15 +350,12 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
 updatecontent(RefSchema)  #: update content of RefSchema.
 
 
-class MetaSchema(type):
+class MetaRegisteredSchema(type):
     """Automatically register schemas."""
 
     def __new__(mcs, *args, **kwargs):
 
-        result = super(MetaSchema, mcs).__new__(mcs, *args, **kwargs)
-
-        if result.__data_types__:
-            registercls(schemacls=result, data_types=result.__data_types__)
+        result = super(MetaRegisteredSchema, mcs).__new__(mcs, *args, **kwargs)
 
         # update all sub schemas related to values
         if result.__update_content__:
@@ -378,25 +365,18 @@ class MetaSchema(type):
 
     def __call__(cls, *args, **kwargs):
 
-        result = super(MetaSchema, cls).__call__(*args, **kwargs)
+        result = super(MetaRegisteredSchema, cls).__call__(*args, **kwargs)
 
         if result.__register__:  # register all new schema
             register(schema=result)
 
         return result
 
-    def __instancecheck__(mcs, obj, *args, **kwargs):
 
-        return isinstance(obj, _Schema)
-
-    def __subclasscheck__(mcs, cls, *args, **kwargs):
-
-        return issubclass(cls, _Schema)
-
-
-# use metaschema such as the schema metaclass
-@add_metaclass(MetaSchema)
-class Schema(_Schema):
+# use metaRegisteredschema such as the schema metaclass
+@add_metaclass(MetaRegisteredSchema)
+class RegisteredSchema(Schema):
+    """Ease auto-registering of schemas and auto-updating content."""
 
     #: Register instances in the registry if True (default).
     __register__ = True

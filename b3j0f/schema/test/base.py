@@ -35,7 +35,8 @@ from six import string_types
 
 from ..registry import registercls, getbydatatype
 from ..base import (
-    Schema, DynamicValue, updatecontent, RefSchema, This, dump, validate
+    Schema, DynamicValue, updatecontent, RefSchema, This, dump, validate,
+    RegisteredSchema
 )
 
 
@@ -110,9 +111,7 @@ class DefaultTest(UTCase):
 
 class UpdateContentTest(UTCase):
 
-    class NumberSchema(Schema):
-
-        __data_types__ = [Number]
+    class NumberSchema(RegisteredSchema):
 
         def _validate(self, data, *args, **kwargs):
 
@@ -120,15 +119,11 @@ class UpdateContentTest(UTCase):
 
     class StrSchema(Schema):
 
-        __data_types__  = [string_types]
-
         def _validate(self, data, *args, **kwargs):
 
             return isinstance(data, string_types)
 
     class ObjectSchema(Schema):
-
-        __data_types__ = [type]
 
         def _validate(self, data, *args, **kwargs):
 
