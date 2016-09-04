@@ -114,19 +114,13 @@ class SchemaRegistry(object):
         :rtype: type
         """
 
-        def _registercls(data_types=data_types, schemacls=schemacls):
-
-            for data_type in data_types:
-                self._schbytype[data_type] = schemacls
-
-            return schemacls
-
         if schemacls is None:
-            return lambda schemacls: _registercls(
+            return lambda schemacls: self.registercls(
                 data_types=data_types, schemacls=schemacls
             )
 
-        _registercls()
+        for data_type in data_types:
+            self._schbytype[data_type] = schemacls
 
         return schemacls
 

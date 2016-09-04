@@ -296,7 +296,9 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
     :return: schemacls"""
 
     if schemacls is None:
-        return updatecontent
+        return lambda schemacls: updatecontent(
+            schemacls=schemacls, updateparents=updateparents, exclude=exclude
+        )
 
     if updateparents:
         schemaclasses = reversed(list(schemacls.mro()))

@@ -46,7 +46,7 @@ class ThisTest(UTCase):
 
         def definition():
 
-            class Test(Schema):
+            class Test(RegisteredSchema):
 
                 test = This(default='test', nullable=False)
 
@@ -98,7 +98,7 @@ class DefaultTest(UTCase):
 
     def test(self):
 
-        class TestSchema(Schema):
+        class TestSchema(RegisteredSchema):
 
             default = 0
 
@@ -111,18 +111,21 @@ class DefaultTest(UTCase):
 
 class UpdateContentTest(UTCase):
 
+    @registercls([Number])
     class NumberSchema(RegisteredSchema):
 
         def _validate(self, data, *args, **kwargs):
 
             return isinstance(data, Number)
 
+    @registercls([string_types])
     class StrSchema(Schema):
 
         def _validate(self, data, *args, **kwargs):
 
             return isinstance(data, string_types)
 
+    @registercls([type])
     class ObjectSchema(Schema):
 
         def _validate(self, data, *args, **kwargs):
@@ -383,7 +386,7 @@ class SchemaTest(UTCase):
 
     def test_dumped_content(self):
 
-        class TestSchema(Schema):
+        class TestSchema(RegisteredSchema):
 
             a = Schema(default=Schema())
 
@@ -416,7 +419,7 @@ class SchemaTest(UTCase):
 
     def test_notify_get(self):
 
-        class TestSchema(Schema):
+        class TestSchema(RegisteredSchema):
 
             test = Schema()
             schema = None
@@ -440,7 +443,7 @@ class SchemaTest(UTCase):
 
     def test_notify_set(self):
 
-        class TestSchema(Schema):
+        class TestSchema(RegisteredSchema):
 
             test = Schema()
             schema = None
@@ -463,7 +466,7 @@ class SchemaTest(UTCase):
 
     def test_notify_del(self):
 
-        class TestSchema(Schema):
+        class TestSchema(RegisteredSchema):
 
             test = Schema()
             schema = None
