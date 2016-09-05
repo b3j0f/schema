@@ -30,11 +30,85 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..registry import SchemaRegistry, getbyuuid, getbyname, unregister
+from six import string_types
+
+from ..base import Schema
+from ..registry import (
+    SchemaRegistry, getbyuuid, getbyname, unregister, registercls,
+    getbydatatype, unregistercls
+)
 
 from uuid import uuid4
 
 from numbers import Number
+
+
+class UpdateContentTest(UTCase):
+
+    def setUp(self):
+
+        @registercls([Number])
+        class NumberSchema(Schema):
+
+            def _validate(self, data, *args, **kwargs):
+
+                return isinstance(data, Number)
+
+        self.NumberSchema = NumberSchema
+
+        @registercls([string_types])
+        class StrSchema(Schema):
+
+            def _validate(self, data, *args, **kwargs):
+
+                return isinstance(data, string_types)
+
+        self.StrSchema = StrSchema
+
+        @registercls([type])
+        class ObjectSchema(Schema):
+
+            def _validate(self, data, *args, **kwargs):
+
+                return isinstance(data, type)
+
+        self.ObjectSchema = ObjectSchema
+
+    def tearDown(self):
+
+        unregistercls(self.NumberSchema)
+        unregistercls(self.StrSchema)
+        unregistercls(self.ObjectSchema)
+
+    def test_number(self):
+
+        schemacls = getbydatatype(int)
+        self.assertIs(schemacls, self.NumberSchema)
+
+    def test_str(self):
+
+        schemacls = getbydatatype(str)
+        self.assertIs(schemacls, self.StrSchema)
+
+    def test_object(self):
+
+        schemacls = getbydatatype(type)
+        self.assertIs(schemacls, self.ObjectSchema)
+
+
+class DefaultTest(UTCase):
+
+    def test(self):
+
+        class TestSchema(Schema):
+
+            default = 0
+
+        schema = TestSchema()
+        self.assertEqual(schema.default, 0)
+
+        schema = TestSchema(default=None)
+        self.assertIsNone(schema._default)
 
 
 class TestSchema(object):

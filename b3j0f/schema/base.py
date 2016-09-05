@@ -26,20 +26,37 @@
 
 """Base schema package."""
 
-__all__ = ['MetaRegisteredSchema', 'Schema', 'DynamicValue', 'RefSchema', 'This']
+__all__ = ['Schema', 'DynamicValue']
 
 from b3j0f.utils.version import OrderedDict
 
-from types import FunctionType, MethodType
+from inspect import getmembers
 
-from inspect import getmembers, isclass
-
-from six import get_unbound_function, add_metaclass, iteritems
+from six import iteritems
 
 from uuid import uuid4
 
-from .registry import register, registercls
-from .utils import obj2schema, DynamicValue, This
+
+class DynamicValue(object):
+    """Handle a function in order to dynamically lead a value while cleaning a
+    schema.
+
+    For example, the schema attribute ``uuid`` uses a DynamicValue in order to
+    ensure default generation per instanciation."""
+
+    __slots__ = ['func']
+
+    def __init__(self, func, *args, **kwargs):
+        """
+        :param func: function to execute while cleaning a schema."""
+
+        super(DynamicValue, self).__init__(*args, **kwargs)
+
+        self.func = func
+
+    def __call__(self):
+
+        return self.func()
 
 
 class Schema(property):
@@ -84,10 +101,7 @@ class Schema(property):
 
         cls = type(self)
 
-        for name, member in getmembers(
-            cls,
-            #lambda member: not isinstance(member, (FunctionType, MethodType))
-        ):
+        for name, member in getmembers(cls):
 
             if name[0] != '_' and name not in [
                     'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter',
@@ -274,159 +288,3 @@ class RefSchema(Schema):
         ref = owner if self.ref is None else self.ref
 
         ref._validate(data=data, owner=owner)
-
-
-def updatecontent(schemacls=None, updateparents=True, exclude=None):
-    """Transform all schema class attributes to schemas.
-
-    It can be used such as a decorator in order to ensure to update attributes
-    with the decorated schema but take care to the limitation to use old style
-    method call for overidden methods.
-
-    .. example:
-        @updatecontent  # update content at the end of its definition.
-        class Test(Schema):
-            this = This()  # instance of Test.
-            def __init__(self, *args, **kwargs):
-                Test.__init__(self, *args, **kwargs)  # old style method call.
-
-    :param type schemacls: sub class of Schema.
-    :param bool updateparents: if True (default), update parent content.
-    :param list exclude: attribute names to exclude from updating.
-    :return: schemacls"""
-
-    if schemacls is None:
-        return lambda schemacls: updatecontent(
-            schemacls=schemacls, updateparents=updateparents, exclude=exclude
-        )
-
-    if updateparents:
-        schemaclasses = reversed(list(schemacls.mro()))
-
-    else:
-        schemaclasses = [schemacls]
-
-    for schemaclass in schemaclasses:
-
-        for name, member in getattr(schemaclass, '__dict__', {}).items():
-
-            # transform only public members
-            if name[0] != '_' and (exclude is None or name not in exclude):
-
-                toset = False  # flag for setting schemas
-
-                fmember = member
-
-                if isinstance(fmember, DynamicValue):
-                    fmember = fmember()
-                    toset = True
-
-                if isinstance(fmember, Schema):
-                    schema = fmember
-
-                    if not schema.name:
-                        schema.name = name
-
-                else:
-                    toset = True
-
-                    if name == 'default':
-                        schema = RefSchema(default=member, name=name)
-
-                    elif isinstance(fmember, This):
-                        schema = schemaclass(*fmember.args, **fmember.kwargs)
-
-                    else:
-                        schema = obj2schema(obj=member, name=name)
-
-                if schema is not None and toset:
-
-                    try:
-                        setattr(schemaclass, name, schema)
-
-                    except (AttributeError, TypeError):
-                        break
-
-    return schemacls
-
-updatecontent(RefSchema)  #: update content of RefSchema.
-
-
-class MetaRegisteredSchema(type):
-    """Automatically register schemas."""
-
-    def __new__(mcs, *args, **kwargs):
-
-        result = super(MetaRegisteredSchema, mcs).__new__(mcs, *args, **kwargs)
-
-        # update all sub schemas related to values
-        if result.__update_content__:
-            updatecontent(schemacls=result)
-
-        return result
-
-    def __call__(cls, *args, **kwargs):
-
-        result = super(MetaRegisteredSchema, cls).__call__(*args, **kwargs)
-
-        if result.__register__:  # register all new schema
-            register(schema=result)
-
-        return result
-
-
-# use metaRegisteredschema such as the schema metaclass
-@add_metaclass(MetaRegisteredSchema)
-class RegisteredSchema(Schema):
-    """Ease auto-registering of schemas and auto-updating content."""
-
-    #: Register instances in the registry if True (default).
-    __register__ = True
-
-    """update automatically the content if True (default).
-
-    If True, take care to not having called the class in overidden methods.
-    In such case, take a look to the using of the class This which recommands to
-    use old style method call for overriden methods.
-
-    ..example:
-        class Test(Schema):
-            __udpate_content__ = True  # set update content to True
-            test = This()
-            def __init__(self, *args, **kwargs):
-                Schema.__init__(self, *args, **kwargs)  # old style call.
-        """
-    __update_content__ = True
-
-
-def validate(schema, data):
-    """Validate input data with input schema.
-
-    :param Schema schema: schema able to validate input data.
-    :param data: data to validate.
-    """
-
-    schema._validate(data=data)
-
-def dump(schema):
-    """Get a serialized value of input schema.
-
-    :param Schema schema: schema to serialize.
-    :rtype: dict"""
-
-    result = {}
-
-    for name, _ in iteritems(schema.getschemas()):
-
-        if hasattr(schema, name):
-            val = getattr(schema, name)
-
-            if isinstance(val, DynamicValue):
-                val = val()
-
-            if isinstance(val, Schema):
-                val = dump(val)
-
-            result[name] = val
-
-    return result

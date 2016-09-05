@@ -33,6 +33,11 @@ __all__ = [
 ]
 
 from .version import __version__
+
+from .base import Schema, DynamicValue
+#from .utils import validate, dump, updatecontent, This, obj2schema
+#from .registry import register, registercls, getbyuuid, getbyname
+#from .ref import RefSchema
 """
 from .base import getschema
 from .core import Schema

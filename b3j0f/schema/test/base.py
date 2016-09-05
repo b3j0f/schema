@@ -33,154 +33,7 @@ from b3j0f.utils.ut import UTCase
 from numbers import Number
 from six import string_types
 
-from ..registry import registercls, getbydatatype
-from ..base import (
-    Schema, DynamicValue, updatecontent, RefSchema, This, dump, validate,
-    RegisteredSchema
-)
-
-
-class ThisTest(UTCase):
-
-    def test_error(self):
-
-        def definition():
-
-            class Test(RegisteredSchema):
-
-                test = This(default='test', nullable=False)
-
-                def __init__(self, *args, **kwargs):
-
-                    super(Test, self).__init__(*args, **kwargs)
-
-        self.assertRaises(NameError, definition)
-
-    def test_error_deco(self):
-
-        def definition():
-
-            @updatecontent
-            class Test(Schema):
-
-                __update_content__ = False
-
-                test = This(default='test', nullable=False)
-
-                def __init__(self, *args, **kwargs):
-
-                    super(Test, self).__init__(*args, **kwargs)
-
-        self.assertRaises(NameError, definition)
-
-    def test(self):
-
-        class Test(Schema):
-
-            __update_content__ = False
-
-            test = This(default='test', nullable=False)
-
-            def __init__(self, *args, **kwargs):
-
-                super(Test, self).__init__(*args, **kwargs)
-
-        self.assertIsInstance(Test.test, This)
-
-        updatecontent(Test)
-
-        self.assertIsInstance(Test.test, Test)
-        self.assertEqual(Test.test.default, 'test')
-        self.assertFalse(Test.test.nullable)
-
-
-class DefaultTest(UTCase):
-
-    def test(self):
-
-        class TestSchema(RegisteredSchema):
-
-            default = 0
-
-        schema = TestSchema()
-        self.assertEqual(schema.default, 0)
-
-        schema = TestSchema(default=None)
-        self.assertIsNone(schema.default)
-
-
-class UpdateContentTest(UTCase):
-
-    @registercls([Number])
-    class NumberSchema(RegisteredSchema):
-
-        def _validate(self, data, *args, **kwargs):
-
-            return isinstance(data, Number)
-
-    @registercls([string_types])
-    class StrSchema(Schema):
-
-        def _validate(self, data, *args, **kwargs):
-
-            return isinstance(data, string_types)
-
-    @registercls([type])
-    class ObjectSchema(Schema):
-
-        def _validate(self, data, *args, **kwargs):
-
-            return isinstance(data, type)
-
-    def test_number(self):
-
-        schemacls = getbydatatype(int)
-        self.assertIs(schemacls, UpdateContentTest.NumberSchema)
-
-    def test_str(self):
-
-        schemacls = getbydatatype(str)
-        self.assertIs(schemacls, UpdateContentTest.StrSchema)
-
-    def test_object(self):
-
-        schemacls = getbydatatype(type)
-        self.assertIs(schemacls, UpdateContentTest.ObjectSchema)
-
-    def _assert(self, schemacls):
-
-        self.assertIsInstance(schemacls.a, UpdateContentTest.NumberSchema)
-        self.assertIsInstance(schemacls.b, UpdateContentTest.NumberSchema)
-        self.assertIsInstance(schemacls.c, UpdateContentTest.StrSchema)
-        self.assertIsInstance(schemacls.d, UpdateContentTest.ObjectSchema)
-        self.assertIsNone(schemacls.e)
-
-    def test_object(self):
-
-        class TestSchema(object):
-
-            a = 1
-            b = 2.
-            c = str()
-            d = object
-            e = None
-
-        updatecontent(TestSchema)
-
-        self._assert(TestSchema)
-
-    def test_schema(self):
-
-        @updatecontent
-        class TestSchema(Schema):
-
-            a = 1
-            b = 2.
-            c = str()
-            d = object
-            e = None
-
-        self._assert(TestSchema)
+from ..base import Schema, DynamicValue, RefSchema
 
 
 class RefSchemaTest(UTCase):
@@ -335,17 +188,6 @@ class SchemaTest(UTCase):
         schema.nullable = True
         schema._validate(None)
 
-    def test_validate(self):
-
-        schema = Schema()
-
-        validate(schema, None)
-        self.assertRaises(TypeError, validate, schema, 1)
-        schema.nullable = False
-        self.assertRaises(TypeError, validate, schema, None)
-        schema.nullable = True
-        validate(schema, None)
-
     def test_getschemas(self):
 
         class TestSchema(Schema):
@@ -366,62 +208,11 @@ class SchemaTest(UTCase):
 
         self.assertEqual(len(Schema.getschemas()) + 2, len(schemas))
 
-    def test_dump(self):
-
-        schema = Schema()
-
-        dumped = dump(schema)
-
-        self.assertEqual(
-            dumped,
-            {
-                'default': schema.default,
-                'doc': schema.doc,
-                'name': schema.name,
-                'nullable': schema.nullable,
-                'uuid': schema.uuid,
-                'version': schema.version
-            }
-        )
-
-    def test_dumped_content(self):
-
-        class TestSchema(RegisteredSchema):
-
-            a = Schema(default=Schema())
-
-            b = Schema()
-
-        schema = TestSchema()
-
-        dumped = dump(schema)
-
-        self.assertEqual(
-            dumped,
-            {
-                'a': {
-                    'default': schema.a.default,
-                    'doc': schema.a.doc,
-                    'name': schema.a.name,
-                    'nullable': schema.a.nullable,
-                    'uuid': schema.a.uuid,
-                    'version': schema.a.version
-                },
-                'b': None,
-                'default': schema.default,
-                'doc': schema.doc,
-                'name': schema.name,
-                'nullable': schema.nullable,
-                'uuid': schema.uuid,
-                'version': schema.version
-            }
-        )
-
     def test_notify_get(self):
 
-        class TestSchema(RegisteredSchema):
+        class TestSchema(Schema):
 
-            test = Schema()
+            test = Schema(name='test')
             schema = None
             value = None
 
@@ -443,9 +234,9 @@ class SchemaTest(UTCase):
 
     def test_notify_set(self):
 
-        class TestSchema(RegisteredSchema):
+        class TestSchema(Schema):
 
-            test = Schema()
+            test = Schema(name='test')
             schema = None
             value = None
 
@@ -466,12 +257,12 @@ class SchemaTest(UTCase):
 
     def test_notify_del(self):
 
-        class TestSchema(RegisteredSchema):
+        class TestSchema(Schema):
 
-            test = Schema()
+            test = Schema(name='test')
             schema = None
 
-            def _delvalue(self, schema):
+            def _delvalue(self, schema, *args, **kwargs):
 
                 if schema.name == 'test':
                     self.schema = schema
@@ -482,6 +273,7 @@ class SchemaTest(UTCase):
         del schema.test
 
         self.assertIs(schema.schema, TestSchema.test)
+
 
 if __name__ == '__main__':
     main()

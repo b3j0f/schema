@@ -49,8 +49,8 @@ from datetime import datetime
 
 from inspect import getargspec
 
-from .base import RegisteredSchema, RefSchema, This, MetaRegisteredSchema
-from .utils import DynamicValue
+from .base import RefSchema
+from .utils import DynamicValue, RegisteredSchema, This, MetaRegisteredSchema
 from .registry import registercls
 
 

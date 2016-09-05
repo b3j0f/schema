@@ -30,7 +30,8 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..base import Schema, validate
+from ..base import Schema
+from ..utils import validate, RegisteredSchema
 
 from ..elementary import (
         NoneSchema,
