@@ -36,7 +36,7 @@ from b3j0f.utils.path import lookup
 from .factory import SchemaBuilder, getschemacls, build
 from ..registry import getbyuuid
 from ..utils import This
-from ..base import _Schema, Schema, RefSchema
+from ..base import Schema, RefSchema
 from ..elementary import ElementarySchema, ArraySchema, TypeSchema, StringSchema
 
 from types import FunctionType, MethodType, LambdaType
@@ -80,7 +80,7 @@ class PythonSchemaBuilder(SchemaBuilder):
         return result
 
 
-def buildschema(_cls=None, **kwars):
+def buildschema(_cls=None, **kwargs):
     """Class decorator used to build a schema from the decorate class.
 
     :param type _cls: class to decorate.
@@ -89,20 +89,13 @@ def buildschema(_cls=None, **kwars):
     :return: schema class.
     """
 
-    def _buildschema(cls, **kwargs):
-
-        result = build(cls)
-
-        for name, arg in iteritems(kwargs):
-            setattr(result, name, arg)
-
-        return result
-
     if _cls is None:
-        result = lambda cls: _buildschema(_cls, **kwargs)
+        return lambda _cls: buildschema(_cls=_cls, **kwargs)
 
-    else:
-        result = _buildschema(cls=_cls, **kwargs)
+    result = build(_cls)
+
+    for name, arg in iteritems(kwargs):
+        setattr(result, name, arg)
 
     return result
 
@@ -115,8 +108,6 @@ class ParamSchema(RefSchema):
 
     validate = None  # validation is deleguated to the function schema.
 
-from sys import setrecursionlimit
-setrecursionlimit(60)
 
 class FunctionSchema(ElementarySchema):
     """Function schema.

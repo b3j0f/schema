@@ -65,7 +65,7 @@ class BuildSchemaTest(UTCase):
     def test_name(self):
 
         @buildschema(name='test')
-        class Test(self):
+        class Test(Schema):
             pass
 
         self.assertTrue(issubclass(Test, Schema))
