@@ -91,31 +91,31 @@ class SchemaFactory(object):
 
         return self._builders[name]
 
-    def build(self, resource, cache=True):
-        """build a schema class from input resource.
+    def build(self, _resource, _cache=True, **kwargs):
+        """build a schema class from input _resource.
 
-        :param resource: object from where get the right schema.
-        :param bool cache: use cache system.
+        :param _resource: object from where get the right schema.
+        :param bool _cache: use _cache system.
         :rtype: Schema."""
 
         result = None
 
-        if cache and resource in self._schemasbyresource:
-            result = self._schemasbyresource[resource]
+        if _cache and _resource in self._schemasbyresource:
+            result = self._schemasbyresource[_resource]
 
         else:
             for builder in self._builders.values():
                 try:
-                    result = builder.build(resource)
+                    result = builder.build(_resource, **kwargs)
 
-                except TypeError as te:
+                except (TypeError, NotImplementedError) as te:
                     pass
 
         if result is None:
-            raise TypeError('No builder found for {0}'.format(resource))
+            raise TypeError('No builder found for {0}'.format(_resource))
 
-        if cache:
-            self._schemasbyresource[resource] = result
+        if _cache:
+            self._schemasbyresource[_resource] = result
 
         return result
 
@@ -159,14 +159,14 @@ def unregisterbuilder(name):
 
     return _SCHEMAFACTORY.unregisterbuilder(name=name)
 
-def build(resource, cache=True):
-    """Build a schema from input resource.
+def build(_resource, _cache=True, **kwargs):
+    """Build a schema from input _resource.
 
-    :param resource: object from where get the right schema.
-    :param bool cache: use cache system.
+    :param _resource: object from where get the right schema.
+    :param bool _cache: use cache system.
     :rtype: Schema."""
 
-    return _SCHEMAFACTORY.build(resource=resource, cache=True)
+    return _SCHEMAFACTORY.build(_resource=_resource, _cache=True, **kwargs)
 
 def getbuilder(name):
     """Get a builder instance from a name.
@@ -200,7 +200,7 @@ class MetaSchemaBuilder(type):
         result = super(MetaSchemaBuilder, mcs).__new__(mcs, *args, **kwargs)
 
         if result.__register__:
-            registerbuilder(result(), name=result.__name__)
+            registerbuilder(result(), name=result.__name__ or result.__name__)
 
         return result
 
@@ -213,7 +213,7 @@ class SchemaBuilder(object):
     __register__ = True  #: if True (default), automatically register this.
     __name__ = None  #: schema builder name. Default is generated.
 
-    def build(self, resource):
+    def build(self, _resource, **kwargs):
         """Build a schema class from input resource."""
 
         raise NotImplementedError()

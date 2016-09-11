@@ -59,17 +59,22 @@ class BuildSchemaTest(UTCase):
         class Test(object):
             pass
 
+        test = Test()
+
+        self.assertIsInstance(test, Schema)
         self.assertTrue(issubclass(Test, Schema))
-        self.assertEqual(Test.name, 'Test')
+        self.assertEqual(test.name, 'Test')
 
     def test_name(self):
 
         @buildschema(name='test')
-        class Test(Schema):
+        class Test(object):
             pass
 
+        test = Test()
+        self.assertIsInstance(test, Schema)
         self.assertTrue(issubclass(Test, Schema))
-        self.assertEqual(Test.name, 'test')
+        self.assertEqual(test.name, 'test')
 
 if __name__ == '__main__':
     main()

@@ -35,7 +35,7 @@ from b3j0f.utils.path import lookup
 
 from .factory import SchemaBuilder, getschemacls, build
 from ..registry import getbyuuid
-from ..utils import This
+from ..utils import This, updatecontent
 from ..base import Schema, RefSchema
 from ..elementary import ElementarySchema, ArraySchema, TypeSchema, StringSchema
 
@@ -50,21 +50,26 @@ class PythonSchemaBuilder(SchemaBuilder):
 
     __name__ = 'python'
 
-    def build(self, resource):
+    def build(self, _resource, **kwargs):
 
-        if not isinstance(resource, type):
-            raise TypeError('Wrong type {0}, \'type\' expected'.format(resource))
+        if not isinstance(_resource, type):
+            raise TypeError('Wrong type {0}, \'type\' expected'.format(_resource))
 
-        if issubclass(resource, _Schema):
-            result = resource
+        if issubclass(_resource, Schema):
+            result = _resource
 
         else:
             try:
-                result = getschemacls(resource)
+                result = getschemacls(_resource)
 
-            except KeyError:
-                resname = resource.__name__ if name is None else name
-                result = type(resname, (Schema, resource), {})
+            except KeyError as k:
+
+                resname = _resource.__name__
+                if 'name' not in kwargs:
+                    kwargs['name'] = resname
+
+                result = type(resname, (Schema, _resource), kwargs)
+                updatecontent(result)
 
         return result
 
@@ -92,10 +97,7 @@ def buildschema(_cls=None, **kwargs):
     if _cls is None:
         return lambda _cls: buildschema(_cls=_cls, **kwargs)
 
-    result = build(_cls)
-
-    for name, arg in iteritems(kwargs):
-        setattr(result, name, arg)
+    result = build(_cls, **kwargs)
 
     return result
 

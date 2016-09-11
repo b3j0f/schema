@@ -32,7 +32,7 @@ from b3j0f.utils.ut import UTCase
 
 from .base import Schema
 from ..utils import (
-    DynamicValue, obj2schema, This, validate, updatecontent, RegisteredSchema,
+    DynamicValue, data2schema, This, validate, updatecontent, RegisteredSchema,
     dump
 )
 from ..registry import registercls, unregistercls
@@ -282,7 +282,7 @@ class DynamicValueTest(UTCase):
 
 class FromObjTest(UTCase):
 
-    class BaseTest(object):
+    class BaseTest(Schema):
 
         def __init__(self, default=None, *args, **kwargs):
 
@@ -300,31 +300,31 @@ class FromObjTest(UTCase):
 
     def test_default(self):
 
-        self.assertIsNone(obj2schema(True))
+        self.assertIsNone(data2schema(True))
 
     def test_default_force(self):
 
-        self.assertRaises(NotImplementedError, obj2schema, True, _force=True)
+        self.assertRaises(NotImplementedError, data2schema, True, _force=True)
 
     def test_default_besteffort(self):
 
-        self.assertIsNone(obj2schema(True, _besteffort=False))
+        self.assertIsNone(data2schema(True, _besteffort=False))
 
     def test_dynamicvalue(self):
 
-        self.assertIsNone(obj2schema(DynamicValue(lambda: True)))
+        self.assertIsNone(data2schema(DynamicValue(lambda: True)))
 
     def test_registered(self):
 
         test = FromObjTest.Test()
-        res = obj2schema(test)
+        res = data2schema(test)
 
         self.assertEqual(res.default, test)
 
     def test_registered_besteffort(self):
 
         test = FromObjTest.Test()
-        res = obj2schema(test, _besteffort=False)
+        res = data2schema(test, _besteffort=False)
 
         self.assertIsNone(res)
 
