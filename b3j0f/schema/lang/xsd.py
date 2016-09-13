@@ -29,18 +29,7 @@
 __all__ = ['XSDSchemaBuilder']
 
 
-from ..base import Schema
-from .python import FunctionSchema
 from .factory import SchemaBuilder
-from ..elementary import (
-    ElementarySchema,
-    NumberSchema, IntegerSchema, FloatSchema, LongSchema, ComplexSchema,
-    BooleanSchema,
-    ArraySchema, DictSchema,
-    EnumSchema,
-    StringSchema,
-    DateTimeSchema
-)
 
 
 class XSDSchemaBuilder(SchemaBuilder):

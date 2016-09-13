@@ -25,26 +25,83 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-from __future__ import absolute_import
-
+from __future__ import absolute_import, unicode_literals
 
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ...base import getschema
-from ..json import JSONSchema
+from json import dumps
+
+from ..json import JSONSchemaBuilder, _SCHEMASBYJSONNAME, _PARAMSBYNAME
+from ...base import Schema
+from ..factory import build
 
 
 class JSONSchemaTest(UTCase):
 
-    def test(self):
+    def setUp(self):
 
-        resource = '{"id": "test", "property": []}'
+        self.builder = JSONSchemaBuilder()
 
-        schema = getschema(resource)
+    def test_default(self):
 
-        self.assertIsInstance(schema, JSONSchema)
+        resource = '{"id": "test", "property": {}, "title": "title"}'
+
+        schema = self.builder.build(resource)
+
+        self.assertTrue(issubclass(schema, Schema))
+
+    def test_elementaries(self):
+
+        resource = {'id': 'test', 'title': 'title'}
+
+        for rtype, stype in _SCHEMASBYJSONNAME.items():
+
+            fresource = resource.copy()
+            fresource['type'] = rtype
+
+            sresource = dumps(fresource)
+
+            schema = self.builder.build(sresource)
+
+            self.assertTrue(issubclass(schema, stype))
+
+    def _test_composite(self):
+
+        resource = {
+            'type': 'object',
+            'title': 'test',
+            'id': 'uuid',
+            'properties': {
+                '': {
+                        'type': 'integer',
+                        'title': 'example'
+                },
+                'test': {
+                        'type': 'boolean'
+                }
+            }
+        }
+
+        json = dumps(resource)
+
+        schemacls = self.builder.build(json)
+
+        self.assertTrue(
+            issubclass(schemacls, _SCHEMASBYJSONNAME[resource['type']])
+        )
+        self.assertEqual(schemacls.__name__, resource['title'])
+
+        self.assertIsInstance(
+            schemacls.test,
+            _SCHEMASBYJSONNAME[resource['properties']['test']['type']]
+        )
+        self.assertIsInstance(
+            schemacls.example,
+            _SCHEMASBYJSONNAME[resource['properties']['']['type']]
+        )
+        self.assertFalse(hasattr(schemacls.example))
 
 if __name__ == '__main__':
     main()

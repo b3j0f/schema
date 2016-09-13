@@ -28,7 +28,7 @@
 
 __all__ = [
     'SchemaFactory', 'registerbuilder', 'unregisterbuilder', 'build',
-    'getbuilder'
+    'getbuilder', 'getschemacls', 'getresource', 'SchemaBuilder'
 ]
 
 

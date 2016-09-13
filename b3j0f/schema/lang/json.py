@@ -26,15 +26,18 @@
 
 """json schema module."""
 
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 __all__ = ['JSONSchemaBuilder']
 
 from copy import deepcopy
 
+from six import string_types
+
 from ..base import Schema
 from .python import FunctionSchema
 from .factory import SchemaBuilder
+from ..utils import updatecontent
 from ..elementary import (
     ElementarySchema,
     NoneSchema,
@@ -47,8 +50,6 @@ from ..elementary import (
 )
 
 from json import loads, dump
-
-from jsonschema import validate
 
 
 _SCHEMASBYJSONNAME = {
@@ -72,46 +73,61 @@ _SCHEMASBYJSONNAME = {
 _PARAMSBYNAME = {
     'defaultValue': 'default',
     'title': 'name',
-    'id': 'uuid'
+    'id': 'uuid',
     'items': 'items'
 }
+
+
+def json2schema(resource, name=None):
+
+    name = resource.pop('title', name)
+
+    uuid = resource.pop('id', None)
+
+    stype = resource.pop('type', 'object')
+
+    properties = resource.pop(
+        'properties', resource.pop('property', {})
+    )
+
+    content = {'name': StringSchema(default=name)}
+
+    if uuid:
+        content['uuid'] = StringSchema(default=uuid)
+
+    for name, prop in properties.items():
+
+        if name in _PARAMSBYNAME:
+            name = _PARAMSBYNAME[name]
+
+        innerschemacls = json2schema(prop, name=name)
+
+        content[name] = innerschemacls()
+
+    result = type(str(name), (_SCHEMASBYJSONNAME[stype],), content)
+
+    updatecontent(result)
+
+    return result
 
 
 class JSONSchemaBuilder(SchemaBuilder):
 
     __name__ = 'json'
 
-    def build(self, resource):
+    def build(self, _resource, **kwargs):
 
-        if isinstance(resource, string_types):
-            fresource = loads(resource)
+        if isinstance(_resource, string_types):
+            fresource = loads(_resource)
 
-        _resource = deepcopy(resource)
+        else:
+            fresource = deepcopy(_resource)
 
-        def _fill(resource):
+        result = json2schema(fresource)
 
-            name = resource.pop('title')
+        updatecontent(result)
 
-            _type = _resource.pop('type')
-
-            schemacls = _SCHEMASBYJSONNAME[_type]
-
-            properties = _resource.pop('properties', {})
-
-            kwargs = {}
-
-            for name, prop in properties.items():
-
-                if name in _PARAMSBYNAME:
-                    name = _PARAMSBYNAME[name]
-
-                kwargs[name] = _fill(prop)
-
-            return schemacls(**kwargs)
-
-        schema = _fill(_resource)
-
-        return type(schema)
+        return result
 
     def getresource(self, schemacls):
 
