@@ -51,12 +51,13 @@ class ElementaryTest(UTCase):
 
     def _assert(self, data, error=False, **kwargs):
 
-        schema = self.__schemacls__(**kwargs)
-
         if error:
-            self.assertRaises(Exception, validate, schema, data=data)
+            self.assertRaises(
+                Exception, self.__schemacls__, default=data, **kwargs
+            )
 
         else:
+            schema = self.__schemacls__(default=data, **kwargs)
             validate(schema, data)
 
     def test_default(self):

@@ -41,7 +41,8 @@ from .base import Schema, DynamicValue, RefSchema
 
 
 def getschemafromdatatype(
-        _datatype, _registry=None, _factory=None, _force=True, **kwargs
+        _datatype, _registry=None, _factory=None, _force=True, _besteffort=True,
+        **kwargs
 ):
     """Get a schema which has been associated to input data type by the
     registry or the factory in this order.
@@ -53,6 +54,8 @@ def getschemafromdatatype(
         getbydatatype returns None. Default is the global factory.
     :param bool _force: if true (default), force the building of schema class if
         no schema is associated to input data type.
+    :param bool _besteffort: if True (default), try to resolve schema by
+        inheritance.
     :param dict kwargs: factory builder kwargs.
     :rtype: type
     :return: Schema associated to input registry or factory. None if no
@@ -63,11 +66,11 @@ def getschemafromdatatype(
 
     gdbt = getbydatatype if _registry is None else _registry.getbydatatype
 
-    result = gdbt(_datatype)
+    result = gdbt(_datatype, besteffort=_besteffort)
 
     if result is None:
         gscls = getschemacls if _factory is None else _factory.getschemacls
-        result = gscls(_datatype)
+        result = gscls(_datatype, besteffort=_besteffort)
 
     if result is None and _force:
         _build = build if _factory is None else _factory.build
@@ -106,7 +109,7 @@ def data2schema(
 
     schemacls = getschemafromdatatype(
         _datatype=datatype, _registry=_registry, _factory=_factory,
-        _force=_force, **(_buildkwargs or {})
+        _force=_force, _besteffort=_besteffort, **(_buildkwargs or {})
     )
 
     if schemacls is not None:
@@ -237,14 +240,20 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
                 else:
                     toset = True
 
+                    data = member
+
                     if name == 'default':
-                        schema = RefSchema.fromdata(data=member, name=name)
+
+                        if isinstance(member, This):
+                            data = schemaclass(*fmember.args, **fmember.kwargs)
+
+                        schema = RefSchema.fromdata(data=data, name=name)
 
                     elif isinstance(fmember, This):
                         schema = schemaclass(*fmember.args, **fmember.kwargs)
 
                     else:
-                        schema = data2schema(data=member, name=name)
+                        schema = data2schema(data=data, name=name)
 
                 if schema is not None and toset:
 

@@ -267,8 +267,7 @@ class FunctionSchema(ElementarySchema):
 
                     lkptype = lookup(ptype)
 
-                    ref = getschemafromdatatype(lkptype)
-                    params[pname]['ref'] = ref
+                    params[pname]['ref'] = getschemafromdatatype(lkptype)
 
         return params, (rtype or '')
 

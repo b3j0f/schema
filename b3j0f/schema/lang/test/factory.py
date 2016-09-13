@@ -50,12 +50,12 @@ class TestFactory(UTCase):
             super(TestFactory.SchemaBuilderTest, self).__init__(*args, **kwargs)
             self.type = _type
 
-        def build(self, resource):
+        def build(self, _resource, **kwargs):
 
-            if not isinstance(resource, self.type):
+            if not isinstance(_resource, self.type):
                 raise TypeError()
 
-            return resource
+            return _resource
 
         def getresource(self, schemacls):
 
@@ -72,14 +72,14 @@ class TestFactory(UTCase):
         self.factory = SchemaFactory()
 
         self.assertRaises(TypeError, self.factory.build, schemaint)
-        self.assertRaises(KeyError, self.factory.getschemacls, schemaint)
+        self.assertIsNone(self.factory.getschemacls(schemaint))
         self.assertRaises(TypeError, self.factory.build, schemastr)
-        self.assertRaises(KeyError, self.factory.getschemacls, schemastr)
+        self.assertIsNone(self.factory.getschemacls(schemastr))
 
         self.factory.registerbuilder(name='str', builder=makerstr)
 
         self.assertRaises(TypeError, self.factory.build, schemaint)
-        self.assertRaises(KeyError, self.factory.getschemacls, schemaint)
+        self.assertIsNone(self.factory.getschemacls(schemaint))
 
         schemacls = self.factory.build(schemastr)
         self.assertEqual(schemacls, schemastr)
@@ -101,13 +101,13 @@ class TestFactory(UTCase):
         schemacls = self.factory.getschemacls(schemastr)
         self.assertEqual(schemacls, schemastr)
 
-        self.factory.unregisterbuilder('str')
+        self.factory.unregisterbuilder(name='str')
 
         schemacls = self.factory.build(schemastr)
         self.assertEqual(schemacls, schemastr)
 
         self.assertRaises(
-            TypeError, self.factory.build, schemastr, cache=False
+            TypeError, self.factory.build, schemastr, _cache=False
         )
 
         schemacls = self.factory.getschemacls(schemastr)

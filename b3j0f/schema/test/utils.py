@@ -249,7 +249,7 @@ class ThisTest(UTCase):
 
             __update_content__ = False
 
-            test = This(default='test', nullable=False)
+            test = This(test='test', nullable=False)
 
             def __init__(self, *args, **kwargs):
 
@@ -260,7 +260,7 @@ class ThisTest(UTCase):
         updatecontent(Test)
 
         self.assertIsInstance(Test.test, Test)
-        self.assertEqual(Test.test.default, 'test')
+        self.assertEqual(Test.test._test, 'test')
         self.assertFalse(Test.test.nullable)
 
     def test_params(self):
@@ -304,7 +304,7 @@ class FromObjTest(UTCase):
 
     def test_default_force(self):
 
-        self.assertRaises(NotImplementedError, data2schema, True, _force=True)
+        self.assertRaises(TypeError, data2schema, True, _force=True)
 
     def test_default_besteffort(self):
 
@@ -324,7 +324,7 @@ class FromObjTest(UTCase):
     def test_registered_besteffort(self):
 
         test = FromObjTest.Test()
-        res = data2schema(test, _besteffort=False)
+        res = data2schema(data=test, _besteffort=False)
 
         self.assertIsNone(res)
 
@@ -335,10 +335,10 @@ class DefaultTest(UTCase):
 
         class TestSchema(RegisteredSchema):
 
-            default = 0
+            default = This()
 
         schema = TestSchema()
-        self.assertEqual(schema.default, 0)
+        self.assertIsInstance(schema.default, TestSchema)
 
         schema = TestSchema(default=None)
         self.assertIsNone(schema._default)

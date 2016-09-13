@@ -158,7 +158,10 @@ class Schema(property):
 
     def __eq__(self, other):
 
-        return other is self or self.getschemas() == other.getschemas()
+        return (
+            isinstance(other, Schema)
+            and (other is self or self.getschemas() == other.getschemas())
+        )
 
     def __repr__(self):
 
