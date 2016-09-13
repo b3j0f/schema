@@ -36,6 +36,8 @@ from uuid import uuid4 as uuid
 
 from six import string_types, add_metaclass
 
+from inspect import isclass
+
 from b3j0f.utils.path import getpath
 
 
@@ -106,10 +108,13 @@ class SchemaFactory(object):
         else:
             for builder in self._builders.values():
                 try:
-                    result = builder.build(_resource, **kwargs)
+                    result = builder.build(_resource=_resource, **kwargs)
 
                 except (TypeError, NotImplementedError) as te:
                     pass
+
+                else:
+                    break
 
         if result is None:
             raise TypeError('No builder found for {0}'.format(_resource))
@@ -119,14 +124,27 @@ class SchemaFactory(object):
 
         return result
 
-    def getschemacls(self, resource):
+    def getschemacls(self, resource, besteffort=True):
         """Get schema class related to input resource.
 
         :param resource: resource from which get schema class.
-        :rtype: type
-        :raises: KeyError if resource is not already registered."""
+        :param bool besteffort: if True (default) try a best effort in parsing
+            the inheritance tree of resource if resource is a class.
+        :rtype: type"""
 
-        return self._schemasbyresource[resource]
+        result = None
+
+        resources = (
+            resource.mro() if besteffort and isclass(resource) else [resource]
+        )
+
+        for _resource in resources:
+            if _resource in self._schemasbyresource:
+                result = self._schemasbyresource[_resource]
+
+                break
+
+        return result
 
     def getresource(self, schemacls, name):
         """Get a resource from a builder name.
@@ -175,13 +193,15 @@ def getbuilder(name):
 
     return _SCHEMAFACTORY.getbuilder(name)
 
-def getschemacls(resource):
+def getschemacls(resource, besteffort=False):
     """Get schema class related to input resource.
 
     :param resource: resource from which get schema class.
+    :param bool besteffort: if True (default) try a best effort in parsing
+            the inheritance tree of resource if resource is a class.
     :rtype: type"""
 
-    return _SCHEMAFACTORY.getschemacls(resource=resource)
+    return _SCHEMAFACTORY.getschemacls(resource=resource, besteffort=besteffort)
 
 def getresource(self, schemacls, name):
     """Get a resource from a builder name.

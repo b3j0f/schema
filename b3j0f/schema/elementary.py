@@ -28,7 +28,7 @@
 
 __all__ = [
     'NoneSchema',
-    'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
+    'NumberSchema', 'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
     'StringSchema',
     'ArraySchema',
     'DictSchema',
@@ -137,6 +137,7 @@ class NumberSchema(ElementarySchema):
     If allows to bound data values."""
 
     __data_types__ = [Number]
+    default = 0
 
     #: minimum allowed value if not None.
     min = This(nullable=True, default=None)

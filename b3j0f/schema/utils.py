@@ -36,13 +36,51 @@ from types import FunctionType, MethodType
 from six import iteritems, add_metaclass
 
 from .registry import getbydatatype, register
-from .lang.factory import build
+from .lang.factory import build, getschemacls
 from .base import Schema, DynamicValue, RefSchema
+
+
+def getschemafromdatatype(
+        _datatype, _registry=None, _factory=None, _force=True, **kwargs
+):
+    """Get a schema which has been associated to input data type by the
+    registry or the factory in this order.
+
+    :param type datatype: data type from where get associated schema.
+    :param SchemaRegisgry _registry: registry from where call the getbydatatype.
+        Default is the global registry.
+    :param SchemaFactory _factory: factory from where call the getschemacls if
+        getbydatatype returns None. Default is the global factory.
+    :param bool _force: if true (default), force the building of schema class if
+        no schema is associated to input data type.
+    :param dict kwargs: factory builder kwargs.
+    :rtype: type
+    :return: Schema associated to input registry or factory. None if no
+        association found.
+    """
+
+    result = None
+
+    gdbt = getbydatatype if _registry is None else _registry.getbydatatype
+
+    result = gdbt(_datatype)
+
+    if result is None:
+        gscls = getschemacls if _factory is None else _factory.getschemacls
+        result = gscls(_datatype)
+
+    if result is None and _force:
+        _build = build if _factory is None else _factory.build
+
+        result = _build(_resource=_datatype, **kwargs)
+
+    return result
 
 
 def data2schema(
         data, _force=False, _besteffort=True, _registry=None, _factory=None,
-        *args, **kwargs
+        _buildkwargs=None,
+        **kwargs
 ):
     """Get the schema able to instanciate input data.
 
@@ -55,7 +93,7 @@ def data2schema(
         validate data class by inheritance.
     :param SchemaRegistry _registry: default registry to use. Global by default.
     :param SchemaFactory factory: default factory to use. Global by default.
-    :param args: schema class vargs.
+    :param dict _buildkwargs: factory builder kwargs.
     :param kwargs: schema class kwargs.
     :return: Schema.
     :rtype: Schema."""
@@ -64,19 +102,15 @@ def data2schema(
 
     fdata = data() if isinstance(data, DynamicValue) else data
 
-    cls = type(fdata)
+    datatype = type(fdata)
 
-    gbdt = getbydatatype if _registry is None else _registry.getbydatatype
+    schemacls = getschemafromdatatype(
+        _datatype=datatype, _registry=_registry, _factory=_factory,
+        _force=_force, **(_buildkwargs or {})
+    )
 
-    schemacls = gbdt(cls, besteffort=_besteffort)
-
-    if schemacls is None and _force:
-        fbuild = build if _factory is None else _factory.build
-
-        schemacls = fbuild(cls)
-
-    if schemacls:
-        result = schemacls.fromdata(data=data, *args, **kwargs)
+    if schemacls is not None:
+        result = schemacls.fromdata(data=data, **kwargs)
 
     return result
 

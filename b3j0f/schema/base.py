@@ -96,11 +96,22 @@ class Schema(property):
             doc=doc
         )
 
+        # set custom getter/setter/deleter
+        if fget or not hasattr(self, '_fget'):
+            self._fget = fget
+
+        if fset or not hasattr(self, '_fset'):
+            self._fset = fset
+
+        if fdel or not hasattr(self, '_fdel'):
+            self._fdel = fdel
+
         if doc is not None:
             kwargs['doc'] = doc
 
         cls = type(self)
 
+        # set inner schema values
         for name, member in getmembers(cls):
 
             if name[0] != '_' and name not in [
@@ -127,16 +138,14 @@ class Schema(property):
                 if member != val:
                     setattr(self, name, val)
 
-        self._default = kwargs.get('default', self.default)
+        default = kwargs.get('default', self.default)
 
-        if fget or not hasattr(self, '_fget'):
-            self._fget = fget
+        if isinstance(default, DynamicValue):
+            default = default()
 
-        if fset or not hasattr(self, '_fset'):
-            self._fset = fset
-
-        if fdel or not hasattr(self, '_fdel'):
-            self._fdel = fdel
+        self._default = default
+        if default is not None:
+            self.default = default
 
     def _attrname(self, name=None):
         """Get attribute name to set in order to keep the schema value.
@@ -299,4 +308,5 @@ class RefSchema(Schema):
 
         ref = owner if self.ref is None else self.ref
 
-        ref._validate(data=data, owner=owner)
+        if ref is not self:
+            ref._validate(data=data, owner=owner)

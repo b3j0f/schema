@@ -34,8 +34,8 @@ from b3j0f.utils.version import OrderedDict
 from b3j0f.utils.path import lookup
 
 from .factory import SchemaBuilder, getschemacls, build
-from ..registry import getbyuuid
-from ..utils import This, updatecontent
+from ..registry import getbyuuid, getbydatatype
+from ..utils import This, updatecontent, data2schema, getschemafromdatatype
 from ..base import Schema, RefSchema
 from ..elementary import ElementarySchema, ArraySchema, TypeSchema, StringSchema
 
@@ -43,7 +43,7 @@ from types import FunctionType, MethodType, LambdaType
 
 from six import iteritems
 
-from inspect import getargspec
+from inspect import getargspec, getsourcelines
 
 
 class PythonSchemaBuilder(SchemaBuilder):
@@ -53,16 +53,17 @@ class PythonSchemaBuilder(SchemaBuilder):
     def build(self, _resource, **kwargs):
 
         if not isinstance(_resource, type):
-            raise TypeError('Wrong type {0}, \'type\' expected'.format(_resource))
+            raise TypeError(
+                'Wrong type {0}, \'type\' expected'.format(_resource)
+            )
 
         if issubclass(_resource, Schema):
             result = _resource
 
         else:
-            try:
-                result = getschemacls(_resource)
+            result = getschemafromdatatype(_datatype=_resource, _force=False)
 
-            except KeyError as k:
+            if result is None:
 
                 resname = _resource.__name__
                 if 'name' not in kwargs:
@@ -105,10 +106,7 @@ def buildschema(_cls=None, **kwargs):
 class ParamSchema(RefSchema):
     """Function parameter schema."""
 
-    type = StringSchema(nullable=True, default=None)
     hasvalue = False
-
-    validate = None  # validation is deleguated to the function schema.
 
 
 class FunctionSchema(ElementarySchema):
@@ -125,12 +123,9 @@ class FunctionSchema(ElementarySchema):
     __data_types__ = [FunctionType, MethodType, LambdaType]
 
     params = ArraySchema(itemtype=ParamSchema)
-    rtype = StringSchema(nullable=True, default=None)
+    rtype = ''
     impl = ''
-    impltype = 'python'
-    fget = This()
-    fset = This()
-    fdel = This()
+    impltype = ''
 
     def _validate(self, data, owner, *args, **kwargs):
 
@@ -183,11 +178,19 @@ class FunctionSchema(ElementarySchema):
                         )
                     )
 
+    def _setvalue(self, schema, value):
+
+        if schema.name == 'default':
+
+            self._setter(obj=self, value=value)
+
     def _setter(self, obj, value, *args, **kwargs):
 
         ElementarySchema._setter(self, obj, value, *args, **kwargs)
 
         pkwargs, self.rtype = self._getparams_rtype(value)
+
+        index = 0
 
         for index, pkwarg in enumerate(pkwargs.values()):
 
@@ -203,11 +206,14 @@ class FunctionSchema(ElementarySchema):
 
             else:
                 selfparam.name = pkwarg['name']
-                selfparam.type = pkwarg['type']
+                selfparam.ref = pkwarg['ref']
                 selfparam.default = pkwarg['default']
                 selfparam.hasvalue = pkwarg['hasvalue']
 
         self.params = self.params[:index]
+
+        self.impltype = 'python'
+        self.impl = str(getsourcelines(value))
 
     @classmethod
     def _getparams_rtype(cls, function):
@@ -236,7 +242,7 @@ class FunctionSchema(ElementarySchema):
             if index >= indexlen:  # has default value
                 value = default[index - indexlen]
                 pkwargs['default'] = value
-                pkwargs['type'] = type(value)
+                pkwargs['ref'] = data2schema(value)
                 pkwargs['hasvalue'] = True
 
             params[arg] = pkwargs
@@ -259,9 +265,12 @@ class FunctionSchema(ElementarySchema):
                 if pname:
                     ptype = match[0] or match[2]
 
-                    params[pname]['type'] = ptype
+                    lkptype = lookup(ptype)
 
-        return params, rtype
+                    ref = getschemafromdatatype(lkptype)
+                    params[pname]['ref'] = ref
+
+        return params, (rtype or '')
 
     def __call__(self, *args, **kwargs):
 
