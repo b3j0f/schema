@@ -110,19 +110,11 @@ def buildschema(_cls=None, **kwargs):
     return result
 
 
-class ParamType(Enum):
-
-    default = 0
-    varargs = 1
-    keywords = 2
-
-
 @updatecontent
 class ParamSchema(RefSchema):
     """Function parameter schema."""
 
     autotype = True  #: if true (default), update self ref when default is given
-    type = ParamType.default
 
     def _setvalue(self, schema, value, *args, **kwargs):
 
@@ -131,14 +123,7 @@ class ParamSchema(RefSchema):
         if schema.name == 'default':
 
             if self.autotype and self.ref is None:
-                self.ref = data2schema(value)
-
-        if schema.name == 'type':
-            if value == ParamType.varargs:
-                self.ref = ArraySchema()
-
-            elif value == ParamType.keywords:
-                self.ref = DictSchema()
+                self.ref = None if value is None else data2schema(value)
 
 
 class FunctionSchema(ElementarySchema):
@@ -237,8 +222,8 @@ class FunctionSchema(ElementarySchema):
 
             selfparam = None  # old self param
 
-            if name in selfparams and selfparams[name].type == pkwarg['type']:
-                selfparam = selfparams[pkwarg['name']]
+            if name in selfparams:
+                selfparam = selfparams[name]
 
             if selfparam is None:
                 selfparam = ParamSchema(**pkwarg)
@@ -274,30 +259,15 @@ class FunctionSchema(ElementarySchema):
         for index, arg in enumerate(args):
 
             pkwargs = {
-                'name': arg,
-                'type': ParamType.default
+                'name': arg
             }  # param kwargs
 
             if index >= indexlen:  # has default value
                 value = default[index - indexlen]
                 pkwargs['default'] = value
-                pkwargs['ref'] = data2schema(value)
+                pkwargs['ref'] = None if value is None else data2schema(value)
 
             params[arg] = pkwargs
-
-        if varargs:
-            pkwargs = {
-                'name': varargs,
-                'type': ParamType.varargs
-            }
-            params[varargs] = pkwargs
-
-        if keywords:
-            pkwargs = {
-                'name': keywords,
-                'type': ParamType.keywords
-            }
-            params[keywords] = pkwargs
 
         rtype = None
 
@@ -359,3 +329,12 @@ class FunctionSchema(ElementarySchema):
             return result
 
         return result
+
+
+def funcschema(default=None, *args, **kwargs):
+    """Decorator to use in order to transform a function into a schema."""
+
+    if default is None:
+        return lambda default: funcschema(default=default, *args, **kwargs)
+
+    return FunctionSchema(default=default, *args, **kwargs)

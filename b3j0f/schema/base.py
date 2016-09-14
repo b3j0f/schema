@@ -288,15 +288,3 @@ class Schema(property):
             result[name] = member
 
         return result
-
-    @classmethod
-    def fromdata(cls, data, *args, **kwargs):
-        """Get a new schema from an object.
-
-        :param data: default schema data.
-        :param tuple args: schema varargs.
-        :param dict kwargs: schema kwargs.
-        :return: instance of cls.
-        :rtype: Schema"""
-
-        return cls(default=data, *args, **kwargs)

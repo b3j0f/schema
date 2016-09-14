@@ -150,17 +150,7 @@ class DumpTest(UTCase):
 
         dumped = dump(schema)
 
-        self.assertEqual(
-            dumped,
-            {
-                'default': schema.default,
-                #'doc': schema.doc,
-                #'name': schema.name,
-                #'nullable': schema.nullable,
-                #'uuid': schema.uuid,
-                #'version': schema.version
-            }
-        )
+        self.assertEqual(dumped, {'default': schema.default})
 
     def test_dumped_content(self):
 
@@ -178,20 +168,10 @@ class DumpTest(UTCase):
             dumped,
             {
                 'a': {
-                    'default': schema.a.default,
-                    #'doc': schema.a.doc,
-                    #'name': schema.a.name,
-                    #'nullable': schema.a.nullable,
-                    #'uuid': schema.a.uuid,
-                    #'version': schema.a.version
+                    'default': schema.a.default
                 },
                 'b': None,
-                'default': schema.default,
-                #'doc': schema.doc,
-                #'name': schema.name,
-                #'nullable': schema.nullable,
-                #'uuid': schema.uuid,
-                #'version': schema.version
+                'default': schema.default
             }
         )
 
@@ -324,7 +304,7 @@ class FromObjTest(UTCase):
     def test_registered_besteffort(self):
 
         test = FromObjTest.Test()
-        res = data2schema(data=test, _besteffort=False)
+        res = data2schema(_data=test, _besteffort=False)
 
         self.assertIsNone(res)
 
