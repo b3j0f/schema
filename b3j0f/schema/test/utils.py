@@ -32,7 +32,7 @@ from b3j0f.utils.ut import UTCase
 
 from .base import Schema
 from ..utils import (
-    DynamicValue, data2schema, This, validate, updatecontent, RegisteredSchema,
+    DynamicValue, data2schema, ThisSchema, validate, updatecontent, RegisteredSchema,
     dump, RefSchema
 )
 from ..registry import registercls, unregistercls
@@ -210,7 +210,7 @@ class ValidateTest(UTCase):
         validate(schema, None)
 
 
-class ThisTest(UTCase):
+class ThisSchemaTest(UTCase):
 
     def test_error(self):
 
@@ -218,7 +218,7 @@ class ThisTest(UTCase):
 
             class Test(RegisteredSchema):
 
-                test = This(default='test', nullable=False)
+                test = ThisSchema(default='test', nullable=False)
 
                 def __init__(self, *args, **kwargs):
 
@@ -235,7 +235,7 @@ class ThisTest(UTCase):
 
                 __update_content__ = False
 
-                test = This(default='test', nullable=False)
+                test = ThisSchema(default='test', nullable=False)
 
                 def __init__(self, *args, **kwargs):
 
@@ -249,13 +249,13 @@ class ThisTest(UTCase):
 
             __update_content__ = False
 
-            test = This(test='test', nullable=False)
+            test = ThisSchema(test='test', nullable=False)
 
             def __init__(self, *args, **kwargs):
 
                 super(Test, self).__init__(*args, **kwargs)
 
-        self.assertIsInstance(Test.test, This)
+        self.assertIsInstance(Test.test, ThisSchema)
 
         updatecontent(Test)
 
@@ -265,7 +265,7 @@ class ThisTest(UTCase):
 
     def test_params(self):
 
-        this = This(1, 2, a=3, b=4)
+        this = ThisSchema(1, 2, a=3, b=4)
 
         self.assertEqual(this.args, (1, 2))
         self.assertEqual(this.kwargs, {'a': 3, 'b': 4})
@@ -335,7 +335,7 @@ class DefaultTest(UTCase):
 
         class TestSchema(RegisteredSchema):
 
-            default = This()
+            default = ThisSchema()
 
         schema = TestSchema()
         self.assertIsInstance(schema.default, TestSchema)

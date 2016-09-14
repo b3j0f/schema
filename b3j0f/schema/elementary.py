@@ -52,7 +52,7 @@ from inspect import getargspec
 
 from .registry import registercls
 from .utils import (
-    DynamicValue, RegisteredSchema, This, MetaRegisteredSchema, updatecontent
+    DynamicValue, RegisteredSchema, ThisSchema, MetaRegisteredSchema, updatecontent
 )
 
 
@@ -142,9 +142,9 @@ class NumberSchema(ElementarySchema):
     default = 0
 
     #: minimum allowed value if not None.
-    min = This(nullable=True, default=None)
+    min = ThisSchema(nullable=True, default=None)
     #: maximal allowed value if not None.
-    max = This(nullable=True, default=None)
+    max = ThisSchema(nullable=True, default=None)
 
     def _validate(self, data, *args, **kwargs):
 

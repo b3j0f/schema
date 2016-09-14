@@ -27,7 +27,7 @@
 """Schema utilities package."""
 
 __all__ = [
-    'DynamicValue', 'data2schema', 'MetaRegisteredSchema', 'This',
+    'DynamicValue', 'data2schema', 'MetaRegisteredSchema', 'ThisSchema',
     'updatecontent', 'validate', 'dump', 'RegisteredSchema',
     'getschemaclsfromdatatype', 'RefSchema'
 ]
@@ -119,18 +119,18 @@ def data2schema(
     return result
 
 
-class This(object):
+class ThisSchema(object):
     """Tool Used to set inner schemas with the same type with specific arguments
     .
 
-    This one might be use at the condition instanciation methods must not
+    ThisSchema one might be use at the condition instanciation methods must not
     reference the class.
 
     ..example::
 
         class Test(Schema):
             # contain an inner schema nullable 'test' of type Test.
-            test = This(nullable=False)
+            test = ThisSchema(nullable=False)
 
             def __init__(self, *args, **kwargs):
 
@@ -146,7 +146,7 @@ class This(object):
 
     def __init__(self, *args, **kwargs):
 
-        super(This, self).__init__()
+        super(ThisSchema, self).__init__()
 
         self.args = args
         self.kwargs = kwargs
@@ -199,10 +199,11 @@ class RefSchema(Schema):
 
         super(RefSchema, self).__init__(*args, **kwargs)
 
-        if ref is not None and self.default is None:
-            self.default = ref.default
+        if ref is not None:
+            if self.default is None:
+                self.default = ref.default
 
-        self.ref = ref
+            self.ref = ref
 
     def _validate(self, data, owner=None, *args, **kwargs):
 
@@ -217,6 +218,9 @@ class RefSchema(Schema):
 
         if schema.name == 'ref' and value is not None:
 
+            if self.default is None and not value.nullable:
+                self.default = value.default
+
             value._validate(self.default)
 
 
@@ -230,7 +234,7 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
     .. example:
         @updatecontent  # update content at the end of its definition.
         class Test(Schema):
-            this = This()  # instance of Test.
+            this = ThisSchema()  # instance of Test.
             def __init__(self, *args, **kwargs):
                 Test.__init__(self, *args, **kwargs)  # old style method call.
 
@@ -278,12 +282,12 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
 
                     if name == 'default':
 
-                        if isinstance(member, This):
+                        if isinstance(member, ThisSchema):
                             data = schemaclass(*fmember.args, **fmember.kwargs)
 
                         schema = RefSchema.fromdata(data=data, name=name)
 
-                    elif isinstance(fmember, This):
+                    elif isinstance(fmember, ThisSchema):
                         schema = schemaclass(*fmember.args, **fmember.kwargs)
 
                     else:
@@ -336,13 +340,13 @@ class RegisteredSchema(Schema):
     """update automatically the content if True (default).
 
     If True, take care to not having called the class in overidden methods.
-    In such case, take a look to the using of the class This which recommands to
+    In such case, take a look to the using of the class ThisSchema which recommands to
     use old style method call for overriden methods.
 
     ..example:
         class Test(Schema):
             __udpate_content__ = True  # set update content to True
-            test = This()
+            test = ThisSchema()
             def __init__(self, *args, **kwargs):
                 Schema.__init__(self, *args, **kwargs)  # old style call.
         """

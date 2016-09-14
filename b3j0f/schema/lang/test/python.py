@@ -35,7 +35,8 @@ from ..python import (
     PythonSchemaBuilder, FunctionSchema, buildschema, ParamSchema, ParamType
 )
 from ...elementary import (
-    StringSchema, IntegerSchema, FloatSchema, BooleanSchema
+    StringSchema, IntegerSchema, FloatSchema, BooleanSchema, ArraySchema,
+    DictSchema
 )
 
 from inspect import getmembers
@@ -43,11 +44,44 @@ from inspect import getmembers
 
 class ParamSchemaTest(UTCase):
 
+    def test_autotype(self):
+
+        param = ParamSchema(default=1)
+
+        self.assertIsInstance(param.ref, IntegerSchema)
+
+    def test_notautotype(self):
+
+        param = ParamSchema(autotype=False, default=1)
+
+        self.assertIsNone(param.ref)
+
+        self.assertRaises(TypeError, ParamSchema, ref=IntegerSchema, default='')
+
+    def test_autotype_dynamique(self):
+
+        param = ParamSchema()
+
+        param.default = 1
+
+        self.assertIsInstance(param.ref, IntegerSchema)
+
+        param.ref = None
+
+        self.assertEqual(param.default, 1)
+
+    def test_notautotype_dynamique(self):
+
+        param = ParamSchema(autotype=False)
+
+        param.default = 1
+
+        self.assertIsNone(param.ref)
+
     def test_default(self):
 
         param = ParamSchema()
 
-        self.assertFalse(param.hasvalue)
         self.assertEqual(param.type, ParamType.default)
         self.assertIsNone(param.ref)
 
@@ -63,12 +97,6 @@ class ParamSchemaTest(UTCase):
         self.assertEqual(param.default, 'test')
 
         self.assertRaises(TypeError, setattr, param, 'default', 2)
-
-    def test_hasvalue(self):
-
-        param = ParamSchema(hasvalue=True)
-
-        self.assertTrue(param.hasvalue)
 
     def test_type(self):
 
@@ -97,36 +125,66 @@ class FunctionSchemaTest(UTCase):
 
     def test_function(self):
 
-        def test(a, b, c=3.):
+        def test(a, b, c, d, e=3., *args, **kwargs):
             """
-            :param str a:
-            :type b: int
+            :param bool b:
+            :type c: int
             :rtype: bool
             """
 
         schema = FunctionSchema(
-            default=test, params=[ParamSchema(name='b', default=3)]
+            default=test,
+            params=[ParamSchema(name='d', default=3)]
         )
 
-        self.assertEqual(len(schema.params), 3)
+        self.assertEqual(len(schema.params), 7)
 
         aparam = schema.params[0]
-        self.assertIsInstance(aparam.ref, StringSchema)
+        self.assertIsNone(aparam.ref)
         self.assertEqual(aparam.name, 'a')
-        self.assertFalse(aparam.hasvalue)
         self.assertEqual(aparam.type, ParamType.default)
+        self.assertIsNone(aparam.default)
 
         bparam = schema.params[1]
-        self.assertIsInstance(bparam.ref, IntegerSchema)
+        self.assertIsInstance(bparam.ref, BooleanSchema)
         self.assertEqual(bparam.name, 'b')
-        self.assertTrue(bparam.hasvalue)
         self.assertEqual(bparam.type, ParamType.default)
-        self.assertEqual(bparam.default, 3)
+        self.assertIs(bparam.default, False)
 
         cparam = schema.params[2]
-        self.assertIsInstance(schema.params[0].ref, StringSchema)
-        self.assertIsInstance(schema.params[1].ref, IntegerSchema)
-        self.assertIsInstance(schema.params[2].ref, FloatSchema)
+        self.assertIsInstance(cparam.ref, IntegerSchema)
+        self.assertEqual(cparam.name, 'c')
+        self.assertEqual(cparam.type, ParamType.default)
+        self.assertIs(cparam.default, 0)
+
+        dparam = schema.params[3]
+
+        self.assertIsInstance(dparam.ref, IntegerSchema)
+        self.assertEqual(dparam.name, 'd')
+        self.assertEqual(dparam.type, ParamType.default)
+        self.assertIs(dparam.default, 3)
+
+        eparam = schema.params[4]
+
+        self.assertIsInstance(eparam.ref, FloatSchema)
+        self.assertEqual(eparam.name, 'e')
+        self.assertEqual(eparam.type, ParamType.default)
+        self.assertIs(eparam.default, 3.)
+
+        fparam = schema.params[5]
+
+        self.assertIsInstance(fparam.ref, ArraySchema)
+        self.assertEqual(fparam.name, 'args')
+        self.assertEqual(fparam.type, ParamType.varargs)
+        self.assertEqual(fparam.default, [])
+
+        gparam = schema.params[6]
+
+        self.assertIsInstance(gparam.ref, DictSchema)
+        self.assertEqual(gparam.name, 'kwargs')
+        self.assertEqual(gparam.type, ParamType.keywords)
+        self.assertEqual(gparam.default, {})
+
         self.assertIsInstance(schema.rtype, BooleanSchema)
 
 

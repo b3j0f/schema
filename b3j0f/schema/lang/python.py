@@ -36,10 +36,13 @@ from b3j0f.utils.path import lookup
 from .factory import SchemaBuilder, getschemacls, build
 from ..registry import getbyuuid, getbydatatype
 from ..utils import (
-    This, updatecontent, data2schema, getschemaclsfromdatatype, RefSchema
+    ThisSchema, updatecontent, data2schema, getschemaclsfromdatatype, RefSchema
 )
 from ..base import Schema
-from ..elementary import ElementarySchema, ArraySchema, TypeSchema, StringSchema
+from ..elementary import (
+    ElementarySchema, ArraySchema, TypeSchema, StringSchema, ArraySchema,
+    DictSchema
+)
 
 from types import FunctionType, MethodType, LambdaType
 
@@ -65,7 +68,7 @@ class PythonSchemaBuilder(SchemaBuilder):
             result = _resource
 
         else:
-            result = getschemafromdatatype(_datatype=_resource, _force=False)
+            result = getschemaclsfromdatatype(_datatype=_resource, _force=False)
 
             if result is None:
 
@@ -118,7 +121,7 @@ class ParamType(Enum):
 class ParamSchema(RefSchema):
     """Function parameter schema."""
 
-    hasvalue = False
+    autotype = True  #: if true (default), update self ref when default is given
     type = ParamType.default
 
     def _setvalue(self, schema, value, *args, **kwargs):
@@ -126,7 +129,16 @@ class ParamSchema(RefSchema):
         super(ParamSchema, self)._setvalue(schema, value, *args, **kwargs)
 
         if schema.name == 'default':
-            self.hasvalue = value is not None
+
+            if self.autotype and self.ref is None:
+                self.ref = data2schema(value)
+
+        if schema.name == 'type':
+            if value == ParamType.varargs:
+                self.ref = ArraySchema()
+
+            elif value == ParamType.keywords:
+                self.ref = DictSchema()
 
 
 class FunctionSchema(ElementarySchema):
@@ -213,6 +225,7 @@ class FunctionSchema(ElementarySchema):
         params = []
 
         selfparams = {}
+
         for selfparam in self.params:
             selfparams[selfparam.name] = selfparam
 
@@ -232,7 +245,9 @@ class FunctionSchema(ElementarySchema):
 
             else:
                 for key in pkwarg:
-                    setattr(selfparam, key, pkwarg[key])
+                    val = pkwarg[key]
+                    if val is not None:
+                        setattr(selfparam, key, val)
 
             params.append(selfparam)
 
@@ -275,7 +290,7 @@ class FunctionSchema(ElementarySchema):
                 'name': varargs,
                 'type': ParamType.varargs
             }
-            params[vargs] = pkwargs
+            params[varargs] = pkwargs
 
         if keywords:
             pkwargs = {

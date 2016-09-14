@@ -36,7 +36,7 @@ from .version import __version__
 """
 from .base import Schema, RefSchema, DynamicValue
 from .registry import register, registercls, getbyuuid, getbyname"""
-#from .utils import validate, dump, updatecontent, This, data2schema
+#from .utils import validate, dump, updatecontent, ThisSchema, data2schema
 """from .elementary import (
 	StringSchema, NoneSchema, DateTimeSchema, IntegerSchema, NumberSchema,
 	ComplexSchema, FloatSchema, LongSchema, ArraySchema, DictSchema, TypeSchema,
