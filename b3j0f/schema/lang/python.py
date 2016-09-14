@@ -24,9 +24,9 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Python language schemas utilities"""
+"""Python language schemas utilities."""
 
-__all__ = ['PythonSchemaBuilder', 'FunctionSchema']
+__all__ = ['PythonSchemaBuilder', 'FunctionSchema', 'buildschema']
 
 from re import compile as re_compile
 
@@ -44,6 +44,8 @@ from types import FunctionType, MethodType, LambdaType
 from six import iteritems
 
 from inspect import getargspec, getsourcelines
+
+from enum import Enum
 
 
 class PythonSchemaBuilder(SchemaBuilder):
@@ -103,10 +105,20 @@ def buildschema(_cls=None, **kwargs):
     return result
 
 
+@updatecontent
+class ParamType(Enum):
+
+    default = 0
+    varargs = 1
+    keywords = 2
+
+
+@updatecontent
 class ParamSchema(RefSchema):
     """Function parameter schema."""
 
     hasvalue = False
+    type = ParamType.default
 
 
 class FunctionSchema(ElementarySchema):
@@ -260,10 +272,10 @@ class FunctionSchema(ElementarySchema):
                     if rtype:
                         continue
 
-                pname = match[1] or match[3]
+                pname = match[1] or match[2]
 
                 if pname:
-                    ptype = match[0] or match[2]
+                    ptype = match[0] or match[3]
 
                     lkptype = lookup(ptype)
 

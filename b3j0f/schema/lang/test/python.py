@@ -31,9 +31,54 @@ from b3j0f.utils.ut import UTCase
 from b3j0f.utils.path import getpath
 
 from ...base import Schema
-from ..python import PythonSchemaBuilder, FunctionSchema, buildschema
+from ..python import (
+    PythonSchemaBuilder, FunctionSchema, buildschema, ParamSchema, ParamType
+)
+from ...elementary import (
+    StringSchema, IntegerSchema, FloatSchema, BooleanSchema
+)
 
 from inspect import getmembers
+
+
+class ParamSchemaTest(UTCase):
+
+    def test_default(self):
+
+        param = ParamSchema()
+
+        self.assertFalse(param.hasvalue)
+        self.assertEqual(param.type, ParamType.default)
+        self.assertIsNone(param.ref)
+
+        param.default = 2
+        self.assertEqual(param.default, 2)
+
+    def test_ref(self):
+
+        param = ParamSchema(ref=StringSchema())
+
+        param.default = 'test'
+
+        self.assertEqual(param.default, 'test')
+
+        self.assertRaises(TypeError, setattr, param, 'default', 2)
+
+    def test_hasvalue(self):
+
+        param = ParamSchema(hasvalue=True)
+
+        self.assertTrue(param.hasvalue)
+
+    def test_type(self):
+
+        param = ParamSchema(type=ParamType.keywords)
+
+        self.assertEqual(param.type, ParamType.keywords)
+
+        param.type = ParamType.varargs
+
+        self.assertEqual(param.type, ParamType.varargs)
 
 
 class FunctionSchemaTest(UTCase):
@@ -49,6 +94,22 @@ class FunctionSchemaTest(UTCase):
         schema = FunctionSchema(default=lambda a, b=2: None)
 
         self.assertTrue(schema.params)
+
+    def test_function(self):
+
+        def test(a, b, c=3.):
+            """
+            :param str a:
+            :type b: int
+            :rtype: bool
+            """
+
+        schema = FunctionSchema(default=test)
+
+        self.assertIsInstance(schema.params[0], StringSchema)
+        self.assertIsInstance(schema.params[1], IntegerSchema)
+        self.assertIsInstance(schema.params[2], FloatSchema)
+        self.assertIsInstance(schema.rtype, BooleanSchema)
 
 
 class BuildSchemaTest(UTCase):

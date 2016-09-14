@@ -90,6 +90,20 @@ class SchemaTest(UTCase):
 
         self.assertNotEqual(schema1.uuid, schema2.uuid)
 
+    def test_uuid_inheritance(self):
+
+        class BaseTest(Schema):
+            pass
+
+
+        class Test(BaseTest):
+            pass
+
+        basetest = BaseTest()
+        test = Test()
+
+        self.assertNotEqual(basetest.uuid, test.uuid)
+
     def test_init_gsd(self):
 
         processing = []
