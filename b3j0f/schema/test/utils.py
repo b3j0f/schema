@@ -33,7 +33,7 @@ from b3j0f.utils.ut import UTCase
 from .base import Schema
 from ..utils import (
     DynamicValue, data2schema, This, validate, updatecontent, RegisteredSchema,
-    dump
+    dump, RefSchema
 )
 from ..registry import registercls, unregistercls
 
@@ -344,6 +344,70 @@ class DefaultTest(UTCase):
         self.assertIsNone(schema._default)
         self.assertIsNone(schema.default)
 
+
+class RefSchemaTest(UTCase):
+
+    def setUp(self):
+
+        class NumberSchema(Schema):
+
+            default = 0
+
+            def _validate(self, data, *args, **kwargs):
+
+                if not isinstance(data, Number):
+                    raise TypeError()
+
+        self.numberschema = NumberSchema()
+
+        class StringSchema(Schema):
+
+            def _validate(self, data, *args, **kwargs):
+
+                if not isinstance(data, string_types):
+                    raise TypeError()
+
+        self.stringschema = StringSchema()
+
+    def test_default_noref(self):
+
+        schema = RefSchema()
+
+        schema.default = 0
+
+    def test_default(self):
+
+        schema = RefSchema(ref=self.numberschema, default=1)
+
+        self.assertEqual(schema.default, 1)
+
+        schema.default = 0
+
+        self.assertEqual(schema.default, 0)
+
+        self.assertRaises(TypeError, setattr, schema, 'default', '')
+
+    def test_owner(self):
+
+        schema = RefSchema()
+
+        class NumberSchema(Schema):
+
+            def _validate(self, data, *args, **kwargs):
+
+                return isinstance(data, Number)
+
+        numberschema = NumberSchema()
+
+        schema._validate(0, owner=numberschema)
+
+    def test_ref(self):
+
+        schema = RefSchema(ref=self.numberschema)
+
+        self.assertEqual(schema.default, self.numberschema.default)
+
+        self.assertRaises(TypeError, setattr, schema, 'ref', self.stringschema)
 
 if __name__ == '__main__':
     main()

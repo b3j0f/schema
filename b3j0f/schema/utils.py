@@ -29,7 +29,7 @@
 __all__ = [
     'DynamicValue', 'data2schema', 'MetaRegisteredSchema', 'This',
     'updatecontent', 'validate', 'dump', 'RegisteredSchema',
-    'getschemaclsfromdatatype'
+    'getschemaclsfromdatatype', 'RefSchema'
 ]
 
 from types import FunctionType, MethodType
@@ -38,7 +38,7 @@ from six import iteritems, add_metaclass
 
 from .registry import getbydatatype, register
 from .lang.factory import build, getschemacls
-from .base import Schema, DynamicValue, RefSchema
+from .base import Schema, DynamicValue
 
 
 def getschemaclsfromdatatype(
@@ -187,6 +187,39 @@ def dump(schema):
     return result
 
 
+class RefSchema(Schema):
+    """Schema which references another schema."""
+
+    ref = Schema()  #: the reference must be a schema.
+
+    def __init__(self, ref=None, *args, **kwargs):
+        """
+        :param Schema ref: refereed schema.
+        """
+
+        super(RefSchema, self).__init__(*args, **kwargs)
+
+        if ref is not None and self.default is None:
+            self.default = ref.default
+
+        self.ref = ref
+
+    def _validate(self, data, owner=None, *args, **kwargs):
+
+        ref = owner if self.ref is None else self.ref
+
+        if ref is not self:
+            ref._validate(data=data, owner=owner)
+
+    def _setvalue(self, schema, value, *args, **kwargs):
+
+        super(RefSchema, self)._setvalue(schema, value, *args, **kwargs)
+
+        if schema.name == 'ref' and value is not None:
+
+            value._validate(self.default)
+
+
 def updatecontent(schemacls=None, updateparents=True, exclude=None):
     """Transform all schema class attributes to schemas.
 
@@ -265,7 +298,6 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
                         break
 
     return schemacls
-
 
 updatecontent(RefSchema)
 

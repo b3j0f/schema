@@ -33,44 +33,7 @@ from b3j0f.utils.ut import UTCase
 from numbers import Number
 from six import string_types
 
-from ..base import Schema, DynamicValue, RefSchema
-
-
-class RefSchemaTest(UTCase):
-
-    def test_default(self):
-
-        schema = RefSchema()
-
-        self.assertRaises(AttributeError, schema._validate, 0)
-
-    def test_owner(self):
-
-        schema = RefSchema()
-
-        class NumberSchema(Schema):
-
-            def _validate(self, data, *args, **kwargs):
-
-                return isinstance(data, Number)
-
-        numberschema = NumberSchema()
-
-        schema._validate(0, owner=numberschema)
-
-    def test_ref(self):
-
-        class NumberSchema(Schema):
-
-            def _validate(self, data, *args, **kwargs):
-
-                return isinstance(data, Number)
-
-        numberschema = NumberSchema()
-
-        schema = RefSchema(ref=numberschema)
-
-        schema._validate(0)
+from ..base import Schema, DynamicValue
 
 
 class SchemaTest(UTCase):
@@ -287,7 +250,6 @@ class SchemaTest(UTCase):
         del schema.test
 
         self.assertIs(schema.schema, TestSchema.test)
-
 
 if __name__ == '__main__':
     main()

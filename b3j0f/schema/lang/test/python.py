@@ -104,7 +104,26 @@ class FunctionSchemaTest(UTCase):
             :rtype: bool
             """
 
-        schema = FunctionSchema(default=test)
+        schema = FunctionSchema(
+            default=test, params=[ParamSchema(name='b', default=3)]
+        )
+
+        self.assertEqual(len(schema.params), 3)
+
+        aparam = schema.params[0]
+        self.assertIsInstance(aparam.ref, StringSchema)
+        self.assertEqual(aparam.name, 'a')
+        self.assertFalse(aparam.hasvalue)
+        self.assertEqual(aparam.type, ParamType.default)
+
+        bparam = schema.params[1]
+        self.assertIsInstance(bparam.ref, IntegerSchema)
+        self.assertEqual(bparam.name, 'b')
+        self.assertTrue(bparam.hasvalue)
+        self.assertEqual(bparam.type, ParamType.default)
+        self.assertEqual(bparam.default, 3)
+
+        cparam = schema.params[2]
         self.assertIsInstance(schema.params[0].ref, StringSchema)
         self.assertIsInstance(schema.params[1].ref, IntegerSchema)
         self.assertIsInstance(schema.params[2].ref, FloatSchema)

@@ -28,7 +28,8 @@
 
 __all__ = [
     'NoneSchema',
-    'NumberSchema', 'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
+    'NumberSchema',
+    'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
     'StringSchema',
     'ArraySchema',
     'DictSchema',
@@ -49,9 +50,10 @@ from datetime import datetime
 
 from inspect import getargspec
 
-from .base import RefSchema
-from .utils import DynamicValue, RegisteredSchema, This, MetaRegisteredSchema
 from .registry import registercls
+from .utils import (
+    DynamicValue, RegisteredSchema, This, MetaRegisteredSchema, updatecontent
+)
 
 
 class MetaElementarySchema(MetaRegisteredSchema):

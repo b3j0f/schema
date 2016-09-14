@@ -300,16 +300,3 @@ class Schema(property):
         :rtype: Schema"""
 
         return cls(default=data, *args, **kwargs)
-
-
-class RefSchema(Schema):
-    """Schema which references another schema."""
-
-    ref = Schema()  #: the reference must be a schema.
-
-    def _validate(self, data, owner=None, *args, **kwargs):
-
-        ref = owner if self.ref is None else self.ref
-
-        if ref is not self:
-            ref._validate(data=data, owner=owner)

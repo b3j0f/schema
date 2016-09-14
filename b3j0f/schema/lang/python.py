@@ -35,8 +35,10 @@ from b3j0f.utils.path import lookup
 
 from .factory import SchemaBuilder, getschemacls, build
 from ..registry import getbyuuid, getbydatatype
-from ..utils import This, updatecontent, data2schema, getschemaclsfromdatatype
-from ..base import Schema, RefSchema
+from ..utils import (
+    This, updatecontent, data2schema, getschemaclsfromdatatype, RefSchema
+)
+from ..base import Schema
 from ..elementary import ElementarySchema, ArraySchema, TypeSchema, StringSchema
 
 from types import FunctionType, MethodType, LambdaType
@@ -119,6 +121,13 @@ class ParamSchema(RefSchema):
     hasvalue = False
     type = ParamType.default
 
+    def _setvalue(self, schema, value, *args, **kwargs):
+
+        super(ParamSchema, self)._setvalue(schema, value, *args, **kwargs)
+
+        if schema.name == 'default':
+            self.hasvalue = value is not None
+
 
 class FunctionSchema(ElementarySchema):
     """Function schema.
@@ -134,7 +143,7 @@ class FunctionSchema(ElementarySchema):
     __data_types__ = [FunctionType, MethodType, LambdaType]
 
     params = ArraySchema(itemtype=ParamSchema)
-    rtype = ''
+    rtype = Schema()
     impl = ''
     impltype = ''
 
@@ -201,28 +210,33 @@ class FunctionSchema(ElementarySchema):
 
         pkwargs, self.rtype = self._getparams_rtype(value)
 
+        params = []
+
+        selfparams = {}
+        for selfparam in self.params:
+            selfparams[selfparam.name] = selfparam
+
         index = 0
 
         for index, pkwarg in enumerate(pkwargs.values()):
 
-            try:
-                selfparam = self.params[index]
+            name = pkwarg['name']
 
-            except IndexError:
-                selfparam = None
+            selfparam = None  # old self param
+
+            if name in selfparams and selfparams[name].type == pkwarg['type']:
+                selfparam = selfparams[pkwarg['name']]
 
             if selfparam is None:
-                print(pkwarg)
                 selfparam = ParamSchema(**pkwarg)
-                self.params.insert(index, selfparam)
 
             else:
-                selfparam.name = pkwarg['name']
-                selfparam.ref = pkwarg['ref']
-                selfparam.default = pkwarg['default']
-                selfparam.hasvalue = pkwarg['hasvalue']
+                for key in pkwarg:
+                    setattr(selfparam, key, pkwarg[key])
 
-        self.params = self.params[:index]
+            params.append(selfparam)
+
+        self.params = params
 
         self.impltype = 'python'
         self.impl = str(getsourcelines(value))
@@ -246,14 +260,13 @@ class FunctionSchema(ElementarySchema):
 
             pkwargs = {
                 'name': arg,
-                'hasvalue': False
+                'type': ParamType.default
             }  # param kwargs
 
             if index >= indexlen:  # has default value
                 value = default[index - indexlen]
                 pkwargs['default'] = value
                 pkwargs['ref'] = data2schema(value)
-                pkwargs['hasvalue'] = True
 
             params[arg] = pkwargs
 
@@ -279,19 +292,36 @@ class FunctionSchema(ElementarySchema):
             for match in cls._REC.findall(function.__doc__):
 
                 if rtype is None:
-                    rtype = match[4] or None
+                    rtype = match[4].strip() or None
 
                     if rtype:
-                        continue
 
-                pname = match[1] or match[2]
+                        try:
+                            lkrtype = lookup(rtype)
+
+                        except ImportError:
+                            pass
+
+                        else:
+                            schemacls = getschemaclsfromdatatype(lkrtype)
+                            rtype = schemacls()
+
+                            continue
+
+                pname = (match[1] or match[2]).strip()
 
                 if pname:
-                    ptype = match[0] or match[3]
+                    ptype = (match[0] or match[3]).strip()
 
-                    lkptype = lookup(ptype)
+                    try:
+                        lkptype = lookup(ptype)
 
-                    params[pname]['ref'] = getschemaclsfromdatatype(lkptype)()
+                    except ImportError:
+                        pass
+
+                    else:
+                        schemacls = getschemaclsfromdatatype(lkptype)
+                        params[pname]['ref'] = schemacls()
 
         return params, (rtype or '')
 

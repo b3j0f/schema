@@ -34,15 +34,15 @@ from ..base import Schema
 from ..utils import validate, RegisteredSchema
 
 from ..elementary import (
-        NoneSchema,
-        IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
-        StringSchema,
-        ArraySchema,
-        BooleanSchema,
-        EnumSchema,
-        TypeSchema,
-        DictSchema
-    )
+    NoneSchema,
+    IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
+    StringSchema,
+    ArraySchema,
+    BooleanSchema,
+    EnumSchema,
+    TypeSchema,
+    DictSchema
+)
 
 
 class ElementaryTest(UTCase):
@@ -262,7 +262,6 @@ class DictSchemaTest(ElementaryTest):
     def test_unique_error(self):
 
         self._assert(data={1: 1, 2: 1}, unique=True, error=True)
-
 
 if __name__ == '__main__':
     main()
