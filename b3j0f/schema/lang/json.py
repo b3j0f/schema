@@ -40,7 +40,6 @@ from .factory import SchemaBuilder
 from ..utils import updatecontent
 from ..elementary import (
     ElementarySchema,
-    NoneSchema,
     NumberSchema, IntegerSchema, FloatSchema, LongSchema, ComplexSchema,
     BooleanSchema,
     ArraySchema, DictSchema,
@@ -53,7 +52,6 @@ from json import loads, dump
 
 
 _SCHEMASBYJSONNAME = {
-    'null': NoneSchema,
     'integer': IntegerSchema,
     'number': FloatSchema,
     'long': LongSchema,

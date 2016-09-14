@@ -27,7 +27,6 @@
 """Elementary schema package."""
 
 __all__ = [
-    'NoneSchema',
     'NumberSchema',
     'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
     'StringSchema',
@@ -35,7 +34,8 @@ __all__ = [
     'DictSchema',
     'BooleanSchema',
     'EnumSchema',
-    'DateTimeSchema'
+    'DateTimeSchema',
+    'AnySchema'
 ]
 
 from six import string_types, add_metaclass
@@ -116,14 +116,6 @@ class ElementarySchema(RegisteredSchema):
 
                     elif hasattr(data, name):
                         schema._validate(getattr(data, name))
-
-
-class NoneSchema(ElementarySchema):
-    """None schema."""
-
-    __data_types__ = [NoneType]
-
-    nullable = True
 
 
 class BooleanSchema(ElementarySchema):

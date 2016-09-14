@@ -27,21 +27,28 @@
 """Main package."""
 
 __all__ = [
-    '__version__', 'getschema', 'Schema', 'Property', 'ClassSchema',
-    'FunctionProperty', 'SchemaProperty', 'ArrayProperty', 'getbyname',
-    'register'
+    '__version__', 'Schema', 'DynamicValue',
+    'register', 'registercls', 'getbyuuid', 'getbyname',
+    'StringSchema', 'IntegerSchema',
+    'FloatSchema', 'ComplexSchema', 'LongSchema', 'EnumSchema', 'ArraySchema',
+    'DictSchema', 'DateTimeSchema', 'NumberSchema', 'BooleanSchema',
+    'TypeSchema',
+    'data2schema', 'validate', 'dump', 'updatecontent', 'ThisSchema',
+    'RefSchema', 'AnySchema'
 ]
 
 from .version import __version__
-"""
-from .base import Schema, RefSchema, DynamicValue
-from .registry import register, registercls, getbyuuid, getbyname"""
-#from .utils import validate, dump, updatecontent, ThisSchema, data2schema
-"""from .elementary import (
-	StringSchema, NoneSchema, DateTimeSchema, IntegerSchema, NumberSchema,
+
+from .base import Schema, DynamicValue
+from .registry import register, registercls, getbyuuid, getbyname
+from .utils import (
+	validate, dump, updatecontent, ThisSchema, data2schema, AnySchema
+)
+from .elementary import (
+	StringSchema, DateTimeSchema, IntegerSchema, NumberSchema,
 	ComplexSchema, FloatSchema, LongSchema, ArraySchema, DictSchema, TypeSchema,
 	EnumSchema, BooleanSchema, ElementarySchema
-)"""
+)
 """
 from .lang import (
 	SchemaFactory, registerbuilder, getbuilder, build, getschemacls,

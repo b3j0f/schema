@@ -188,13 +188,6 @@ class FunctionSchema(ElementarySchema):
                         )
                     )
 
-                if not issubclass(ptype, selfparam.type):
-                    raise TypeError(
-                        'Wrong param type {0} at {1}. Expected {2}.'.format(
-                            ptype, index, selfparam.type
-                        )
-                    )
-
     def _setvalue(self, schema, value):
 
         if schema.name == 'default':
@@ -308,7 +301,7 @@ class FunctionSchema(ElementarySchema):
                         schemacls = getschemaclsfromdatatype(lkptype)
                         params[pname]['ref'] = schemacls()
 
-        return params, (rtype or '')
+        return params, rtype
 
     def __call__(self, *args, **kwargs):
 

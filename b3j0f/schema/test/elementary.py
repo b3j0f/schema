@@ -34,7 +34,6 @@ from ..base import Schema
 from ..utils import validate, RegisteredSchema
 
 from ..elementary import (
-    NoneSchema,
     IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
     StringSchema,
     ArraySchema,
@@ -83,11 +82,6 @@ class ElementaryTest(UTCase):
 
         else:
             self.assertRaises(TypeError, validate, schema, data=None)
-
-
-class NoneSchema(ElementaryTest):
-
-    __schemacls__ = NoneSchema
 
 
 class NumberSchemaTest(ElementaryTest):

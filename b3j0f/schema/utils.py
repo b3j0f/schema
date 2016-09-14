@@ -245,6 +245,15 @@ class RefSchema(Schema):
             value._validate(self.default)
 
 
+class AnySchema(Schema):
+    """Schema for any object."""
+
+    nullable = True
+
+    def _validate(self, *args, **kwargs):
+        pass
+
+
 def updatecontent(schemacls=None, updateparents=True, exclude=None):
     """Transform all schema class attributes to schemas.
 
@@ -310,6 +319,9 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
 
                     elif isinstance(fmember, ThisSchema):
                         schema = schemaclass(*fmember.args, **fmember.kwargs)
+
+                    elif member is None:
+                        schema = AnySchema()
 
                     else:
                         schema = data2schema(_data=data, name=name)
