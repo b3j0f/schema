@@ -105,10 +105,9 @@ class FunctionSchemaTest(UTCase):
             """
 
         schema = FunctionSchema(default=test)
-
-        self.assertIsInstance(schema.params[0], StringSchema)
-        self.assertIsInstance(schema.params[1], IntegerSchema)
-        self.assertIsInstance(schema.params[2], FloatSchema)
+        self.assertIsInstance(schema.params[0].ref, StringSchema)
+        self.assertIsInstance(schema.params[1].ref, IntegerSchema)
+        self.assertIsInstance(schema.params[2].ref, FloatSchema)
         self.assertIsInstance(schema.rtype, BooleanSchema)
 
 

@@ -28,7 +28,8 @@
 
 __all__ = [
     'DynamicValue', 'data2schema', 'MetaRegisteredSchema', 'This',
-    'updatecontent', 'validate', 'dump', 'RegisteredSchema'
+    'updatecontent', 'validate', 'dump', 'RegisteredSchema',
+    'getschemaclsfromdatatype'
 ]
 
 from types import FunctionType, MethodType
@@ -40,7 +41,7 @@ from .lang.factory import build, getschemacls
 from .base import Schema, DynamicValue, RefSchema
 
 
-def getschemafromdatatype(
+def getschemaclsfromdatatype(
         _datatype, _registry=None, _factory=None, _force=True, _besteffort=True,
         **kwargs
 ):
@@ -107,7 +108,7 @@ def data2schema(
 
     datatype = type(fdata)
 
-    schemacls = getschemafromdatatype(
+    schemacls = getschemaclsfromdatatype(
         _datatype=datatype, _registry=_registry, _factory=_factory,
         _force=_force, _besteffort=_besteffort, **(_buildkwargs or {})
     )

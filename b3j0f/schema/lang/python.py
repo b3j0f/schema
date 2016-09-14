@@ -35,7 +35,7 @@ from b3j0f.utils.path import lookup
 
 from .factory import SchemaBuilder, getschemacls, build
 from ..registry import getbyuuid, getbydatatype
-from ..utils import This, updatecontent, data2schema, getschemafromdatatype
+from ..utils import This, updatecontent, data2schema, getschemaclsfromdatatype
 from ..base import Schema, RefSchema
 from ..elementary import ElementarySchema, ArraySchema, TypeSchema, StringSchema
 
@@ -105,7 +105,6 @@ def buildschema(_cls=None, **kwargs):
     return result
 
 
-@updatecontent
 class ParamType(Enum):
 
     default = 0
@@ -213,6 +212,7 @@ class FunctionSchema(ElementarySchema):
                 selfparam = None
 
             if selfparam is None:
+                print(pkwarg)
                 selfparam = ParamSchema(**pkwarg)
                 self.params.insert(index, selfparam)
 
@@ -236,7 +236,7 @@ class FunctionSchema(ElementarySchema):
 
         result = []
 
-        args, vargs, _, default = getargspec(function)
+        args, varargs, keywords, default = getargspec(function)
 
         indexlen = len(args) - (0 if default is None else len(default))
 
@@ -246,8 +246,6 @@ class FunctionSchema(ElementarySchema):
 
             pkwargs = {
                 'name': arg,
-                'default': None,
-                'type': None,
                 'hasvalue': False
             }  # param kwargs
 
@@ -258,6 +256,20 @@ class FunctionSchema(ElementarySchema):
                 pkwargs['hasvalue'] = True
 
             params[arg] = pkwargs
+
+        if varargs:
+            pkwargs = {
+                'name': varargs,
+                'type': ParamType.varargs
+            }
+            params[vargs] = pkwargs
+
+        if keywords:
+            pkwargs = {
+                'name': keywords,
+                'type': ParamType.keywords
+            }
+            params[keywords] = pkwargs
 
         rtype = None
 
@@ -279,7 +291,7 @@ class FunctionSchema(ElementarySchema):
 
                     lkptype = lookup(ptype)
 
-                    params[pname]['ref'] = getschemafromdatatype(lkptype)
+                    params[pname]['ref'] = getschemaclsfromdatatype(lkptype)()
 
         return params, (rtype or '')
 
