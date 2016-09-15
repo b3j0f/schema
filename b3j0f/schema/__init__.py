@@ -34,7 +34,7 @@ __all__ = [
     'DictSchema', 'DateTimeSchema', 'NumberSchema', 'BooleanSchema',
     'TypeSchema',
     'data2schema', 'validate', 'dump', 'updatecontent', 'ThisSchema',
-    'RefSchema', 'AnySchema'
+    'RefSchema', 'AnySchema', 'RegisteredSchema'
 ]
 
 from .version import __version__
