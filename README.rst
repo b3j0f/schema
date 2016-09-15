@@ -158,7 +158,7 @@ Complex Schema definition
 
 .. code-block:: python
 
-   from b3j0f.schema import Schema, updatecontent, ThisSchema, RefSchema, FunctionSchema, build, FloatSchema, BooleanSchema, StringSchema
+   from b3j0f.schema import Schema, ThisSchema, RefSchema, build
    from random import random
 
    @build(foo=2)  # transform a python class to a schema class with the additional property foo
@@ -167,15 +167,6 @@ Complex Schema definition
       key = DynamicValue(lambda: random())  # generate a new key at each instanciation
       subtest = ThisSchema(key=3.)  # use this schema such as inner schema
       ref = RefSchema()  # ref is validated by this schema
-
-      def test(self, a, b, c=2):
-         """
-         :param float a:
-         :type b: bool
-         :rtype: str
-         """
-
-         return 'test'
 
    assert issubclass(Test, Schema)
 
