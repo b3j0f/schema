@@ -223,7 +223,6 @@ class FunctionSchema(ElementarySchema):
                 selfparam = selfparams[name]
 
             if selfparam is None:
-                print(name, pkwarg)
                 selfparam = ParamSchema(**pkwarg)
 
             else:
@@ -282,10 +281,10 @@ class FunctionSchema(ElementarySchema):
                     if rtype:
 
                         try:
-                            lkrtype = lookup(rtype)
+                            lkrtype = lookup(rtype, scope=function.func_globals)
 
                         except ImportError:
-                            pass
+                            raise
 
                         else:
                             schemacls = getschemaclsfromdatatype(lkrtype)
@@ -299,10 +298,10 @@ class FunctionSchema(ElementarySchema):
                     ptype = (match[0] or match[3]).strip()
 
                     try:
-                        lkptype = lookup(ptype)
+                        lkptype = lookup(ptype, scope=function.func_globals)
 
                     except ImportError:
-                        pass
+                        raise
 
                     else:
                         schemacls = getschemaclsfromdatatype(lkptype)

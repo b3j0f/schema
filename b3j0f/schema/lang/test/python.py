@@ -146,7 +146,7 @@ class FunctionSchemaTest(UTCase):
 
         cparam = schema.params[2]
         self.assertIsInstance(cparam.ref, IntegerSchema)
-        self.assertFalse(cparam.mandatory)
+        self.assertTrue(cparam.mandatory)
         self.assertEqual(cparam.name, 'c')
         self.assertIs(cparam.default, 0)
 
@@ -175,13 +175,18 @@ class FunctionSchemaTest(UTCase):
         @updatecontent
         class Test(Schema):
 
-            def test(self):
-                pass
+            def test(self, a):
+                """
+                :param self:
+                :type a: BuildSchemaTest
+                """
 
         self.assertIsInstance(Test.test, FunctionSchema)
-        param = Test.test.params[0]
+        param = Test.test.params[1]
 
-        self.assertEqual(param.name, 'self')
+        self.assertEqual(param.name, 'a')
+        from ...elementary import TypeSchema
+        self.assertIsInstance(param.ref, Schema)
 
 
 class BuildSchemaTest(UTCase):
