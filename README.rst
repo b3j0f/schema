@@ -104,12 +104,23 @@ Data Validation
    assert 'subname' in Test.getschemas()
    assert 'subname' in test.getschemas()
 
+   validate(Test.subinteger, 1)
+
+   error = None
+   try:
+      validate(Test.subinteger, '')
+
+   except TypeError as error:
+      pass
+
+   assert error is not None
+
 Schema retrieving
 ~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-   from b3j0f.schema import register, getbyname, getbyuuid
+   from b3j0f.schema import register, getbyname, getbyuuid, data2schema
 
    assert getbyuuid(test.uuid) is None
    assert test not in getbyname(test.name)
@@ -119,6 +130,20 @@ Schema retrieving
    assert test is getbyuuid(test.uuid)
 
    assert test in getbyname(test.name)
+
+   schema = data2schema(2, name='vint')  # get an integer schema with 2 such as a default value and name vint
+
+   assert schema.default == 2
+   assert schema.name == 'vint'
+
+   error = None
+   try:
+      schema.default = ''
+
+   except TypeError as error:
+      pass
+
+   assert error is not None
 
 Schema definition
 ~~~~~~~~~~~~~~~~~
