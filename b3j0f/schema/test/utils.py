@@ -33,8 +33,9 @@ from b3j0f.utils.ut import UTCase
 from .base import Schema
 from ..utils import (
     DynamicValue, data2schema, ThisSchema, validate, updatecontent, RegisteredSchema,
-    dump, RefSchema
+    dump, RefSchema, AnySchema
 )
+from ..elementary import StringSchema, IntegerSchema, TypeSchema, FloatSchema
 from ..registry import registercls, unregistercls
 
 from six import string_types
@@ -44,48 +45,13 @@ from numbers import Number
 
 class UpdateContentTest(UTCase):
 
-    def setUp(self):
-
-        @registercls([Number])
-        class NumberSchema(Schema):
-
-            def _validate(self, data, *args, **kwargs):
-
-                return isinstance(data, Number)
-
-        self.NumberSchema = NumberSchema
-
-        @registercls([string_types])
-        class StrSchema(Schema):
-
-            def _validate(self, data, *args, **kwargs):
-
-                return isinstance(data, string_types)
-
-        self.StrSchema = StrSchema
-
-        @registercls([type])
-        class ObjectSchema(Schema):
-
-            def _validate(self, data, *args, **kwargs):
-
-                return isinstance(data, type)
-
-        self.ObjectSchema = ObjectSchema
-
-    def tearDown(self):
-
-        unregistercls(self.NumberSchema)
-        unregistercls(self.StrSchema)
-        unregistercls(self.ObjectSchema)
-
     def _assert(self, schemacls):
 
-        self.assertIsInstance(schemacls.a, self.NumberSchema)
-        self.assertIsInstance(schemacls.b, self.NumberSchema)
-        self.assertIsInstance(schemacls.c, self.StrSchema)
-        self.assertIsInstance(schemacls.d, self.ObjectSchema)
-        self.assertIsNone(schemacls.e)
+        self.assertIsInstance(schemacls.a, IntegerSchema)
+        self.assertIsInstance(schemacls.b, FloatSchema)
+        self.assertIsInstance(schemacls.c, StringSchema)
+        self.assertIsInstance(schemacls.d, TypeSchema)
+        self.assertIsInstance(schemacls.e, AnySchema)
 
     def test_object(self):
 
@@ -150,7 +116,18 @@ class DumpTest(UTCase):
 
         dumped = dump(schema)
 
-        self.assertEqual(dumped, {'default': schema.default})
+        self.assertEqual(
+            dumped,
+            {
+                'default': schema.default,
+                'name': '',
+                'uuid': schema.uuid,
+                'nullable': schema.nullable,
+                'required': schema.required,
+                'version': schema.version,
+                'doc': schema.doc
+            }
+        )
 
     def test_dumped_content(self):
 
@@ -168,10 +145,22 @@ class DumpTest(UTCase):
             dumped,
             {
                 'a': {
-                    'default': schema.a.default
-                },
+                    'default': None,
+                    'name': '',
+                    'uuid': schema.a.uuid,
+                    'nullable': schema.a.nullable,
+                    'required': schema.a.required,
+                    'version': schema.a.version,
+                    'doc': schema.a.doc
+            },
                 'b': None,
-                'default': schema.default
+                'default': schema.default,
+                'name': '',
+                'uuid': schema.uuid,
+                'nullable': schema.nullable,
+                'required': schema.required,
+                'version': schema.version,
+                'doc': schema.doc
             }
         )
 
@@ -386,6 +375,8 @@ class RefSchemaTest(UTCase):
         schema = RefSchema(ref=self.numberschema)
 
         self.assertEqual(schema.default, self.numberschema.default)
+
+        schema.ref = self.stringschema
 
         self.assertRaises(TypeError, setattr, schema, 'ref', self.stringschema)
 

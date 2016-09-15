@@ -118,7 +118,6 @@ class Schema(property):
                     'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter',
                     'default'
             ]:
-
                 if name in kwargs:
                     val = kwargs[name]
 
@@ -139,9 +138,6 @@ class Schema(property):
                     setattr(self, name, val)
 
         default = kwargs.get('default', self.default)
-
-        if isinstance(default, DynamicValue):
-            default = default()
 
         self._default = default
         if default is not None:
@@ -200,9 +196,14 @@ class Schema(property):
             result."""
 
         if isinstance(value, DynamicValue):  # execute lambda values.
-            value = value()
+            fvalue = value()
 
-        self._validate(data=value, owner=obj)
+        else:
+            fvalue = value
+        if self.name == 'name' and not value and obj is None:
+            from traceback import print_stack
+            print_stack()
+        self._validate(data=fvalue, owner=obj)
 
         if self._fset is not None:
             self._fset(obj, value)

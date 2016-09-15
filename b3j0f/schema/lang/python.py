@@ -115,6 +115,7 @@ class ParamSchema(RefSchema):
     """Function parameter schema."""
 
     autotype = True  #: if true (default), update self ref when default is given
+    mandatory = True  #: if true (default), parameter value is mandatory.
 
     def _setvalue(self, schema, value, *args, **kwargs):
 
@@ -124,6 +125,9 @@ class ParamSchema(RefSchema):
 
             if self.autotype and self.ref is None:
                 self.ref = None if value is None else data2schema(value)
+
+            if value is not None:
+                self.mandatory = False
 
 
 class FunctionSchema(ElementarySchema):
@@ -219,6 +223,7 @@ class FunctionSchema(ElementarySchema):
                 selfparam = selfparams[name]
 
             if selfparam is None:
+                print(name, pkwarg)
                 selfparam = ParamSchema(**pkwarg)
 
             else:
@@ -252,13 +257,15 @@ class FunctionSchema(ElementarySchema):
         for index, arg in enumerate(args):
 
             pkwargs = {
-                'name': arg
+                'name': arg,
+                'mandatory': True
             }  # param kwargs
 
             if index >= indexlen:  # has default value
                 value = default[index - indexlen]
                 pkwargs['default'] = value
                 pkwargs['ref'] = None if value is None else data2schema(value)
+                pkwargs['mandatory'] = False
 
             params[arg] = pkwargs
 

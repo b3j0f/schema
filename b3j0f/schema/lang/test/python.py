@@ -31,6 +31,7 @@ from b3j0f.utils.ut import UTCase
 from b3j0f.utils.path import getpath
 
 from ...base import Schema
+from ...utils import updatecontent, AnySchema
 from ..python import (
     PythonSchemaBuilder, FunctionSchema, buildschema, ParamSchema
 )
@@ -114,7 +115,7 @@ class FunctionSchemaTest(UTCase):
 
     def test_function(self):
 
-        def test(a, b, c, d, e=3., *args, **kwargs):
+        def test(a, b, c, d, e=3., f=None, *args, **kwargs):
             """
             :param bool b:
             :type c: int
@@ -123,39 +124,64 @@ class FunctionSchemaTest(UTCase):
 
         schema = FunctionSchema(
             default=test,
-            params=[ParamSchema(name='d', default=3)]
+            params=[
+                ParamSchema(name='d', default=3, mandatory=False),
+                ParamSchema(name='c', mandatory=True)
+            ]
         )
 
-        self.assertEqual(len(schema.params), 5)
+        self.assertEqual(len(schema.params), 6)
 
         aparam = schema.params[0]
         self.assertIsNone(aparam.ref)
+        self.assertTrue(aparam.mandatory)
         self.assertEqual(aparam.name, 'a')
         self.assertIsNone(aparam.default)
 
         bparam = schema.params[1]
         self.assertIsInstance(bparam.ref, BooleanSchema)
+        self.assertFalse(bparam.mandatory)
         self.assertEqual(bparam.name, 'b')
         self.assertIs(bparam.default, False)
 
         cparam = schema.params[2]
         self.assertIsInstance(cparam.ref, IntegerSchema)
+        self.assertFalse(cparam.mandatory)
         self.assertEqual(cparam.name, 'c')
         self.assertIs(cparam.default, 0)
 
         dparam = schema.params[3]
-
         self.assertIsInstance(dparam.ref, IntegerSchema)
+        self.assertTrue(dparam.mandatory)
         self.assertEqual(dparam.name, 'd')
         self.assertIs(dparam.default, 3)
 
         eparam = schema.params[4]
-
         self.assertIsInstance(eparam.ref, FloatSchema)
+        self.assertFalse(eparam.mandatory)
         self.assertEqual(eparam.name, 'e')
         self.assertIs(eparam.default, 3.)
 
+        fparam = schema.params[5]
+        self.assertIsNone(fparam.ref, AnySchema)
+        self.assertFalse(fparam.mandatory)
+        self.assertEqual(fparam.name, 'f')
+        self.assertIsNone(fparam.default)
+
         self.assertIsInstance(schema.rtype, BooleanSchema)
+
+    def test_method(self):
+
+        @updatecontent
+        class Test(Schema):
+
+            def test(self):
+                pass
+
+        self.assertIsInstance(Test.test, FunctionSchema)
+        param = Test.test.params[0]
+
+        self.assertEqual(param.name, 'self')
 
 
 class BuildSchemaTest(UTCase):

@@ -41,6 +41,13 @@ from .lang.factory import build, getschemacls
 from .base import Schema, DynamicValue
 
 
+class AnySchema(Schema):
+    """Schema for any data."""
+
+    def _validate(*args, **kwargs):
+        pass
+
+
 def getschemaclsfromdatatype(
         _datatype, _registry=None, _factory=None, _force=True, _besteffort=True,
         **kwargs
@@ -136,6 +143,9 @@ def data2schema(
 
     if schemacls is not None:
         result = schemacls(default=_data, **kwargs)
+
+    if result is None and _data is None:
+        result = AnySchema()
 
     return result
 
@@ -240,18 +250,10 @@ class RefSchema(Schema):
         if schema.name == 'ref' and value is not None:
 
             if self.default is None and not value.nullable:
+
                 self.default = value.default
 
             value._validate(self.default)
-
-
-class AnySchema(Schema):
-    """Schema for any object."""
-
-    nullable = True
-
-    def _validate(self, *args, **kwargs):
-        pass
 
 
 def updatecontent(schemacls=None, updateparents=True, exclude=None):
@@ -312,7 +314,7 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
 
                     if name == 'default':
 
-                        if isinstance(member, ThisSchema):
+                        if isinstance(fmember, ThisSchema):
                             data = schemaclass(*fmember.args, **fmember.kwargs)
 
                         schema = RefSchema(default=data, name=name)

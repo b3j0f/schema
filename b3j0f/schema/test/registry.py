@@ -43,57 +43,80 @@ from uuid import uuid4
 from numbers import Number
 
 
+class AAA(object):
+    pass
+
+
 class UpdateContentTest(UTCase):
 
     def setUp(self):
 
-        @registercls([Number])
-        class NumberSchema(Schema):
+        class AAA(object):
+            pass
+
+        self.AAA = AAA
+
+
+        class BBB(object):
+            pass
+
+
+        self.BBB = BBB
+
+
+        class CCC(object):
+            pass
+
+        self.CCC = CCC
+
+
+        @registercls([AAA])
+        class AAASchema(Schema):
 
             def _validate(self, data, *args, **kwargs):
 
-                return isinstance(data, Number)
+                return isinstance(data, AAA)
 
-        self.NumberSchema = NumberSchema
+        self.AAASchema = AAASchema
 
-        @registercls([string_types])
-        class StrSchema(Schema):
-
-            def _validate(self, data, *args, **kwargs):
-
-                return isinstance(data, string_types)
-
-        self.StrSchema = StrSchema
-
-        @registercls([type])
-        class ObjectSchema(Schema):
+        @registercls([BBB])
+        class BBBSchema(Schema):
 
             def _validate(self, data, *args, **kwargs):
 
-                return isinstance(data, type)
+                return isinstance(data, BBB)
 
-        self.ObjectSchema = ObjectSchema
+        self.BBBSchema = BBBSchema
+
+        @registercls([CCC])
+        class CCCSchema(Schema):
+
+            def _validate(self, data, *args, **kwargs):
+
+                return isinstance(data, CCC)
+
+        self.CCCSchema = CCCSchema
 
     def tearDown(self):
 
-        unregistercls(self.NumberSchema)
-        unregistercls(self.StrSchema)
-        unregistercls(self.ObjectSchema)
+        unregistercls(self.AAASchema)
+        unregistercls(self.BBBSchema)
+        unregistercls(self.CCCSchema)
 
     def test_number(self):
 
-        schemacls = getbydatatype(int)
-        self.assertIs(schemacls, self.NumberSchema)
+        schemacls = getbydatatype(self.AAA)
+        self.assertIs(schemacls, self.AAASchema)
 
     def test_str(self):
 
-        schemacls = getbydatatype(str)
-        self.assertIs(schemacls, self.StrSchema)
+        schemacls = getbydatatype(self.BBB)
+        self.assertIs(schemacls, self.BBBSchema)
 
     def test_object(self):
 
-        schemacls = getbydatatype(type)
-        self.assertIs(schemacls, self.ObjectSchema)
+        schemacls = getbydatatype(self.CCC)
+        self.assertIs(schemacls, self.CCCSchema)
 
 
 class DefaultTest(UTCase):
@@ -185,12 +208,12 @@ class SchemaRegistryTest(UTCase):
         class BoolSchema(Schema):
             pass
 
-        class NumberSchema(Schema):
+        class AAASchema(Schema):
             pass
 
         self.registry.registercls(schemacls=IntSchema, data_types=[int])
         self.registry.registercls(schemacls=BoolSchema, data_types=[bool])
-        self.registry.registercls(schemacls=NumberSchema, data_types=[Number])
+        self.registry.registercls(schemacls=AAASchema, data_types=[Number])
 
         schemacls = self.registry.getbydatatype(int)
         self.assertIs(schemacls, IntSchema)
@@ -200,7 +223,7 @@ class SchemaRegistryTest(UTCase):
 
         self.registry.unregistercls(schemacls=IntSchema)
         schemacls = self.registry.getbydatatype(int)
-        self.assertIs(schemacls, NumberSchema)
+        self.assertIs(schemacls, AAASchema)
 
     def test_registertype_decorator(self):
 
@@ -219,7 +242,7 @@ class SchemaRegistryTest(UTCase):
             pass
 
         @self.registry.registercls([Number])
-        class NumberSchema(Schema):
+        class AAASchema(Schema):
             pass
 
         schemacls = self.registry.getbydatatype(int)
@@ -230,7 +253,7 @@ class SchemaRegistryTest(UTCase):
 
         self.registry.unregistercls(schemacls=IntSchema)
         schemacls = self.registry.getbydatatype(int)
-        self.assertIs(schemacls, NumberSchema)
+        self.assertIs(schemacls, AAASchema)
 
 if __name__ == '__main__':
     main()
