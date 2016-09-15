@@ -102,7 +102,6 @@ Data Validation
    assert error is not None
 
    assert 'subname' in Test.getschemas()
-   assert 'subname' in test.getschemas()
 
    validate(Test.subinteger, 1)
 
@@ -152,7 +151,7 @@ Schema definition
 
    from b3j0f.schema import Schema, updatecontent
 
-   @updatecontent
+   @updatecontent  # change public attributes/functionss to schemas
    class Test(Schema):
 
       subname = 'test'  # specify inner schema such as a string schema with default value 'test'
@@ -224,46 +223,39 @@ Function schema definition
 
    from b3j0f.schema import FunctionSchema, ParamSchema, FloatSchema, BooleanSchema, StringSchema, ArraySchema
 
-   @build  # transform a python class to a schema class
-   class Test(object):
+   @data2schema
+   def test(a, b, c=2):  # definition of a shema function. Parameter values and (function) types are defined in the signature and the docstring.
+      """
+      :param float a: default 0.
+      :type b: bool
+      :rtype: str
+      """
 
-      def test(self, a, b, c=2):  # definition of a shema function. Parameter values and (function) types are defined in the signature and the docstring.
-         """
-         :param float a: default 0.
-         :type b: bool
-         :rtype: str
-         """
+      return a, b, c
 
-         return 'test'
+   assert isinstance(test, FunctionSchema)
+   assert isinstance(test.params, ArraySchema)
+   assert isinstance(test.params[0], ParamSchema)
+   assert len(test.params) == 3
 
-   assert isinstance(Test.test, FunctionSchema)
-   assert isinstance(Test.test.params, ArraySchema)
-   assert isinstance(Test.test.params[0], ParamSchema)
-   assert len(Test.test.params, 4)
+   assert test.params[0].name == 'a'
+   assert test.params[0].mandatory == True
+   assert test.params[0].ref is FloatSchema
+   assert test.params[0].default is 0.
 
-   assert Test.test.params[0].name == 'self'
-   assert Test.test.params[0].mandatory == True
-   assert Test.test.params[0].ref is None
-   assert Test.test.params[0].default is None
+   assert test.params[1].name == 'b'
+   assert test.params[1].ref is BooleanSchema
+   assert test.params[1].mandatory is True
+   assert test.params[1].default is False
 
-   assert Test.test.params[1].name == 'a'
-   assert Test.test.params[1].mandatory == True
-   assert Test.test.params[1].ref is FloatSchema
-   assert Test.test.params[1].default is 0.
+   assert test.params[2].name == 'c'
+   assert test.params[2].ref is IntegerSchema
+   assert test.params[2].mandatory is False
+   assert test.params[2].default is 2
 
-   assert Test.test.params[2].name == 'b'
-   assert Test.test.params[2].ref is BooleanSchema
-   assert Test.test.params[2].mandatory is True
-   assert Test.test.params[2].default is False
+   assert test.rtype is StringSchema
 
-   assert Test.test.params[3].name == 'c'
-   assert Test.test.params[3].ref is IntegerSchema
-   assert Test.test.params[3].mandatory is False
-   assert Test.test.params[3].default is 2
-
-   assert Test.test.rtype is StringSchema
-
-   assert test1.test(1, 2) == 'test'
+   assert test(1, 2) == 'test'
 
 Perspectives
 ------------
