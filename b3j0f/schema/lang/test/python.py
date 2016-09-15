@@ -175,17 +175,29 @@ class FunctionSchemaTest(UTCase):
         @updatecontent
         class Test(Schema):
 
-            def test(self, a):
+            def test(self):
                 """
-                :param self:
-                :type a: BuildSchemaTest
+                :param BuildSchemaTest self:
                 """
+
+                return self
+
+        test = Test()
 
         self.assertIsInstance(Test.test, FunctionSchema)
-        param = Test.test.params[1]
+        self.assertNotIsInstance(test.test, FunctionSchema)
 
-        self.assertEqual(param.name, 'a')
-        from ...elementary import TypeSchema
+        res = Test.test(test)
+
+        self.assertIs(res, test)
+
+        res = test.test()
+
+        self.assertIs(res, test)
+
+        param = Test.test.params[0]
+
+        self.assertEqual(param.name, 'self')
         self.assertIsInstance(param.ref, Schema)
 
 
