@@ -251,20 +251,13 @@ class Schema(property):
             data = data()
 
         if data is None and not self.nullable:
-            raise TypeError('Value can not be null')
+            raise ValueError('Value can not be null')
 
         elif data is not None:
 
             isdict = isinstance(data, dict)
 
             cls = type(self)
-            tocompare = dict, cls
-
-            if not isinstance(data, tocompare):
-
-                raise TypeError(
-                    'Wrong type {0}. {1} expected.'.format(data, tocompare)
-                )
 
             for name, schema in iteritems(self.getschemas()):
 
@@ -276,14 +269,16 @@ class Schema(property):
                         (isdict and name not in data)
                         or (not isdict and not hasattr(data, name))
                     ):
-                        part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
+                        part1 = (
+                            'Mandatory property {0} by {1} is missing in {2}.'.
                             format(name, self, data)
                         )
-                        part2 = '{3} expected.'.format(schema)
+                        part2 = '{0} expected.'.format(schema)
                         error = '{0} {1}'.format(part1, part2)
+
                         raise ValueError(error)
 
-                elif isdict and name in data or hasattr(data, name):
+                elif (isdict and name in data) or hasattr(data, name):
 
                     value = data[name] if isdict else getattr(data, name)
                     schema._validate(data=value, owner=self)
@@ -304,3 +299,9 @@ class Schema(property):
             result[name] = member
 
         return result
+
+    @classmethod
+    def apply(cls, *args, **kwargs):
+        """Decorator for schema application with parameters."""
+
+        return lambda fget: cls(fget, *args, **kwargs)

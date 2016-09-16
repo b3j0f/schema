@@ -91,13 +91,74 @@ class SchemaTest(UTCase):
         test.test = Schema()
         self.assertIsInstance(test.test, Schema)
 
+class DecorateTest(UTCase):
+
+    def setUp(self):
+
+        class TestSchema(Schema):
+
+            test = Schema()
+
+            def __init__(self, *args, **kwargs):
+
+                super(TestSchema, self).__init__(*args, **kwargs)
+
+                self.required = ['test']
+
+        self.testschema = TestSchema
+
+    def _assert(self, cls, processing):
+
+        test = cls()
+        self.assertNotIn('getter', processing)
+        self.assertNotIn('setter', processing)
+        self.assertNotIn('deleter', processing)
+
+        res = test.test
+        self.assertEqual(res, test)
+        self.assertIn('getter', processing)
+        self.assertNotIn('setter', processing)
+        self.assertNotIn('deleter', processing)
+
+        test.test = self.testschema()
+        self.assertIsInstance(test.test, Schema)
+        self.assertIn('getter', processing)
+        self.assertIn('setter', processing)
+        self.assertNotIn('deleter', processing)
+
+        test.test = None
+        cls.test.nullable = False
+        self.assertRaises(ValueError, setattr, test, 'test', None)
+
+        self.assertRaises(ValueError, setattr, test, 'test', 1)
+
+        test.test = DynamicValue(lambda: self.testschema())
+
+        self.assertRaises(ValueError, setattr, test, 'test', lambda: None)
+        self.assertRaises(ValueError, setattr, test, 'test', lambda: 1)
+
+        cls.test.nullable = True
+        test.test = DynamicValue(lambda: None)
+
+        del test.test
+        self.assertFalse(hasattr(test, '_value'))
+        self.assertIn('getter', processing)
+        self.assertIn('setter', processing)
+        self.assertIn('deleter', processing)
+
+        test.test = self.testschema()
+        self.assertIsInstance(test.test, Schema)
+        self.assertIn('getter', processing)
+        self.assertIn('setter', processing)
+        self.assertIn('deleter', processing)
+
     def test_init_gsd_custom(self):
 
         processing = []
 
         class Test(object):
 
-            @Schema
+            @self.testschema
             def test(self):
                 processing.append('getter')
                 return getattr(self, '_value', self)
@@ -112,56 +173,40 @@ class SchemaTest(UTCase):
                 processing.append('deleter')
                 del self._value
 
-        test = Test()
-        self.assertNotIn('getter', processing)
-        self.assertNotIn('setter', processing)
-        self.assertNotIn('deleter', processing)
+        self._assert(Test, processing)
 
-        res = test.test
-        self.assertEqual(res, test)
-        self.assertIn('getter', processing)
-        self.assertNotIn('setter', processing)
-        self.assertNotIn('deleter', processing)
+    def test_init_gsd_custom_params(self):
 
-        test.test = Schema()
-        self.assertIsInstance(test.test, Schema)
-        self.assertIn('getter', processing)
-        self.assertIn('setter', processing)
-        self.assertNotIn('deleter', processing)
+        processing = []
 
-        test.test = None
-        Test.test.nullable = False
-        self.assertRaises(TypeError, setattr, test, 'test', None)
-        self.assertRaises(TypeError, setattr, test, 'test', 1)
+        class Test(object):
 
-        test.test = DynamicValue(lambda: Schema())
+            @self.testschema.apply()
+            def test(self):
+                processing.append('getter')
+                return getattr(self, '_value', self)
 
-        self.assertRaises(TypeError, setattr, test, 'test', lambda: None)
-        self.assertRaises(TypeError, setattr, test, 'test', lambda: 1)
+            @test.setter
+            def test(self, value):
+                processing.append('setter')
+                self._value = value
 
-        Test.test.nullable = True
-        test.test = DynamicValue(lambda: None)
+            @test.deleter
+            def test(self):
+                processing.append('deleter')
+                del self._value
 
-        del test.test
-        self.assertFalse(hasattr(test, '_value'))
-        self.assertIn('getter', processing)
-        self.assertIn('setter', processing)
-        self.assertIn('deleter', processing)
-
-        test.test = Schema()
-        self.assertIsInstance(test.test, Schema)
-        self.assertIn('getter', processing)
-        self.assertIn('setter', processing)
-        self.assertIn('deleter', processing)
+        self._assert(Test, processing)
 
     def test__validate(self):
 
         schema = Schema()
 
         schema._validate(None)
-        self.assertRaises(TypeError, schema._validate, 1)
+
         schema.nullable = False
-        self.assertRaises(TypeError, schema._validate, None)
+        self.assertRaises(ValueError, schema._validate, None)
+
         schema.nullable = True
         schema._validate(None)
 

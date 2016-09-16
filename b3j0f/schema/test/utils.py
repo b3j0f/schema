@@ -174,9 +174,11 @@ class ValidateTest(UTCase):
         schema = Schema()
 
         validate(schema, None)
-        self.assertRaises(TypeError, validate, schema, 1)
+        validate(schema, 1)
+
         schema.nullable = False
-        self.assertRaises(TypeError, validate, schema, None)
+        self.assertRaises(ValueError, validate, schema, None)
+
         schema.nullable = True
         validate(schema, None)
 

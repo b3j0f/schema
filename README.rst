@@ -64,13 +64,15 @@ Features
 
 This library provides an abstraction layer for manipulating schema from several languages.
 
-The abstraction layer is a python object which can validate data, be dumped into a dictionary.
+The abstraction layer is a python object which can validate data (properties to validate are object attributes or dictionary items) and be dumped into a dictionary or specific language format.
 
 Supported languages are:
 
 - python
 - json
 - xsd
+
+It is also possible to generate a schema from a dictionary
 
 Example
 -------
@@ -82,8 +84,9 @@ Data Validation
 
    from b3j0f.schema import build, validate
 
-   resource = '{"title": "test", "properties": {"subname": {"type": "string", "default": "test"}}, {"subinteger": {"type": "integer"}}}'
-   Test = build(resource)  # json format
+   # json format with required subinteger property
+   resource = '{"title": "test", "properties": {"subname": {"type": "string", "default": "test"}}, {"subinteger": {"type": "integer"}}, "required": ["subinteger"]}'
+   Test = build(resource)
 
    test = Test(subname='example')
 
@@ -103,19 +106,30 @@ Data Validation
 
    assert 'subname' in Test.getschemas()
 
-   validate(Test.subinteger, 1)
+   validate(Test(), Test(subinteger=1))  # validate Test instance
+   validate(Test.subinteger, 1)  # validate property
+   validate(test, {'subinteger': 1})  # validate dictionary
 
-   error = None
-   try:
-      validate(Test.subinteger, '')
+   class Sub(object):  # object to validate with required subinteger
+      subinteger = 1
 
-   except TypeError as error:
-      pass
+   validate(test, Sub())  # validate an object with required subinteger
 
-   assert error is not None
+   wrongvalues = [
+      '',  # object without subinteger
+      {'subinteger': ''},  # wrong dictionary
+   ]
 
-   validate(Test(), Test(subinteger=2))
-   validate(Test(), {'subinteger': 1})
+   for wrongvalue in wrongvalues:
+
+      error = None
+      try:
+         validate(Test.subinteger, wrongvalues)
+
+      except TypeError as error:
+         pass
+
+      assert error is not None
 
 Schema retrieving
 ~~~~~~~~~~~~~~~~~
@@ -278,7 +292,49 @@ Schema definition from a dict
    assert isinstance(schemacls.name, StringSchema)
    assert schemacls.name.default == 'test'
 
-   validate(schemacls(), data, isdict=True)
+   validate(schemacls(), data)
+
+Schema property getting/setting/deleting customisation such as a property
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Schema inherits from the object property.
+
+.. code-block:: python
+
+   class Test(Schema):
+
+      @Schema
+      def test(self):
+
+         self.op =  'get'
+         return getattr(self, '_test', 1)
+
+      @test.setter
+      def test(self, value):
+
+         self.op = 'set'
+         self._test = value
+
+      @test.deleter
+      def test(self):
+         self.op = 'del'
+         del self._test
+
+   test = Test()
+
+   # check getter
+   assert test.test == 1
+   assert test.op == 'get'
+
+   # check setter
+   test.test = 2
+   assert test.op == 'set'
+   assert test.test == 2
+
+   # check deleter
+   del test.test
+   assert test.op == 'del'
+   assert test.test == 1
 
 Perspectives
 ------------
