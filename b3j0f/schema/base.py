@@ -200,20 +200,18 @@ class Schema(property):
 
         else:
             fvalue = value
-        if self.name == 'name' and not value and obj is None:
-            from traceback import print_stack
-            print_stack()
+
         self._validate(data=fvalue, owner=obj)
 
         if self._fset is not None:
-            self._fset(obj, value)
+            self._fset(obj, fvalue)
 
         else:
             setattr(obj, self._attrname(), value)
 
         # notify obj about the new value.
         if isinstance(obj, Schema):
-            obj._setvalue(self, value)
+            obj._setvalue(self, fvalue)
 
     def _setvalue(self, schema, value):
         """Fired when inner schema change of value.
@@ -247,7 +245,7 @@ class Schema(property):
 
         :param data: data to validate with this schema.
         :param Schema owner: schema owner.
-        :raises: Exception if the data is not validated"""
+        :raises: Exception if the data is not validated."""
 
         if isinstance(data, DynamicValue):
             data = data()
@@ -256,14 +254,28 @@ class Schema(property):
             raise TypeError('Value can not be null')
 
         elif data is not None:
-            if not isinstance(data, type(self)):  # or from this
+
+            isdict = isinstance(data, dict)
+
+            cls = type(self)
+            tocompare = dict, cls
+
+            if not isinstance(data, tocompare):
+
                 raise TypeError(
-                    'Wrong type {0}. {1} expected'.format(data, type(self))
+                    'Wrong type {0}. {1} expected.'.format(data, tocompare)
                 )
 
-                for name, schema in iteritems(self.getschemas()):
+            for name, schema in iteritems(self.getschemas()):
 
-                    if name in self.required and not hasattr(data, name):
+                if name == 'default':
+                    continue
+
+                if name in self.required:
+                    if (
+                        (isdict and name not in data)
+                        or (not isdict and not hasattr(data, name))
+                    ):
                         part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
                             format(name, self, data)
                         )
@@ -271,8 +283,11 @@ class Schema(property):
                         error = '{0} {1}'.format(part1, part2)
                         raise ValueError(error)
 
-                    elif hasattr(data, name):
-                        schema._validate(getattr(data, name))
+                elif isdict and name in data or hasattr(data, name):
+
+                    value = data[name] if isdict else getattr(data, name)
+                    schema._validate(data=value, owner=self)
+
 
     @classmethod
     def getschemas(cls):

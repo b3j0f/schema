@@ -77,7 +77,7 @@ class ElementarySchema(RegisteredSchema):
 
     __data_types__ = []  #: data types which can be instanciated by this schema.
 
-    def _validate(self, data, owner=None):
+    def _validate(self, data, owner=None, *args, **kwargs):
         """Validate input data in returning an empty list if true.
 
         :param data: data to validate with this schema.
@@ -91,31 +91,13 @@ class ElementarySchema(RegisteredSchema):
             raise TypeError('Value can not be null')
 
         elif data is not None:
-            if self.__data_types__:  # data must inherits from this data_types
-                if not isinstance(data, tuple(self.__data_types__)):
-                    raise TypeError(
-                        'Wrong data value: {0}. {1} expected.'.format(
-                            data, self.__data_types__
-                        )
-                    )
-
-            elif not isinstance(data, type(self)):  # or from this
+            # data must inherits from this data_types
+            if not isinstance(data, tuple(self.__data_types__)):
                 raise TypeError(
-                    'Wrong type {0}. {1} expected'.format(data, type(self))
+                    'Wrong data value: {0}. {1} expected.'.format(
+                        data, self.__data_types__
+                    )
                 )
-
-                for name, schema in iteritems(self.getschemas()):
-
-                    if name in self.required and not hasattr(data, name):
-                        part1 = ('Mandatory schema {0} by {1} is missing in {2}.'.
-                            format(name, self, data)
-                        )
-                        part2 = '{3} expected.'.format(schema)
-                        error = '{0} {1}'.format(part1, part2)
-                        raise ValueError(error)
-
-                    elif hasattr(data, name):
-                        schema._validate(getattr(data, name))
 
 
 class BooleanSchema(ElementarySchema):

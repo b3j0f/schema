@@ -114,6 +114,9 @@ Data Validation
 
    assert error is not None
 
+   validate(Test(), Test(subinteger=2))
+   validate(Test(), {'subinteger': 1})
+
 Schema retrieving
 ~~~~~~~~~~~~~~~~~
 
@@ -256,6 +259,26 @@ Function schema definition
    assert test.rtype is StringSchema
 
    assert test(1, 2) == 'test'
+
+Schema definition from a dict
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   from b3j0f.schema import dict2schema
+
+   data = {
+      'a': 1
+   }
+
+   schemacls = dict2schemacls(data, name='test')
+
+   assert isinstance(schemacls.a, IntegerSchema)
+   assert schemacls.a.default is 1
+   assert isinstance(schemacls.name, StringSchema)
+   assert schemacls.name.default == 'test'
+
+   validate(schemacls(), data, isdict=True)
 
 Perspectives
 ------------

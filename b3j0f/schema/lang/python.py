@@ -36,7 +36,7 @@ from b3j0f.utils.path import lookup
 from .factory import SchemaBuilder, getschemacls, build
 from ..registry import getbyuuid, getbydatatype
 from ..utils import (
-    ThisSchema, updatecontent, data2schema, getschemaclsfromdatatype, RefSchema
+    ThisSchema, updatecontent, data2schema, datatype2schemacls, RefSchema
 )
 from ..base import Schema
 from ..elementary import (
@@ -68,7 +68,7 @@ class PythonSchemaBuilder(SchemaBuilder):
             result = _resource
 
         else:
-            result = getschemaclsfromdatatype(_datatype=_resource, _force=False)
+            result = datatype2schemacls(_datatype=_resource, _force=False)
 
             if result is None:
 
@@ -289,7 +289,7 @@ class FunctionSchema(ElementarySchema):
                             raise
 
                         else:
-                            schemacls = getschemaclsfromdatatype(lkrtype)
+                            schemacls = datatype2schemacls(lkrtype)
                             rtype = schemacls()
 
                             continue
@@ -306,7 +306,7 @@ class FunctionSchema(ElementarySchema):
                         raise
 
                     else:
-                        schemacls = getschemaclsfromdatatype(lkptype)
+                        schemacls = datatype2schemacls(lkptype)
                         params[pname]['ref'] = schemacls()
 
         return params, rtype

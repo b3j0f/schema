@@ -29,7 +29,7 @@
 __all__ = [
     'DynamicValue', 'data2schema', 'MetaRegisteredSchema', 'ThisSchema',
     'updatecontent', 'validate', 'dump', 'RegisteredSchema',
-    'getschemaclsfromdatatype', 'RefSchema'
+    'datatype2schemacls', 'RefSchema', 'dict2schemacls'
 ]
 
 from types import FunctionType, MethodType
@@ -48,11 +48,11 @@ class AnySchema(Schema):
         pass
 
 
-def getschemaclsfromdatatype(
+def datatype2schemacls(
         _datatype, _registry=None, _factory=None, _force=True, _besteffort=True,
         **kwargs
 ):
-    """Get a schema which has been associated to input data type by the
+    """Get a schema class which has been associated to input data type by the
     registry or the factory in this order.
 
     :param type datatype: data type from where get associated schema.
@@ -136,7 +136,7 @@ def data2schema(
 
     datatype = type(fdata)
 
-    schemacls = getschemaclsfromdatatype(
+    schemacls = datatype2schemacls(
         _datatype=datatype, _registry=_registry, _factory=_factory,
         _force=_force, _besteffort=_besteffort, **(_buildkwargs or {})
     )
@@ -146,6 +146,28 @@ def data2schema(
 
     if result is None and _data is None:
         result = AnySchema()
+
+    return result
+
+
+def dict2schemacls(_data, **kwargs):
+    """Convert a dictionary of data to a schema cls."""
+
+    content = {}
+
+    _data.update(kwargs)
+
+    for key, value in iteritems(_data):
+
+        if isinstance(value, dict):
+            schema = dict2schemacls(value)()
+
+        else:
+            schema = data2schema(value)
+
+        content[key] = schema
+
+    result = type('GeneratedSchemaFromDict', (Schema,), content)
 
     return result
 
@@ -189,7 +211,7 @@ def validate(schema, data, owner=None):
     :param Schema schema: schema able to validate input data.
     :param data: data to validate.
     :param Schema owner: input schema parent schema.
-    """
+    :raises: Exception if the data is not validated."""
 
     schema._validate(data=data, owner=owner)
 
@@ -221,7 +243,7 @@ def dump(schema):
 class RefSchema(Schema):
     """Schema which references another schema."""
 
-    ref = Schema()  #: the reference must be a schema.
+    ref = Schema(name='ref')  #: the reference must be a schema.
 
     def __init__(self, ref=None, *args, **kwargs):
         """
@@ -231,6 +253,7 @@ class RefSchema(Schema):
         super(RefSchema, self).__init__(*args, **kwargs)
 
         if ref is not None:
+
             if self.default is None:
                 self.default = ref.default
 
@@ -241,7 +264,7 @@ class RefSchema(Schema):
         ref = owner if self.ref is None else self.ref
 
         if ref is not self:
-            ref._validate(data=data, owner=owner)
+            ref._validate(data=data, owner=owner, *args, **kwargs)
 
     def _setvalue(self, schema, value, *args, **kwargs):
 

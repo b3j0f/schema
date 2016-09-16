@@ -34,7 +34,7 @@ __all__ = [
     'DictSchema', 'DateTimeSchema', 'NumberSchema', 'BooleanSchema',
     'TypeSchema',
     'data2schema', 'validate', 'dump', 'updatecontent', 'ThisSchema',
-    'RefSchema', 'AnySchema', 'RegisteredSchema'
+    'RefSchema', 'AnySchema', 'RegisteredSchema', 'dict2schema'
 ]
 
 from .version import __version__
@@ -42,7 +42,8 @@ from .version import __version__
 from .base import Schema, DynamicValue
 from .registry import register, registercls, getbyuuid, getbyname
 from .utils import (
-	validate, dump, updatecontent, ThisSchema, data2schema, AnySchema
+	validate, dump, updatecontent, ThisSchema, data2schema, AnySchema,
+    dict2schemacls
 )
 from .elementary import (
 	StringSchema, DateTimeSchema, IntegerSchema, NumberSchema,
