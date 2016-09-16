@@ -106,25 +106,26 @@ Data Validation
 
    assert 'subname' in Test.getschemas()
 
-   validate(Test(), Test(subinteger=1))  # validate Test instance
    validate(Test.subinteger, 1)  # validate property
    validate(test, {'subinteger': 1})  # validate dictionary
 
    class Sub(object):  # object to validate with required subinteger
       subinteger = 1
 
-   validate(test, Sub())  # validate an object with required subinteger
+   validate(test, Sub)  # validate an object with required subinteger
+   validate(test, Sub())
 
    wrongvalues = [
       '',  # object without subinteger
-      {'subinteger': ''},  # wrong dictionary
+      {'subinteger': ''},  # wrong data type for subinteger
+      {}  # dictionary without the required property subinteger
    ]
 
    for wrongvalue in wrongvalues:
 
       error = None
       try:
-         validate(Test.subinteger, wrongvalues)
+         validate(test, wrongvalues)
 
       except TypeError as error:
          pass
