@@ -50,6 +50,8 @@ from ..elementary import (
 
 from json import loads, dump
 
+from os.path import exists
+
 
 _SCHEMASBYJSONNAME = {
     'integer': IntegerSchema,
@@ -116,10 +118,18 @@ class JSONSchemaBuilder(SchemaBuilder):
     def build(self, _resource, **kwargs):
 
         if isinstance(_resource, string_types):
-            fresource = loads(_resource)
+
+            if exists(_resource):
+                fresource = load(_resource)
+
+            else:
+                fresource = loads(_resource)
+
+        elif isinstance(_resource, dict):
+            fresource = deepcopy(_resource)
 
         else:
-            fresource = deepcopy(_resource)
+            raise TypeError('Wrong type for resource {0}'.format(_resource))
 
         result = json2schema(fresource)
 

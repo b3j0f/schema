@@ -71,14 +71,14 @@ class TestFactory(UTCase):
 
         self.factory = SchemaFactory()
 
-        self.assertRaises(TypeError, self.factory.build, schemaint)
+        self.assertRaises(ValueError, self.factory.build, schemaint)
         self.assertIsNone(self.factory.getschemacls(schemaint))
-        self.assertRaises(TypeError, self.factory.build, schemastr)
+        self.assertRaises(ValueError, self.factory.build, schemastr)
         self.assertIsNone(self.factory.getschemacls(schemastr))
 
         self.factory.registerbuilder(name='str', builder=makerstr)
 
-        self.assertRaises(TypeError, self.factory.build, schemaint)
+        self.assertRaises(ValueError, self.factory.build, schemaint)
         self.assertIsNone(self.factory.getschemacls(schemaint))
 
         schemacls = self.factory.build(schemastr)
@@ -107,7 +107,7 @@ class TestFactory(UTCase):
         self.assertEqual(schemacls, schemastr)
 
         self.assertRaises(
-            TypeError, self.factory.build, schemastr, _cache=False
+            ValueError, self.factory.build, schemastr, _cache=False
         )
 
         schemacls = self.factory.getschemacls(schemastr)

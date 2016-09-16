@@ -48,7 +48,7 @@ from types import FunctionType, MethodType, LambdaType
 
 from six import iteritems
 
-from inspect import getargspec, getsourcelines
+from inspect import getargspec, getsourcelines, isclass
 
 from enum import Enum
 
@@ -59,7 +59,7 @@ class PythonSchemaBuilder(SchemaBuilder):
 
     def build(self, _resource, **kwargs):
 
-        if not isinstance(_resource, type):
+        if not isclass(_resource):
             raise TypeError(
                 'Wrong type {0}, \'type\' expected'.format(_resource)
             )
@@ -73,6 +73,7 @@ class PythonSchemaBuilder(SchemaBuilder):
             if result is None:
 
                 resname = _resource.__name__
+
                 if 'name' not in kwargs:
                     kwargs['name'] = resname
 
@@ -86,6 +87,7 @@ class PythonSchemaBuilder(SchemaBuilder):
         result = None
 
         for mro in schemacls.mro():
+
             if issubclass(mro, Schema):
                 result = mro
                 break

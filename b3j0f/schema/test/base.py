@@ -47,9 +47,8 @@ class SchemaTest(UTCase):
         self.assertIsNone(schema._fdel)
 
     def test_uuid(self):
-        print('OK')
+
         schema1 = Schema()
-        print('OK')
         schema2 = Schema()
 
         self.assertNotEqual(schema1.uuid, schema2.uuid)

@@ -110,14 +110,14 @@ class SchemaFactory(object):
                 try:
                     result = builder.build(_resource=_resource, **kwargs)
 
-                except (TypeError, NotImplementedError) as te:
+                except Exception as te:
                     pass
 
                 else:
                     break
 
         if result is None:
-            raise TypeError('No builder found for {0}'.format(_resource))
+            raise ValueError('No builder found for {0}'.format(_resource))
 
         if _cache:
             self._schemasbyresource[_resource] = result

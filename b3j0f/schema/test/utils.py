@@ -35,7 +35,9 @@ from ..utils import (
     DynamicValue, data2schema, ThisSchema, validate, updatecontent, RegisteredSchema,
     dump, RefSchema, AnySchema
 )
-from ..elementary import StringSchema, IntegerSchema, TypeSchema, FloatSchema
+from ..elementary import (
+    StringSchema, IntegerSchema, TypeSchema, FloatSchema, BooleanSchema
+)
 from ..registry import registercls, unregistercls
 
 from six import string_types
@@ -264,29 +266,34 @@ class FromObjTest(UTCase):
     def setUp(self):
 
         registercls(
-            schemacls=FromObjTest.BaseTest, data_types=[FromObjTest.BaseTest]
+            schemacls=FromObjTest.BaseTest,
+            data_types=[FromObjTest.BaseTest]
         )
+
+    def tearDown(self):
+
+        unregistercls(FromObjTest.BaseTest)
 
     def test_default(self):
 
-        self.assertIsNone(data2schema(True))
+        self.assertIsNone(data2schema(object()))
 
     def test_default_force(self):
 
-        self.assertRaises(TypeError, data2schema, True, _force=True)
+        self.assertRaises(ValueError, data2schema, object(), _force=True)
 
     def test_default_besteffort(self):
 
-        self.assertIsNone(data2schema(True, _besteffort=False))
+        self.assertIsNone(data2schema(object(), _besteffort=False))
 
     def test_dynamicvalue(self):
 
-        self.assertIsNone(data2schema(DynamicValue(lambda: True)))
+        self.assertIsNone(data2schema(DynamicValue(lambda: object())))
 
     def test_registered(self):
 
         test = FromObjTest.Test()
-        res = data2schema(test)
+        res = data2schema(_data=test)
 
         self.assertEqual(res.default, test)
 
@@ -375,8 +382,6 @@ class RefSchemaTest(UTCase):
         schema = RefSchema(ref=self.numberschema)
 
         self.assertEqual(schema.default, self.numberschema.default)
-
-        schema.ref = self.stringschema
 
         self.assertRaises(TypeError, setattr, schema, 'ref', self.stringschema)
 
