@@ -275,7 +275,7 @@ Function schema definition
 
    assert test(1, 2) == 'test'
 
-Schema definition from a dict
+Generate a schema from a dict
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
@@ -298,21 +298,17 @@ Schema definition from a dict
 Schema property getting/setting/deleting customisation such as a property
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Schema inherits from the object property.
-
 .. code-block:: python
 
    class Test(Schema):
 
       @Schema
       def test(self):
-
          self.op =  'get'
          return getattr(self, '_test', 1)
 
       @test.setter
       def test(self, value):
-
          self.op = 'set'
          self._test = value
 
