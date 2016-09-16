@@ -72,7 +72,7 @@ Supported languages are:
 - json
 - xsd
 
-It is also possible to generate a schema from a dictionary
+It is also possible to generate a schema from a dictionary. And validation rules are fully and easily customisable thanks to using a schema such as a property.
 
 Example
 -------
