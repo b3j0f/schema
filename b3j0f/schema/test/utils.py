@@ -416,6 +416,7 @@ class Dict2SchemaClsTest(UTCase):
         self.assertEqual(schemacls.name.default, 'test')
 
         validate(schemacls(), Test)
+        validate(schemacls(), Test())
 
 if __name__ == '__main__':
     main()
