@@ -29,12 +29,14 @@
 __all__ = [
     'DynamicValue', 'data2schema', 'MetaRegisteredSchema', 'ThisSchema',
     'updatecontent', 'validate', 'dump', 'RegisteredSchema',
-    'datatype2schemacls', 'RefSchema', 'dict2schemacls'
+    'datatype2schemacls', 'RefSchema', 'data2schemacls'
 ]
 
 from types import FunctionType, MethodType
 
 from six import iteritems, add_metaclass
+
+from inspect import getmembers
 
 from .registry import getbydatatype, register
 from .lang.factory import build, getschemacls
@@ -150,24 +152,40 @@ def data2schema(
     return result
 
 
-def dict2schemacls(_data, **kwargs):
-    """Convert a dictionary of data to a schema cls."""
+def data2schemacls(_data, **kwargs):
+    """Convert a data to a schema cls.
+
+    :param data: object or dictionary from where get a schema cls.
+    :return: schema class.
+    :rtype: type"""
 
     content = {}
 
-    _data.update(kwargs)
+    for key in list(kwargs):  # fill kwargs
+        kwargs[key] = data2schema(kwargs[key])
 
-    for key, value in iteritems(_data):
+    if isinstance(_data, dict):
+        datacontent = iteritems(_data)
+
+    else:
+        datacontent = getmembers(_data)
+
+    for name, value in datacontent:
+
+        if name[0] == '_':
+            continue
 
         if isinstance(value, dict):
-            schema = dict2schemacls(value)()
+            schema = data2schemacls(value)()
 
         else:
             schema = data2schema(value)
 
-        content[key] = schema
+        content[name] = schema
 
-    result = type('GeneratedSchemaFromDict', (Schema,), content)
+    content.update(kwargs)  # update content
+
+    result = type('GeneratedSchema', (Schema,), content)
 
     return result
 

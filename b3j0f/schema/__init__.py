@@ -43,7 +43,7 @@ from .base import Schema, DynamicValue
 from .registry import register, registercls, getbyuuid, getbyname
 from .utils import (
 	validate, dump, updatecontent, ThisSchema, data2schema, AnySchema,
-    dict2schemacls
+    data2schemacls
 )
 from .elementary import (
 	StringSchema, DateTimeSchema, IntegerSchema, NumberSchema,

@@ -275,14 +275,14 @@ Function schema definition
 
    assert test(1, 2) == 'test'
 
-Generate a schema from a dict
+Generate a schema from a data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-   from b3j0f.schema import dict2schema
+   from b3j0f.schema import data2schema
 
-   data = {
+   data = {  # data is a dict
       'a': 1
    }
 
@@ -294,6 +294,20 @@ Generate a schema from a dict
    assert schemacls.name.default == 'test'
 
    validate(schemacls(), data)
+
+   class Test(object):  # data is an object
+      a = 1
+
+   schemacls = dict2schemacls(data, name='test')
+
+   assert isinstance(schemacls.a, IntegerSchema)
+   assert schemacls.a.default is 1
+   assert isinstance(schemacls.name, StringSchema)
+   assert schemacls.name.default == 'test'
+
+   validate(schemacls(), Test)
+   validate(schemacls(), Test())
+
 
 Schema property getting/setting/deleting customisation such as a property
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

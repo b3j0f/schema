@@ -33,7 +33,7 @@ from b3j0f.utils.ut import UTCase
 from .base import Schema
 from ..utils import (
     DynamicValue, data2schema, ThisSchema, validate, updatecontent, RegisteredSchema,
-    dump, RefSchema, AnySchema, dict2schemacls
+    dump, RefSchema, AnySchema, data2schemacls
 )
 from ..elementary import (
     StringSchema, IntegerSchema, TypeSchema, FloatSchema, BooleanSchema
@@ -382,14 +382,14 @@ class RefSchemaTest(UTCase):
 
 class Dict2SchemaClsTest(UTCase):
 
-    def test(self):
+    def test_dict(self):
 
         data = {
             'a': 1,
             'b': True
         }
 
-        schemacls = dict2schemacls(_data=data, name='test')
+        schemacls = data2schemacls(_data=data, name='test')
 
         self.assertIsInstance(schemacls.a, IntegerSchema)
         self.assertEqual(schemacls.a.default, 1)
@@ -399,6 +399,23 @@ class Dict2SchemaClsTest(UTCase):
         self.assertEqual(schemacls.name.default, 'test')
 
         validate(schemacls(), data)
+
+    def test_object(self):
+
+        class Test(object):
+            a = 1
+            b = True
+
+        schemacls = data2schemacls(_data=Test, name='test')
+
+        self.assertIsInstance(schemacls.a, IntegerSchema)
+        self.assertEqual(schemacls.a.default, 1)
+        self.assertIsInstance(schemacls.b, BooleanSchema)
+        self.assertEqual(schemacls.b.default, True)
+        self.assertIsInstance(schemacls.name, StringSchema)
+        self.assertEqual(schemacls.name.default, 'test')
+
+        validate(schemacls(), Test)
 
 if __name__ == '__main__':
     main()
