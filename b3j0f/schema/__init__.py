@@ -30,7 +30,7 @@ __all__ = [
     '__version__', 'Schema', 'DynamicValue',
     'register', 'registercls', 'getbyuuid', 'getbyname',
     'StringSchema', 'IntegerSchema',
-    'FloatSchema', 'ComplexSchema', 'LongSchema', 'EnumSchema', 'ArraySchema',
+    'FloatSchema', 'ComplexSchema', 'EnumSchema', 'ArraySchema',
     'DictSchema', 'DateTimeSchema', 'NumberSchema', 'BooleanSchema',
     'TypeSchema',
     'data2schema', 'validate', 'dump', 'updatecontent', 'ThisSchema',
@@ -43,12 +43,12 @@ from .base import Schema, DynamicValue
 from .registry import register, registercls, getbyuuid, getbyname
 from .utils import (
 	validate, dump, updatecontent, ThisSchema, data2schema, AnySchema,
-    data2schemacls
+    data2schemacls, RegisteredSchema, MetaRegisteredSchema
 )
 from .elementary import (
-	StringSchema, DateTimeSchema, IntegerSchema, NumberSchema,
-	ComplexSchema, FloatSchema, LongSchema, ArraySchema, DictSchema, TypeSchema,
-	EnumSchema, BooleanSchema, ElementarySchema
+	StringSchema, DateTimeSchema, IntegerSchema, NumberSchema, LongSchema,
+	ComplexSchema, FloatSchema, ArraySchema, DictSchema, TypeSchema,
+	EnumSchema, BooleanSchema, ElementarySchema, MetaElementarySchema
 )
 """
 from .lang import (

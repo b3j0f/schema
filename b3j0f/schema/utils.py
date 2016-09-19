@@ -361,10 +361,13 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
                         schema = RefSchema(default=data, name=name)
 
                     elif isinstance(fmember, ThisSchema):
-                        schema = schemaclass(*fmember.args, **fmember.kwargs)
+
+                        schema = schemaclass(
+                            name=name, *fmember.args, **fmember.kwargs
+                        )
 
                     elif member is None:
-                        schema = AnySchema()
+                        schema = AnySchema(name=name)
 
                     else:
                         schema = data2schema(_data=data, name=name)
@@ -410,8 +413,8 @@ class MetaRegisteredSchema(type):
 class RegisteredSchema(Schema):
     """Ease auto-registering of schemas and auto-updating content."""
 
-    #: Register instances in the registry if True (default).
-    __register__ = True
+    #Register instances in the registry if True (False by default).
+    __register__ = False
 
     """update automatically the content if True (default).
 

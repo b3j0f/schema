@@ -134,7 +134,7 @@ class DefaultTest(UTCase):
         self.assertIsNone(schema._default)
 
 
-class TestSchema(object):
+class TestSchema(Schema):
 
     def __init__(
             self, name=None, uuid=None, _=None, default=None, *args, **kwargs
@@ -143,13 +143,13 @@ class TestSchema(object):
         super(TestSchema, self).__init__(*args, **kwargs)
 
         self.name = name or TestSchema.__name__
-        self.uuid = uuid or uuid4()
+        self.uuid = str(uuid or uuid4())
         self._testschema = _ or TestSchema(_=self)
         self.default = default
 
-    def __eq__(self, other):
+    def __hash__(self):
 
-        return self.name == other.name and self.uuid == other.uuid
+        return hash(self.uuid)
 
     def getschemas(self):
 

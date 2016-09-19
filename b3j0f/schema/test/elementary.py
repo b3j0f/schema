@@ -114,14 +114,14 @@ class IntegerSchemaTest(NumberSchemaTest):
     __schemacls__ = IntegerSchema
 
 
-class LongSchemaTest(NumberSchemaTest):
-
-    __schemacls__ = LongSchema
-
-
 class ComplexSchemaTest(NumberSchemaTest):
 
     __schemacls__ = ComplexSchema
+
+
+class LongSchemaTest(NumberSchemaTest):
+
+    __schemacls__ = LongSchema
 
 
 class FloatSchemaTest(NumberSchemaTest):

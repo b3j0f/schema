@@ -118,6 +118,7 @@ class Schema(property):
                     'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter',
                     'default'
             ]:
+
                 if name in kwargs:
                     val = kwargs[name]
 
@@ -140,6 +141,7 @@ class Schema(property):
         default = kwargs.get('default', self.default)
 
         self._default = default
+
         if default is not None:
             self.default = default
 
@@ -152,16 +154,13 @@ class Schema(property):
 
         return '_{0}'.format(name or self._name or self._uuid)
 
-    def __eq__(self, other):
-
-        return (
-            isinstance(other, Schema)
-            and (other is self or self.getschemas() == other.getschemas())
-        )
-
     def __repr__(self):
 
         return '{0}({1}/{2})'.format(type(self).__name__, self.uuid, self.name)
+
+    def __hash__(self):
+
+        return hash(self.uuid)
 
     def _getter(self, obj):
         """Called when the parent element tries to get this property value.

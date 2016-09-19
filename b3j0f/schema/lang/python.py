@@ -46,7 +46,7 @@ from ..elementary import (
 
 from types import FunctionType, MethodType, LambdaType
 
-from six import iteritems
+from six import iteritems, get_function_globals
 
 from inspect import getargspec, getsourcelines, isclass
 
@@ -283,7 +283,9 @@ class FunctionSchema(ElementarySchema):
                     if rtype:
 
                         try:
-                            lkrtype = lookup(rtype, scope=function.func_globals)
+                            lkrtype = lookup(
+                                rtype, scope=get_function_globals(function)
+                            )
 
                         except ImportError:
                             raise
@@ -300,7 +302,9 @@ class FunctionSchema(ElementarySchema):
                     ptype = (match[0] or match[3]).strip()
 
                     try:
-                        lkptype = lookup(ptype, scope=function.func_globals)
+                        lkptype = lookup(
+                            ptype, scope=get_function_globals(function)
+                        )
 
                     except ImportError:
                         raise

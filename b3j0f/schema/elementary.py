@@ -38,13 +38,14 @@ __all__ = [
     'AnySchema'
 ]
 
-from six import string_types, add_metaclass
+from six import string_types, add_metaclass, PY3
 
 from numbers import Number
 
 from enum import Enum
 
-from types import FunctionType, MethodType, LambdaType, NoneType
+from types import FunctionType, MethodType, LambdaType
+
 
 from datetime import datetime
 
@@ -54,6 +55,8 @@ from .registry import registercls
 from .utils import (
     DynamicValue, RegisteredSchema, ThisSchema, MetaRegisteredSchema, updatecontent
 )
+
+NoneType = type(None)
 
 
 class MetaElementarySchema(MetaRegisteredSchema):
@@ -72,6 +75,8 @@ class MetaElementarySchema(MetaRegisteredSchema):
 @add_metaclass(MetaElementarySchema)
 class ElementarySchema(RegisteredSchema):
     """Base elementary schema."""
+
+    __register__ = False
 
     nullable = False
 
@@ -124,14 +129,25 @@ class NumberSchema(ElementarySchema):
 
         ElementarySchema._validate(self, data, *args, **kwargs)
 
-        if self.min is not None and self.min > data:
+        if data is None:
+            return
+
+        selfmin = self.min
+        if isinstance(selfmin, ThisSchema):
+            selfmin = None
+
+        if selfmin is not None and selfmin > data:
             raise ValueError(
                 'Data {0} must be greater or equal than {1}'.format(
-                    data, self.min
+                    data, selfmin
                 )
             )
 
-        if self.max is not None and self.max < data:
+        selfmax = self.max
+        if isinstance(selfmax, ThisSchema):
+            selfmax = None
+
+        if selfmax is not None and selfmax < data:
             raise ValueError(
                 'Data {0} must be lesser or equal than {1}'.format(
                     data, self.max
@@ -139,18 +155,18 @@ class NumberSchema(ElementarySchema):
             )
 
 
+class LongSchema(NumberSchema):
+    """Long Schema."""
+
+    __data_types__ = [int] if PY3 else [long]
+    default = 0 if PY3 else long(0)
+
+
 class IntegerSchema(NumberSchema):
     """Integer Schema."""
 
     __data_types__ = [int]
     default = 0
-
-
-class LongSchema(NumberSchema):
-    """Long schema."""
-
-    __data_types__ = [long]
-    default = 0l
 
 
 class ComplexSchema(NumberSchema):
@@ -199,14 +215,25 @@ class ArraySchema(ElementarySchema):
 
         ElementarySchema._validate(self, data, *args, **kwargs)
 
-        if self.minsize is not None and self.minsize > len(data):
+        if data is None:
+            return
+
+        selfminsize = self.minsize
+        if isinstance(selfminsize, ThisSchema):
+            selfminsize = None
+
+        if selfminsize is not None and selfminsize > len(data):
             raise ValueError(
                 'length of data {0} must be greater than {1}.'.format(
                     data, self.minsize
                 )
             )
 
-        if self.maxsize is not None and len(data) > self.maxsize:
+        selfmaxsize = self.maxsize
+        if isinstance(selfmaxsize, ThisSchema):
+            selfmaxsize = None
+
+        if selfmaxsize is not None and len(data) > selfmaxsize:
             raise ValueError(
                 'length of data {0} must be lesser than {1}.'.format(
                     data, self.maxsize

@@ -40,7 +40,7 @@ from .factory import SchemaBuilder
 from ..utils import updatecontent
 from ..elementary import (
     ElementarySchema,
-    NumberSchema, IntegerSchema, FloatSchema, LongSchema, ComplexSchema,
+    NumberSchema, IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
     BooleanSchema,
     ArraySchema, DictSchema,
     EnumSchema,
