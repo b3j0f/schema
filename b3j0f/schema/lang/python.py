@@ -52,6 +52,8 @@ from inspect import getargspec, getsourcelines, isclass
 
 from enum import Enum
 
+from functools import wraps
+
 
 class PythonSchemaBuilder(SchemaBuilder):
 
@@ -330,6 +332,7 @@ class FunctionSchema(ElementarySchema):
 
         func = ElementarySchema._getter(self, obj, *args, **kwargs)
 
+        @wraps(func)
         def result(*args, **kwargs):
 
             try:
