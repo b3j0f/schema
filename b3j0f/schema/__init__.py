@@ -50,6 +50,9 @@ from .elementary import (
 	ComplexSchema, FloatSchema, ArraySchema, DictSchema, TypeSchema,
 	EnumSchema, BooleanSchema, ElementarySchema, MetaElementarySchema
 )
+from .lang.factory import (
+    build, getresource, SchemaFactory, SchemaBuilder, getschemacls
+)
 """
 from .lang import (
 	SchemaFactory, registerbuilder, getbuilder, build, getschemacls,

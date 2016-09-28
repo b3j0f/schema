@@ -77,8 +77,13 @@ class PythonSchemaBuilder(SchemaBuilder):
                 if 'name' not in kwargs:
                     kwargs['name'] = resname
 
+                for attrname in dir(_resource):
+                    if attrname not in kwargs and not hasattr(Schema, attrname):
+                        kwargs[attrname] = getattr(_resource, attrname)
+
                 result = type(resname, (Schema, _resource), kwargs)
-                updatecontent(result)
+
+                updatecontent(result, updateparents=False)
 
         return result
 
@@ -157,6 +162,7 @@ class FunctionSchema(ElementarySchema):
         if data != self._default or data is not self._default:
 
             if data.__name__ != self.name:
+
                 raise TypeError(
                     'Wrong function name {0}. {1} expected.'.format(
                         data.__name__, self.name
@@ -172,12 +178,13 @@ class FunctionSchema(ElementarySchema):
                     )
                 )
 
-            self.rtype._validate(data=rtype)
+            if self.rtype is not None:
+                self.rtype._validate(data=rtype)
 
             for index, pkwargs in enumerate(params.values()):
                 name = pkwargs['name']
-                default = pkwargs['default']
-                ptype = pkwargs['type']
+                default = pkwargs.get('default')
+                ptype = pkwargs.get('ref')
                 selfparam = self.params[index]
 
                 if selfparam.name != name:
