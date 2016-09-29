@@ -138,9 +138,13 @@ def data2schema(
 
     datatype = type(fdata)
 
+    content = getattr(fdata, '__dict__', {})
+    if _buildkwargs:
+        content.udpate(_buildkwargs)
+
     schemacls = datatype2schemacls(
         _datatype=datatype, _registry=_registry, _factory=_factory,
-        _force=_force, _besteffort=_besteffort, **(_buildkwargs or {})
+        _force=_force, _besteffort=_besteffort, **content
     )
 
     if schemacls is not None:
