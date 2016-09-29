@@ -306,6 +306,22 @@ class FromObjTest(UTCase):
 
         self.assertIsNone(res)
 
+    def test_w_attrs(self):
+
+        class Test(object):
+            pass
+
+        test = Test()
+        res = data2schema(_data=test, _force=True)
+
+        self.assertFalse(hasattr(res, 'test'))
+
+        test.test = 1
+
+        res = data2schema(_data=test)
+
+        self.assertTrue(hasattr(res, 'test'))
+
 
 class DefaultTest(UTCase):
 
