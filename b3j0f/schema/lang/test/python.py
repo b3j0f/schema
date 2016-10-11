@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,19 +28,15 @@
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
-from b3j0f.utils.path import getpath
 
 from ...base import Schema
 from ...utils import updatecontent, AnySchema
 from ..python import (
-    PythonSchemaBuilder, FunctionSchema, buildschema, ParamSchema
+    FunctionSchema, buildschema, ParamSchema
 )
 from ...elementary import (
-    StringSchema, IntegerSchema, FloatSchema, BooleanSchema, ArraySchema,
-    DictSchema
+    StringSchema, IntegerSchema, FloatSchema, BooleanSchema
 )
-
-from inspect import getmembers
 
 
 class ParamSchemaTest(UTCase):
@@ -57,7 +53,9 @@ class ParamSchemaTest(UTCase):
 
         self.assertIsNone(param.ref)
 
-        self.assertRaises(TypeError, ParamSchema, ref=IntegerSchema, default='')
+        self.assertRaises(
+            TypeError, ParamSchema, ref=IntegerSchema, default=''
+        )
 
     def test_autotype_dynamique(self):
 

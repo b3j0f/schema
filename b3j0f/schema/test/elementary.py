@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,15 +30,12 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from ..base import Schema
-from ..utils import validate, RegisteredSchema
+from ..utils import validate
 
 from ..elementary import (
     IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
     StringSchema,
     ArraySchema,
-    BooleanSchema,
-    EnumSchema,
     TypeSchema,
     DictSchema
 )
@@ -62,7 +59,7 @@ class ElementaryTest(UTCase):
     def test_default(self):
 
         if self.__schemacls__ is None:
-            self.skipTest('base class')
+            return
 
         schema = self.__schemacls__()
 
@@ -73,7 +70,7 @@ class ElementaryTest(UTCase):
     def test_none(self):
 
         if self.__schemacls__ is None:
-            self.skipTest('base class')
+            return
 
         schema = self.__schemacls__()
 
@@ -89,7 +86,7 @@ class NumberSchemaTest(ElementaryTest):
     def test_min(self):
 
         if self.__schemacls__ is None:
-            self.skipTest('base class')
+            return
 
         self._assert(
             min=self.__schemacls__.__data_types__[0](0),
@@ -100,7 +97,7 @@ class NumberSchemaTest(ElementaryTest):
     def test_max(self):
 
         if self.__schemacls__ is None:
-            self.skipTest('base class')
+            return
 
         self._assert(
             max=self.__schemacls__.__data_types__[0](0),
@@ -194,7 +191,6 @@ class ArraySchemaTest(ElementaryTest):
     def test_unique_error(self):
 
         self._assert(data=[1, 1], unique=True, error=True)
-
 
 
 class DictSchemaTest(ElementaryTest):
