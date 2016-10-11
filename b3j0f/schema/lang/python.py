@@ -296,27 +296,26 @@ class FunctionSchema(ElementarySchema):
             for match in cls._REC.findall(function.__doc__):
 
                 if rtype is None:
-                    rtype = match[4].strip() or None
+                    rrtype = match[4].strip() or None
 
-                    if rtype:
+                    if rrtype:
 
                         try:
                             lkrtype = lookup(
-                                rtype, scope=get_function_globals(function)
+                                rrtype, scope=get_function_globals(function)
                             )
 
                         except ImportError:
-                            raise
+                            continue
 
                         else:
                             schemacls = datatype2schemacls(lkrtype)
                             rtype = schemacls()
-
                             continue
 
                 pname = (match[1] or match[2]).strip()
 
-                if pname:
+                if pname and pname in params:
                     ptype = (match[0] or match[3]).strip()
 
                     try:
@@ -325,7 +324,7 @@ class FunctionSchema(ElementarySchema):
                         )
 
                     except ImportError:
-                        raise
+                        continue
 
                     else:
                         schemacls = datatype2schemacls(lkptype)
