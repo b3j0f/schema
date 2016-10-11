@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,12 @@
 
 """XSD schema package."""
 
+from .factory import SchemaBuilder
+
 __all__ = ['XSDSchemaBuilder']
 
 
-from .factory import SchemaBuilder
-
-
 class XSDSchemaBuilder(SchemaBuilder):
+    """In charge of building xsd schemas."""
 
     __name__ = 'xsd'

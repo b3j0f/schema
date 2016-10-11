@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,15 +26,13 @@
 
 """Schema registry module."""
 
+from six import iteritems
+
 __all__ = [
     'SchemaRegistry',
     'getbyuuid', 'getbyname', 'register', 'unregister',
     'getschemasbyuuid', 'registercls', 'unregistercls', 'getbydatatype'
 ]
-
-from six import iteritems
-
-from .base import Schema
 
 
 class SchemaRegistry(object):
@@ -51,7 +49,6 @@ class SchemaRegistry(object):
         :param dict schyuid: schemas by uuid.
         :param dict schbytype: schemas by type.
         """
-
         super(SchemaRegistry, self).__init__(*args, **kwargs)
 
         self._schbyname = schbyname or {}
@@ -65,8 +62,8 @@ class SchemaRegistry(object):
     def getschemasbyuuid(self):
         """Get all schemas by uuid.
 
-        :rtype: dict"""
-
+        :rtype: dict
+        """
         return dict(self._schbyuuid)
 
     def register(self, schema):
@@ -76,8 +73,8 @@ class SchemaRegistry(object):
 
         :param Schema schema: schema to register.
         :return: old registered schema.
-        :rtype: type"""
-
+        :rtype: type
+        """
         result = None
 
         uuid = schema.uuid
@@ -112,7 +109,6 @@ class SchemaRegistry(object):
         :return: schemacls.
         :rtype: type
         """
-
         if schemacls is None:
             return lambda schemacls: self.registercls(
                 data_types=data_types, schemacls=schemacls
@@ -126,8 +122,8 @@ class SchemaRegistry(object):
     def unregister(self, uuid):
         """Unregister a schema registered with input uuid.
 
-        :raises: KeyError if uuid is not already registered."""
-
+        :raises: KeyError if uuid is not already registered.
+        """
         schema = self._schbyuuid.pop(uuid)
 
         # clean schemas by name
@@ -139,8 +135,8 @@ class SchemaRegistry(object):
         """Unregister schema class or associated data_types.
 
         :param type schemacls: sub class of Schema.
-        :param list data_types: data_types to unregister."""
-
+        :param list data_types: data_types to unregister.
+        """
         if schemacls is not None:
 
             # clean schemas by data type
@@ -160,8 +156,8 @@ class SchemaRegistry(object):
 
         :param str uuid: schema uuid to retrieve.
         :rtype: Schema
-        :raises: KeyError if uuid is not registered already."""
-
+        :raises: KeyError if uuid is not registered already.
+        """
         if uuid not in self._schbyuuid:
             raise KeyError('uuid {0} not registered'.format(uuid))
 
@@ -172,8 +168,8 @@ class SchemaRegistry(object):
 
         :param str name: schema names to retrieve.
         :rtype: list
-        :raises: KeyError if name is not registered already."""
-
+        :raises: KeyError if name is not registered already.
+        """
         if name not in self._schbyname:
             raise KeyError('name {0} not registered'.format(name))
 
@@ -189,7 +185,6 @@ class SchemaRegistry(object):
         :return: sub class of Schema.
         :rtype: type
         """
-
         result = None
 
         if data_type in self._schbytype:
@@ -210,14 +205,13 @@ _REGISTRY = SchemaRegistry()  #: global Schemaregistry.
 def register(schema):
     """Register globally input shema.
 
-    :param b3j0f.schema.Schema: schema to register."""
-
+    :param b3j0f.schema.Schema: schema to register.
+    """
     return _REGISTRY.register(schema=schema)
 
 
 def unregister(uuid):
-    """Unregister"""
-
+    """Unregister."""
     return _REGISTRY.unregister(uuid=uuid)
 
 
@@ -226,8 +220,8 @@ def getbyuuid(uuid):
 
     :param str uuid: schema uuid to retrieve.
     :rtype: type
-    :raises: KeyError if name is not registered already."""
-
+    :raises: KeyError if name is not registered already.
+    """
     return _REGISTRY.getbyuuid(uuid=uuid)
 
 
@@ -236,16 +230,16 @@ def getbyname(name):
 
     :param str name: schema names to retrieve.
     :rtype: list
-    :raises: KeyError if name is not registered already."""
-
+    :raises: KeyError if name is not registered already.
+    """
     return _REGISTRY.getbyname(name=name)
 
 
 def getschemasbyuuid():
         """Get all schemas by uuid.
 
-        :rtype: dict"""
-
+        :rtype: dict
+        """
         return _REGISTRY.getschemasbyuuid()
 
 
@@ -259,7 +253,6 @@ def getbydatatype(data_type, besteffort=True):
     :return: sub class of Schema.
     :rtype: type
     """
-
     return _REGISTRY.getbydatatype(data_type=data_type, besteffort=besteffort)
 
 
@@ -273,7 +266,6 @@ def registercls(data_types, schemacls=None):
     :return: schemacls.
     :rtype: type
     """
-
     return _REGISTRY.registercls(data_types=data_types, schemacls=schemacls)
 
 
@@ -281,6 +273,6 @@ def unregistercls(self, schemacls=None, data_types=None):
     """Unregister schema class or associated data_types.
 
     :param type schemacls: sub class of Schema.
-    :param list data_types: data_types to unregister."""
-
+    :param list data_types: data_types to unregister.
+    """
     return _REGISTRY.unregistercls(schemacls=schemacls, data_types=data_types)

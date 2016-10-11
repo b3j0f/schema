@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+"""Utils UTs."""
 
 from unittest import main
 
@@ -32,8 +33,8 @@ from b3j0f.utils.ut import UTCase
 
 from .base import Schema
 from ..utils import (
-    DynamicValue, data2schema, ThisSchema, validate, updatecontent, RegisteredSchema,
-    dump, RefSchema, AnySchema, data2schemacls
+    DynamicValue, data2schema, ThisSchema, validate, updatecontent,
+    RegisteredSchema, dump, RefSchema, AnySchema, data2schemacls
 )
 from ..elementary import (
     StringSchema, IntegerSchema, TypeSchema, FloatSchema, BooleanSchema
@@ -154,7 +155,7 @@ class DumpTest(UTCase):
                     'required': schema.a.required,
                     'version': schema.a.version,
                     'doc': schema.a.doc
-            },
+                },
                 'b': None,
                 'default': schema.default,
                 'name': '',
@@ -275,6 +276,8 @@ class FromObjTest(UTCase):
     def tearDown(self):
 
         unregistercls(FromObjTest.BaseTest)
+        unregistercls(FromObjTest.Test)
+        unregistercls(object)
 
     def test_default(self):
 
@@ -282,7 +285,10 @@ class FromObjTest(UTCase):
 
     def test_default_force(self):
 
-        self.assertRaises(ValueError, data2schema, object(), _force=True)
+        res = data2schema(_data=map, _force=True, name='test')
+
+        self.assertIsNotNone(res)
+        self.assertEqual(res.name, 'test')
 
     def test_default_besteffort(self):
 
@@ -290,7 +296,10 @@ class FromObjTest(UTCase):
 
     def test_dynamicvalue(self):
 
-        self.assertIsNone(data2schema(DynamicValue(lambda: object())))
+        res = data2schema(DynamicValue(lambda: ''), name='test', _force=True)
+
+        self.assertIsNotNone(res)
+        self.assertEqual(res.name, 'test')
 
     def test_registered(self):
 
@@ -312,13 +321,9 @@ class FromObjTest(UTCase):
             pass
 
         test = Test()
-        res = data2schema(_data=test, _force=True)
-
-        self.assertFalse(hasattr(res, 'test'))
-
         test.test = 1
 
-        res = data2schema(_data=test)
+        res = data2schema(_data=test, _force=True)
 
         self.assertTrue(hasattr(res, 'test'))
 

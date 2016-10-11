@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,6 @@
 
 """Base schema package."""
 
-__all__ = ['Schema', 'DynamicValue']
-
 from b3j0f.utils.version import OrderedDict
 
 from inspect import getmembers
@@ -36,20 +34,21 @@ from six import iteritems
 
 from uuid import uuid4
 
+__all__ = ['Schema', 'DynamicValue']
+
 
 class DynamicValue(object):
     """Handle a function in order to dynamically lead a value while cleaning a
     schema.
 
     For example, the schema attribute ``uuid`` uses a DynamicValue in order to
-    ensure default generation per instanciation."""
+    ensure default generation per instanciation.
+    """
 
     __slots__ = ['func']
 
     def __init__(self, func, *args, **kwargs):
-        """
-        :param func: function to execute while cleaning a schema."""
-
+        """:param func: function to execute while cleaning a schema."""
         super(DynamicValue, self).__init__(*args, **kwargs)
 
         self.func = func
@@ -71,12 +70,14 @@ class Schema(property):
     3. the value is given to a custom setter (`fget` constructor parameter) if
         given or setted to this attribute `_value`.
 
-    Once you defined your schema inheriting from this class, your schema will be
-    automatically registered in the registry and becomes accessible from the
-    `b3j0f.schema.reg.getschemabyuid` function."""
+    Once you defined your schema inheriting from this class, your schema will
+    be automatically registered in the registry and becomes accessible from the
+    `b3j0f.schema.reg.getschemabyuid` function.
+    """
 
     name = ''  #: schema name. Default is self name.
-    uuid = DynamicValue(lambda: str(uuid4()))  #: schema universal unique identifier.
+    #: schema universal unique identifier.
+    uuid = DynamicValue(lambda: str(uuid4()))
     doc = ''  #: schema description.
     default = None  #: schema default value.
     required = []  #: required schema names.
@@ -90,7 +91,6 @@ class Schema(property):
 
         :param default: default value. If lambda, called at initialization.
         """
-
         super(Schema, self).__init__(
             fget=self._getter, fset=self._setter, fdel=self._deleter,
             doc=doc
@@ -150,8 +150,8 @@ class Schema(property):
 
         :param str name: attribute name. Default is this name or uuid.
         :return:
-        :rtype: str"""
-
+        :rtype: str
+        """
         return '_{0}'.format(name or self._name or self._uuid)
 
     def __repr__(self):
@@ -165,8 +165,8 @@ class Schema(property):
     def _getter(self, obj):
         """Called when the parent element tries to get this property value.
 
-        :param obj: parent object."""
-
+        :param obj: parent object.
+        """
         result = None
 
         if self._fget is not None:
@@ -185,15 +185,16 @@ class Schema(property):
         """Fired when inner schema returns a value.
 
         :param Schema schema: inner schema.
-        :param value: returned value."""
+        :param value: returned value.
+        """
 
     def _setter(self, obj, value):
         """Called when the parent element tries to set this property value.
 
         :param obj: parent object.
         :param value: new value to use. If lambda, updated with the lambda
-            result."""
-
+            result.
+        """
         if isinstance(value, DynamicValue):  # execute lambda values.
             fvalue = value()
 
@@ -216,14 +217,14 @@ class Schema(property):
         """Fired when inner schema change of value.
 
         :param Schema schema: inner schema.
-        :param value: new value."""
+        :param value: new value.
+        """
 
     def _deleter(self, obj):
         """Called when the parent element tries to delete this property value.
 
         :param obj: parent object.
         """
-
         if self._fdel is not None:
             self._fdel(obj)
 
@@ -237,15 +238,16 @@ class Schema(property):
     def _delvalue(self, schema):
         """Fired when inner schema delete its value.
 
-        :param Schema schema: inner schema."""
+        :param Schema schema: inner schema.
+        """
 
     def _validate(self, data, owner=None):
         """Validate input data in returning an empty list if true.
 
         :param data: data to validate with this schema.
         :param Schema owner: schema owner.
-        :raises: Exception if the data is not validated."""
-
+        :raises: Exception if the data is not validated.
+        """
         if isinstance(data, DynamicValue):
             data = data()
 
@@ -265,8 +267,8 @@ class Schema(property):
 
                 if name in self.required:
                     if (
-                        (isdict and name not in data)
-                        or (not isdict and not hasattr(data, name))
+                        (isdict and name not in data) or
+                        (not isdict and not hasattr(data, name))
                     ):
                         part1 = (
                             'Mandatory property {0} by {1} is missing in {2}.'.
@@ -282,14 +284,13 @@ class Schema(property):
                     value = data[name] if isdict else getattr(data, name)
                     schema._validate(data=value, owner=self)
 
-
     @classmethod
     def getschemas(cls):
         """Get inner schemas by name.
 
         :return: ordered dict by name.
-        :rtype: ordered dict by name"""
-
+        :rtype: OrderedDict
+        """
         members = getmembers(cls, lambda member: isinstance(member, Schema))
 
         result = OrderedDict()
@@ -302,5 +303,4 @@ class Schema(property):
     @classmethod
     def apply(cls, *args, **kwargs):
         """Decorator for schema application with parameters."""
-
         return lambda fget: cls(fget, *args, **kwargs)

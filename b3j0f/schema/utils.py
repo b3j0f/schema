@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,6 @@
 
 """Schema utilities package."""
 
-__all__ = [
-    'DynamicValue', 'data2schema', 'MetaRegisteredSchema', 'ThisSchema',
-    'updatecontent', 'validate', 'dump', 'RegisteredSchema',
-    'datatype2schemacls', 'RefSchema', 'data2schemacls'
-]
-
-from types import FunctionType, MethodType
-
 from six import iteritems, add_metaclass
 
 from inspect import getmembers
@@ -41,6 +33,12 @@ from inspect import getmembers
 from .registry import getbydatatype, register
 from .lang.factory import build, getschemacls
 from .base import Schema, DynamicValue
+
+__all__ = [
+    'DynamicValue', 'data2schema', 'MetaRegisteredSchema', 'ThisSchema',
+    'updatecontent', 'validate', 'dump', 'RegisteredSchema',
+    'datatype2schemacls', 'RefSchema', 'data2schemacls', 'AnySchema'
+]
 
 
 class AnySchema(Schema):
@@ -51,19 +49,19 @@ class AnySchema(Schema):
 
 
 def datatype2schemacls(
-        _datatype, _registry=None, _factory=None, _force=True, _besteffort=True,
-        **kwargs
+        _datatype, _registry=None, _factory=None, _force=True,
+        _besteffort=True, **kwargs
 ):
     """Get a schema class which has been associated to input data type by the
     registry or the factory in this order.
 
     :param type datatype: data type from where get associated schema.
-    :param SchemaRegisgry _registry: registry from where call the getbydatatype.
-        Default is the global registry.
+    :param SchemaRegisgry _registry: registry from where call the getbydatatype
+        . Default is the global registry.
     :param SchemaFactory _factory: factory from where call the getschemacls if
         getbydatatype returns None. Default is the global factory.
-    :param bool _force: if true (default), force the building of schema class if
-        no schema is associated to input data type.
+    :param bool _force: if true (default), force the building of schema class
+        if no schema is associated to input data type.
     :param bool _besteffort: if True (default), try to resolve schema by
         inheritance.
     :param dict kwargs: factory builder kwargs.
@@ -71,7 +69,6 @@ def datatype2schemacls(
     :return: Schema associated to input registry or factory. None if no
         association found.
     """
-
     result = None
 
     gdbt = getbydatatype if _registry is None else _registry.getbydatatype
@@ -91,9 +88,8 @@ def datatype2schemacls(
 
 
 def data2schema(
-        _data=None, _force=False, _besteffort=True, _registry=None, _factory=None,
-        _buildkwargs=None,
-        **kwargs
+        _data=None, _force=False, _besteffort=True, _registry=None,
+        _factory=None, _buildkwargs=None, **kwargs
 ):
     """Get the schema able to instanciate input data.
 
@@ -119,13 +115,14 @@ def data2schema(
         on the fly if it does not exist.
     :param bool _besteffort: if True (default), find a schema class able to
         validate data class by inheritance.
-    :param SchemaRegistry _registry: default registry to use. Global by default.
+    :param SchemaRegistry _registry: default registry to use. Global by
+        default.
     :param SchemaFactory factory: default factory to use. Global by default.
     :param dict _buildkwargs: factory builder kwargs.
     :param kwargs: schema class kwargs.
     :return: Schema.
-    :rtype: Schema."""
-
+    :rtype: Schema.
+    """
     if _data is None:
         return lambda _data: data2schema(
             _data, _force=False, _besteffort=True, _registry=None,
@@ -161,8 +158,8 @@ def data2schemacls(_data, **kwargs):
 
     :param data: object or dictionary from where get a schema cls.
     :return: schema class.
-    :rtype: type"""
-
+    :rtype: type
+    """
     content = {}
 
     for key in list(kwargs):  # fill kwargs
@@ -217,7 +214,8 @@ class ThisSchema(object):
     :param kwargs: schema class kwargs to use.
 
     :return: input args and kwargs.
-    :rtype: tuple"""
+    :rtype: tuple
+    """
 
     def __init__(self, *args, **kwargs):
 
@@ -233,8 +231,8 @@ def validate(schema, data, owner=None):
     :param Schema schema: schema able to validate input data.
     :param data: data to validate.
     :param Schema owner: input schema parent schema.
-    :raises: Exception if the data is not validated."""
-
+    :raises: Exception if the data is not validated.
+    """
     schema._validate(data=data, owner=owner)
 
 
@@ -242,8 +240,8 @@ def dump(schema):
     """Get a serialized value of input schema.
 
     :param Schema schema: schema to serialize.
-    :rtype: dict"""
-
+    :rtype: dict
+    """
     result = {}
 
     for name, _ in iteritems(schema.getschemas()):
@@ -318,8 +316,8 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
     :param type schemacls: sub class of Schema.
     :param bool updateparents: if True (default), update parent content.
     :param list exclude: attribute names to exclude from updating.
-    :return: schemacls"""
-
+    :return: schemacls.
+    """
     if schemacls is None:
         return lambda schemacls: updatecontent(
             schemacls=schemacls, updateparents=updateparents, exclude=exclude
@@ -417,14 +415,14 @@ class MetaRegisteredSchema(type):
 class RegisteredSchema(Schema):
     """Ease auto-registering of schemas and auto-updating content."""
 
-    #Register instances in the registry if True (False by default).
+    #: Register instances in the registry if True (False by default).
     __register__ = False
 
     """update automatically the content if True (default).
 
     If True, take care to not having called the class in overidden methods.
-    In such case, take a look to the using of the class ThisSchema which recommands to
-    use old style method call for overriden methods.
+    In such case, take a look to the using of the class ThisSchema which
+    recommands to use old style method call for overriden methods.
 
     ..example:
         class Test(Schema):

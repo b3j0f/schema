@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,6 @@
 
 from __future__ import absolute_import, unicode_literals
 
-__all__ = ['JSONSchemaBuilder']
-
 from copy import deepcopy
 
 from six import string_types
@@ -40,7 +38,7 @@ from .factory import SchemaBuilder
 from ..utils import updatecontent
 from ..elementary import (
     ElementarySchema,
-    NumberSchema, IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
+    IntegerSchema, FloatSchema, ComplexSchema, LongSchema,
     BooleanSchema,
     ArraySchema, DictSchema,
     EnumSchema,
@@ -48,10 +46,11 @@ from ..elementary import (
     DateTimeSchema
 )
 
-from json import loads, dump
+from json import loads, load, dumps
 
 from os.path import exists
 
+__all__ = ['JSONSchemaBuilder']
 
 _SCHEMASBYJSONNAME = {
     'integer': IntegerSchema,
@@ -112,6 +111,7 @@ def json2schema(resource, name=None):
 
 
 class JSONSchemaBuilder(SchemaBuilder):
+    """In charge of build json schemas."""
 
     __name__ = 'json'
 

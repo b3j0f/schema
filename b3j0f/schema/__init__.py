@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,37 +26,35 @@
 
 """Main package."""
 
+from .version import __version__
+
+from .lang import (
+    build, getresource, SchemaFactory, SchemaBuilder, getschemacls,
+    XSDSchemaBuilder
+)
+from .base import Schema, DynamicValue
+from .registry import register, registercls, getbyuuid, getbyname
+from .utils import (
+    validate, dump, updatecontent, ThisSchema, data2schema, AnySchema,
+    data2schemacls, RegisteredSchema, RefSchema
+)
+from .elementary import (
+    StringSchema, DateTimeSchema, IntegerSchema, NumberSchema, LongSchema,
+    ComplexSchema, FloatSchema, ArraySchema, DictSchema, TypeSchema,
+    EnumSchema, BooleanSchema, ElementarySchema, OneOfSchema
+)
+
 __all__ = [
     '__version__', 'Schema', 'DynamicValue',
     'register', 'registercls', 'getbyuuid', 'getbyname',
     'StringSchema', 'IntegerSchema',
     'FloatSchema', 'ComplexSchema', 'EnumSchema', 'ArraySchema',
     'DictSchema', 'DateTimeSchema', 'NumberSchema', 'BooleanSchema',
-    'TypeSchema',
+    'TypeSchema', 'AnySchema', 'OneOfSchema',
+    'data2schemacls',
     'data2schema', 'validate', 'dump', 'updatecontent', 'ThisSchema',
-    'RefSchema', 'AnySchema', 'RegisteredSchema', 'dict2schema'
+    'RefSchema', 'AnySchema', 'RegisteredSchema',
+    'ElementarySchema', 'LongSchema',
+    'SchemaFactory', 'getschemacls', 'getresource', 'SchemaBuilder', 'build',
+    'XSDSchemaBuilder'
 ]
-
-from .version import __version__
-
-from .base import Schema, DynamicValue
-from .registry import register, registercls, getbyuuid, getbyname
-from .utils import (
-	validate, dump, updatecontent, ThisSchema, data2schema, AnySchema,
-    data2schemacls, RegisteredSchema, MetaRegisteredSchema
-)
-from .elementary import (
-	StringSchema, DateTimeSchema, IntegerSchema, NumberSchema, LongSchema,
-	ComplexSchema, FloatSchema, ArraySchema, DictSchema, TypeSchema,
-	EnumSchema, BooleanSchema, ElementarySchema, MetaElementarySchema
-)
-from .lang.factory import (
-    build, getresource, SchemaFactory, SchemaBuilder, getschemacls
-)
-"""
-from .lang import (
-	SchemaFactory, registerbuilder, getbuilder, build, getschemacls,
-	SchemaBuilder,
-	buildschema, ParamSchema, FunctionSchema
-)
-"""

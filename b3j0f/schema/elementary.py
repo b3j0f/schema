@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,19 @@
 
 """Elementary schema package."""
 
+from six import string_types, add_metaclass, PY3
+
+from numbers import Number
+
+from enum import Enum
+
+from datetime import datetime
+
+from .registry import registercls
+from .utils import (
+    DynamicValue, RegisteredSchema, ThisSchema, MetaRegisteredSchema
+)
+
 __all__ = [
     'NumberSchema',
     'IntegerSchema', 'FloatSchema', 'ComplexSchema', 'LongSchema',
@@ -35,26 +48,8 @@ __all__ = [
     'BooleanSchema',
     'EnumSchema',
     'DateTimeSchema',
-    'AnySchema'
+    'OneOfSchema'
 ]
-
-from six import string_types, add_metaclass, PY3
-
-from numbers import Number
-
-from enum import Enum
-
-from types import FunctionType, MethodType, LambdaType
-
-
-from datetime import datetime
-
-from inspect import getargspec
-
-from .registry import registercls
-from .utils import (
-    DynamicValue, RegisteredSchema, ThisSchema, MetaRegisteredSchema, updatecontent
-)
 
 NoneType = type(None)
 
@@ -80,15 +75,16 @@ class ElementarySchema(RegisteredSchema):
 
     nullable = False
 
-    __data_types__ = []  #: data types which can be instanciated by this schema.
+    #: data types which can be instanciated by this schema.
+    __data_types__ = []
 
     def _validate(self, data, owner=None, *args, **kwargs):
         """Validate input data in returning an empty list if true.
 
         :param data: data to validate with this schema.
         :param Schema owner: schema owner.
-        :raises: Exception if the data is not validated"""
-
+        :raises: Exception if the data is not validated.
+        """
         if isinstance(data, DynamicValue):
             data = data()
 
@@ -115,7 +111,8 @@ class BooleanSchema(ElementarySchema):
 class NumberSchema(ElementarySchema):
     """Schema for number such as float, long, complex and float.
 
-    If allows to bound data values."""
+    If allows to bound data values.
+    """
 
     __data_types__ = [Number]
     default = 0
@@ -242,13 +239,13 @@ class ArraySchema(ElementarySchema):
 
         if data:
             if self.unique and len(set(data)) != len(data):
-                raise ValueError('Duplicated items in {0}'.format(result))
+                raise ValueError('Duplicated items in {0}'.format(data))
 
             if self.itemtype is not None:
                 for index, item in enumerate(data):
                     if not isinstance(item, self.itemtype):
                         raise TypeError(
-                            'Wrong type of {0} at pos {1}. {2} expected.'.format(
+                            'Wrong type of {0} at {1}. {2} expected.'.format(
                                 item, index, self.itemtype
                             )
                         )
@@ -269,13 +266,13 @@ class DictSchema(ArraySchema):
 
         if data:
             if self.unique and len(set(data.values())) != len(data):
-                raise ValueError('Duplicated items in {0}'.format(result))
+                raise ValueError('Duplicated items in {0}'.format(data))
 
             if self.valuetype is not None:
                 for key, item in data.items():
                     if not isinstance(item, self.valuetype):
                         raise TypeError(
-                            'Wrong type of {0} at pos {1}. {2} expected.'.format(
+                            'Wrong type of {0} at {1}. {2} expected.'.format(
                                 item, key, self.valuetype
                             )
                         )
@@ -301,3 +298,9 @@ class DateTimeSchema(ElementarySchema):
     year = IntegerSchema(nullable=True, default=None)
 
     default = DynamicValue(lambda: datetime.now())
+
+
+class OneOfSchema(ArraySchema):
+    """Validate one of input types."""
+
+    itemtype = TypeSchema(type)

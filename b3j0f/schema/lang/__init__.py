@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,23 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
-"""Lang package"""
+"""Lang package."""
 
-"""
 from .factory import (
     SchemaFactory, registerbuilder, getbuilder, build, getschemacls,
-    SchemaBuilder
+    SchemaBuilder, getresource
 )
+from .xsd import XSDSchemaBuilder
 
 from .python import (
     PythonSchemaBuilder, buildschema, ParamSchema, FunctionSchema
 )
 
 from .json import JSONSchemaBuilder
-from .xsd import XSDSchemaBuilder
-"""
+
+__all__ = [
+    'buildschema',
+    'SchemaFactory', 'registerbuilder', 'getbuilder', 'build', 'getschemacls',
+    'SchemaBuilder', 'getresource', 'XSDSchemaBuilder',
+    'JSONSchemaBuilder', 'PythonSchemaBuilder', 'FunctionSchema', 'ParamSchema'
+]

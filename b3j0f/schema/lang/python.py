@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,36 +26,34 @@
 
 """Python language schemas utilities."""
 
-__all__ = ['PythonSchemaBuilder', 'FunctionSchema', 'buildschema']
-
 from re import compile as re_compile
 
 from b3j0f.utils.version import OrderedDict
 from b3j0f.utils.path import lookup
 
-from .factory import SchemaBuilder, getschemacls, build
-from ..registry import getbyuuid, getbydatatype
-from ..utils import (
-    ThisSchema, updatecontent, data2schema, datatype2schemacls, RefSchema
-)
 from ..base import Schema
-from ..elementary import (
-    ElementarySchema, ArraySchema, TypeSchema, StringSchema, ArraySchema,
-    DictSchema
+from .factory import SchemaBuilder, build
+from ..elementary import ElementarySchema, ArraySchema
+from ..utils import (
+    updatecontent, data2schema, datatype2schemacls, RefSchema
 )
 
-from types import FunctionType, MethodType, LambdaType
+from types import (
+    FunctionType, MethodType, LambdaType, BuiltinFunctionType,
+    BuiltinMethodType
+)
 
-from six import iteritems, get_function_globals
+from six import get_function_globals
 
 from inspect import getargspec, getsourcelines, isclass
 
-from enum import Enum
-
 from functools import wraps
+
+__all__ = ['PythonSchemaBuilder', 'FunctionSchema', 'buildschema']
 
 
 class PythonSchemaBuilder(SchemaBuilder):
+    """In charge of building python classes."""
 
     __name__ = 'python'
 
@@ -80,7 +78,10 @@ class PythonSchemaBuilder(SchemaBuilder):
                     kwargs['name'] = resname
 
                 for attrname in dir(_resource):
-                    if attrname not in kwargs and not hasattr(Schema, attrname):
+                    if (
+                        attrname not in kwargs and
+                        not hasattr(Schema, attrname)
+                    ):
                         kwargs[attrname] = getattr(_resource, attrname)
 
                 result = type(resname, (Schema, _resource), kwargs)
@@ -110,7 +111,6 @@ def buildschema(_cls=None, **kwargs):
     :rtype: type
     :return: schema class.
     """
-
     if _cls is None:
         return lambda _cls: buildschema(_cls=_cls, **kwargs)
 
@@ -123,7 +123,8 @@ def buildschema(_cls=None, **kwargs):
 class ParamSchema(RefSchema):
     """Function parameter schema."""
 
-    autotype = True  #: if true (default), update self ref when default is given
+    #: if true (default), update self ref when default is given.
+    autotype = True
     mandatory = True  #: if true (default), parameter value is mandatory.
 
     def _setvalue(self, schema, value, *args, **kwargs):
@@ -142,7 +143,8 @@ class ParamSchema(RefSchema):
 class FunctionSchema(ElementarySchema):
     """Function schema.
 
-    Dedicated to describe functions, methods and lambda objects."""
+    Dedicated to describe functions, methods and lambda objects.
+    """
 
     _PDESC = r':param (?P<ptype1>[\w_]+) (?P<pname1>\w+):'
     _PTYPE = r':type (?P<pname2>[\w_]+):(?P<ptype2>[^\n]+)'
@@ -150,7 +152,10 @@ class FunctionSchema(ElementarySchema):
 
     _REC = re_compile('{0}|{1}|{2}'.format(_PDESC, _PTYPE, _RTYPE))
 
-    __data_types__ = [FunctionType, MethodType, LambdaType]
+    __data_types__ = [
+        FunctionType, MethodType, LambdaType, BuiltinFunctionType,
+        BuiltinMethodType
+    ]
 
     params = ArraySchema(itemtype=ParamSchema)
     rtype = Schema()
@@ -186,12 +191,11 @@ class FunctionSchema(ElementarySchema):
             for index, pkwargs in enumerate(params.values()):
                 name = pkwargs['name']
                 default = pkwargs.get('default')
-                ptype = pkwargs.get('ref')
                 selfparam = self.params[index]
 
                 if selfparam.name != name:
                     raise TypeError(
-                        'Wrong parameter name {0} at {1}. {2} expected.'.format(
+                        'Wrong parameter {0} at {1}. {2} expected.'.format(
                             name, index, selfparam.name
                         )
                     )
@@ -247,18 +251,24 @@ class FunctionSchema(ElementarySchema):
         self.params = params
 
         self.impltype = 'python'
-        self.impl = str(getsourcelines(value))
+        try:
+            self.impl = str(getsourcelines(value))
+
+        except TypeError:
+            self.impl = ''
 
     @classmethod
     def _getparams_rtype(cls, function):
         """Get function params from input function and rtype.
 
         :return: OrderedDict or param schema by name and rtype.
-        :rtype: tuple"""
+        :rtype: tuple
+        """
+        try:
+            args, _, _, default = getargspec(function)
 
-        result = []
-
-        args, varargs, keywords, default = getargspec(function)
+        except TypeError:
+            args, _, _, default = (), (), (), ()
 
         indexlen = len(args) - (0 if default is None else len(default))
 
@@ -338,7 +348,7 @@ class FunctionSchema(ElementarySchema):
             try:
                 result = func(obj, *args, **kwargs)
 
-            except TypeError as te:
+            except TypeError:
                 result = func(*args, **kwargs)
 
             return result
@@ -348,7 +358,6 @@ class FunctionSchema(ElementarySchema):
 
 def funcschema(default=None, *args, **kwargs):
     """Decorator to use in order to transform a function into a schema."""
-
     if default is None:
         return lambda default: funcschema(default=default, *args, **kwargs)
 
