@@ -71,7 +71,6 @@ class PythonSchemaBuilder(SchemaBuilder):
             result = datatype2schemacls(_datatype=_resource, _force=False)
 
             if result is None:
-
                 resname = _resource.__name__
 
                 if 'name' not in kwargs:

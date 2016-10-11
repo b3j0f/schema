@@ -300,7 +300,7 @@ class DateTimeSchema(ElementarySchema):
     default = DynamicValue(lambda: datetime.now())
 
 
-class OneOfSchema(ArraySchema):
+class OneOfSchema(ElementarySchema):
     """Validate one of input types."""
 
     itemtype = TypeSchema(type)
