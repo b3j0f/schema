@@ -258,8 +258,6 @@ class Schema(property):
 
             isdict = isinstance(data, dict)
 
-            cls = type(self)
-
             for name, schema in iteritems(self.getschemas()):
 
                 if name == 'default':

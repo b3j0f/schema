@@ -76,15 +76,21 @@ class PythonSchemaBuilder(SchemaBuilder):
                 if 'name' not in kwargs:
                     kwargs['name'] = resname
 
+                """
                 for attrname in dir(_resource):
                     if (
+                        attrname[0] != '_' and
                         attrname not in kwargs and
                         not hasattr(Schema, attrname)
                     ):
-                        kwargs[attrname] = getattr(_resource, attrname)
+
+                        attr = getattr(_resource, attrname)
+
+                        if not isinstance(attr, MemberDescriptorType):
+                            kwargs[attrname] = getattr(_resource, attrname)
+                """
 
                 result = type(resname, (Schema, _resource), kwargs)
-
                 updatecontent(result, updateparents=False)
 
         return result
