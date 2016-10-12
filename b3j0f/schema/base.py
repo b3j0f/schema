@@ -97,14 +97,14 @@ class Schema(property):
         )
 
         # set custom getter/setter/deleter
-        if fget or not hasattr(self, '_fget'):
-            self._fget = fget
+        if fget or not hasattr(self, '_fget_'):
+            self._fget_ = fget
 
-        if fset or not hasattr(self, '_fset'):
-            self._fset = fset
+        if fset or not hasattr(self, '_fset_'):
+            self._fset_ = fset
 
-        if fdel or not hasattr(self, '_fdel'):
-            self._fdel = fdel
+        if fdel or not hasattr(self, '_fdel_'):
+            self._fdel_ = fdel
 
         if doc is not None:
             kwargs['doc'] = doc
@@ -140,7 +140,7 @@ class Schema(property):
 
         default = kwargs.get('default', self.default)
 
-        self._default = default
+        self._default_ = default
 
         if default is not None:
             self.default = default
@@ -152,7 +152,7 @@ class Schema(property):
         :return:
         :rtype: str
         """
-        return '_{0}'.format(name or self._name or self._uuid)
+        return '_{0}_'.format(name or self._name_ or self._uuid_)
 
     def __repr__(self):
 
@@ -169,11 +169,11 @@ class Schema(property):
         """
         result = None
 
-        if self._fget is not None:
-            result = self._fget(obj)
+        if self._fget_ is not None:
+            result = self._fget_(obj)
 
         if result is None:
-            result = getattr(obj, self._attrname(), self._default)
+            result = getattr(obj, self._attrname(), self._default_)
 
         # notify parent schema about returned value
         if isinstance(obj, Schema):
@@ -203,8 +203,8 @@ class Schema(property):
 
         self._validate(data=fvalue, owner=obj)
 
-        if self._fset is not None:
-            self._fset(obj, fvalue)
+        if self._fset_ is not None:
+            self._fset_(obj, fvalue)
 
         else:
             setattr(obj, self._attrname(), value)
@@ -225,8 +225,8 @@ class Schema(property):
 
         :param obj: parent object.
         """
-        if self._fdel is not None:
-            self._fdel(obj)
+        if self._fdel_ is not None:
+            self._fdel_(obj)
 
         else:
             delattr(obj, self._attrname())

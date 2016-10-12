@@ -171,7 +171,7 @@ class FunctionSchema(ElementarySchema):
 
         ElementarySchema._validate(self, data=data, *args, **kwargs)
 
-        if data != self._default or data is not self._default:
+        if data != self._default_ or data is not self._default_:
 
             if data.__name__ != self.name:
 

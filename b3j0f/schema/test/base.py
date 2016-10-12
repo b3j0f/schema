@@ -30,9 +30,6 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from numbers import Number
-from six import string_types
-
 from ..base import Schema, DynamicValue
 
 
@@ -42,9 +39,9 @@ class SchemaTest(UTCase):
 
         schema = Schema()
 
-        self.assertIsNone(schema._fget)
-        self.assertIsNone(schema._fset)
-        self.assertIsNone(schema._fdel)
+        self.assertIsNone(schema._fget_)
+        self.assertIsNone(schema._fset_)
+        self.assertIsNone(schema._fdel_)
 
     def test_uuid(self):
 
@@ -58,7 +55,6 @@ class SchemaTest(UTCase):
         class BaseTest(Schema):
             pass
 
-
         class Test(BaseTest):
             pass
 
@@ -68,8 +64,6 @@ class SchemaTest(UTCase):
         self.assertNotEqual(basetest.uuid, test.uuid)
 
     def test_init_gsd(self):
-
-        processing = []
 
         class Test(object):
 
@@ -90,6 +84,7 @@ class SchemaTest(UTCase):
 
         test.test = Schema()
         self.assertIsInstance(test.test, Schema)
+
 
 class DecorateTest(UTCase):
 
@@ -217,8 +212,6 @@ class DecorateTest(UTCase):
             a = Schema()
 
             b = Schema()
-
-        names = ['a', 'b']
 
         schemas = TestSchema.getschemas()
 

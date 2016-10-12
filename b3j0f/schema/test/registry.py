@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,12 +30,9 @@ from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
-from six import string_types
-
 from ..base import Schema
 from ..registry import (
-    SchemaRegistry, getbyuuid, getbyname, unregister, registercls,
-    getbydatatype, unregistercls
+    SchemaRegistry, registercls, getbydatatype, unregistercls
 )
 
 from uuid import uuid4
@@ -56,19 +53,15 @@ class UpdateContentTest(UTCase):
 
         self.AAA = AAA
 
-
         class BBB(object):
             pass
 
-
         self.BBB = BBB
-
 
         class CCC(object):
             pass
 
         self.CCC = CCC
-
 
         @registercls([AAA])
         class AAASchema(Schema):
@@ -131,7 +124,7 @@ class DefaultTest(UTCase):
         self.assertEqual(schema.default, 0)
 
         schema = TestSchema(default=None)
-        self.assertIsNone(schema._default)
+        self.assertIsNone(schema._default_)
 
 
 class TestSchema(Schema):
@@ -172,7 +165,7 @@ class SchemaRegistryTest(UTCase):
 
     def test_init_w_params(self):
 
-        schemaregistry = SchemaRegistry(schbyname =2, schbyuuid=3, schbytype=4)
+        schemaregistry = SchemaRegistry(schbyname=2, schbyuuid=3, schbytype=4)
         self.assertEqual(schemaregistry._schbyname, 2)
         self.assertEqual(schemaregistry._schbyuuid, 3)
         self.assertEqual(schemaregistry._schbytype, 4)

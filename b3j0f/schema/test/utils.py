@@ -234,7 +234,7 @@ class ThisSchemaTest(UTCase):
         updatecontent(Test)
 
         self.assertIsInstance(Test.test, Test)
-        self.assertEqual(Test.test._test, 'test')
+        self.assertEqual(Test.test._test_, 'test')
         self.assertFalse(Test.test.nullable)
 
     def test_params(self):
@@ -340,7 +340,7 @@ class DefaultTest(UTCase):
         self.assertIsInstance(schema.default, TestSchema)
 
         schema = TestSchema(default=None)
-        self.assertIsNone(schema._default)
+        self.assertIsNone(schema._default_)
         self.assertIsNone(schema.default)
 
 
