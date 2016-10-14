@@ -147,6 +147,13 @@ def data2schema(
     if schemacls is not None:
         result = schemacls(default=_data, **kwargs)
 
+        for attrname in dir(_data):
+
+            if not hasattr(schemacls, attrname):
+                attr = getattr(_data, attrname)
+                if attr is not None:
+                    setattr(result, attrname, attr)
+
     if result is None and _data is None:
         result = AnySchema()
 
