@@ -131,9 +131,11 @@ class SchemaFactory(object):
         """
         result = None
 
-        resources = (
-            resource.mro() if besteffort and isclass(resource) else [resource]
-        )
+        if hasattr(resource, 'mro') and besteffort and isclass(resource):
+            resources = list(resource.mro())
+
+        else:
+            resources = [resource]
 
         for _resource in resources:
             if _resource in self._schemasbyresource:

@@ -101,11 +101,12 @@ class PythonSchemaBuilder(SchemaBuilder):
 
         result = None
 
-        for mro in schemacls.mro():
+        if hasattr(schemacls, 'mro'):
+            for mro in schemacls.mro():
 
-            if issubclass(mro, Schema):
-                result = mro
-                break
+                if issubclass(mro, Schema):
+                    result = mro
+                    break
 
         return result
 
@@ -168,6 +169,7 @@ class FunctionSchema(ElementarySchema):
     rtype = Schema()
     impl = ''
     impltype = ''
+    safe = False
 
     def _validate(self, data, owner, *args, **kwargs):
 
@@ -324,6 +326,7 @@ class FunctionSchema(ElementarySchema):
                 pname = (match[1] or match[2]).strip()
 
                 if pname and pname in params:
+
                     ptype = (match[0] or match[3]).strip()
 
                     try:
@@ -332,7 +335,8 @@ class FunctionSchema(ElementarySchema):
                         )
 
                     except ImportError:
-                        continue
+                        msg = 'Impossible to resolve param {0}/{1} from {1}'
+                        raise ImportError(msg.format(pname, ptype, function))
 
                     else:
                         schemacls = datatype2schemacls(lkptype)

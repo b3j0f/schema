@@ -113,10 +113,14 @@ class FunctionSchemaTest(UTCase):
 
     def test_function(self):
 
-        def test(a, b, c, d, e=3., f=None, *args, **kwargs):
+        class A(object):
+            pass
+
+        def test(a, b, c, d, e=3., f=None, g=None, *args, **kwargs):
             """
             :param bool b:
             :type c: int
+            :param AnySchema g: self test.
             :rtype: bool
             """
 
@@ -128,7 +132,7 @@ class FunctionSchemaTest(UTCase):
             ]
         )
 
-        self.assertEqual(len(schema.params), 6)
+        self.assertEqual(len(schema.params), 7)
 
         aparam = schema.params[0]
         self.assertIsNone(aparam.ref)
@@ -161,10 +165,16 @@ class FunctionSchemaTest(UTCase):
         self.assertIs(eparam.default, 3.)
 
         fparam = schema.params[5]
-        self.assertIsNone(fparam.ref, AnySchema)
+        self.assertIsNone(fparam.ref)
         self.assertFalse(fparam.mandatory)
         self.assertEqual(fparam.name, 'f')
         self.assertIsNone(fparam.default)
+
+        gparam = schema.params[6]
+        self.assertIsInstance(gparam.ref, AnySchema)
+        self.assertFalse(gparam.mandatory)
+        self.assertEqual(gparam.name, 'g')
+        self.assertIsNone(gparam.default)
 
         self.assertIsInstance(schema.rtype, BooleanSchema)
 
