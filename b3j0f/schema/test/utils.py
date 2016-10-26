@@ -34,7 +34,8 @@ from b3j0f.utils.ut import UTCase
 from .base import Schema
 from ..utils import (
     DynamicValue, data2schema, ThisSchema, validate, updatecontent,
-    RegisteredSchema, dump, RefSchema, AnySchema, data2schemacls
+    RegisteredSchema, dump, RefSchema, AnySchema, data2schemacls,
+    datatype2schemacls
 )
 from ..elementary import (
     StringSchema, IntegerSchema, TypeSchema, FloatSchema, BooleanSchema
@@ -438,6 +439,55 @@ class Dict2SchemaClsTest(UTCase):
 
         validate(schemacls(), Test)
         validate(schemacls(), Test())
+
+
+class DataType2Schemacls(UTCase):
+
+    def test_namespace(self):
+
+        class A:
+
+            def test(self):
+                pass
+
+        schemacls = datatype2schemacls(A)
+
+        self.assertIsInstance(schemacls(), A)
+        self.assertNotIsInstance(A(), schemacls)
+        self.assertTrue(issubclass(schemacls, A))
+        self.assertFalse(issubclass(A, schemacls))
+        validate(schemacls(), A())
+        self.assertTrue(hasattr(schemacls, 'test'))
+
+    def test_cls(self):
+
+        class A(object):
+
+            def test(self):
+                pass
+
+        schemacls = datatype2schemacls(A)
+
+        self.assertIsInstance(schemacls(), A)
+        self.assertNotIsInstance(A(), schemacls)
+        self.assertTrue(issubclass(schemacls, A))
+        self.assertFalse(issubclass(A, schemacls))
+        validate(schemacls(), A())
+        self.assertTrue(hasattr(schemacls, 'test'))
+
+    def test_slots(self):
+
+        class A(object):
+
+            __slots__ = ['A']
+
+            def test(self):
+                pass
+
+        schemacls = datatype2schemacls(A)
+
+        validate(schemacls(), A())
+        self.assertTrue(hasattr(schemacls, 'test'))
 
 if __name__ == '__main__':
     main()

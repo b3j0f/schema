@@ -80,7 +80,6 @@ def datatype2schemacls(
         result = gscls(_datatype, besteffort=_besteffort)
 
     if result is None and _force:
-        print('OK')
         _build = build if _factory is None else _factory.build
 
         result = _build(_resource=_datatype, **kwargs)
