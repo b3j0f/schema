@@ -85,7 +85,7 @@ class PythonSchemaBuilder(SchemaBuilder):
                     for attrname in dir(_resource):
                         if (
                             attrname not in __slots__ and
-                            attrname[0] != '_' and
+                            attrname and attrname[0] != '_' and
                             attrname not in kwargs and
                             not hasattr(Schema, attrname)
                         ):
@@ -93,7 +93,7 @@ class PythonSchemaBuilder(SchemaBuilder):
                             attr = getattr(_resource, attrname)
 
                             if not isinstance(attr, MemberDescriptorType):
-                                kwargs[attrname] = getattr(_resource, attrname)
+                                kwargs[attrname] = attr
 
                     _resource = type(
                         _resource.__name__, (object,),
