@@ -49,7 +49,9 @@ from inspect import getargspec, getsourcelines, isclass
 
 from functools import wraps
 
-__all__ = ['PythonSchemaBuilder', 'FunctionSchema', 'buildschema']
+__all__ = [
+    'PythonSchemaBuilder', 'FunctionSchema', 'buildschema', 'ParamSchema'
+]
 
 
 class PythonSchemaBuilder(SchemaBuilder):

@@ -30,7 +30,7 @@ from .version import __version__
 
 from .lang import (
     build, getresource, SchemaFactory, SchemaBuilder, getschemacls,
-    XSDSchemaBuilder
+    XSDSchemaBuilder, FunctionSchema, ParamSchema
 )
 from .base import Schema, DynamicValue
 from .registry import register, registercls, getbyuuid, getbyname
@@ -56,5 +56,5 @@ __all__ = [
     'RefSchema', 'AnySchema', 'RegisteredSchema',
     'ElementarySchema', 'LongSchema',
     'SchemaFactory', 'getschemacls', 'getresource', 'SchemaBuilder', 'build',
-    'XSDSchemaBuilder'
+    'XSDSchemaBuilder', 'FunctionSchema', 'ParamSchema'
 ]

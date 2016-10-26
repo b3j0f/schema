@@ -1,6 +1,11 @@
 ChangeLog
 =========
 
+0.0.3 (2016/08/08)
+------------------
+
+- add definition of function/param schema at the root package.
+
 0.0.2 (2016/08/08)
 ------------------
 
