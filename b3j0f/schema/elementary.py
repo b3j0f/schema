@@ -34,9 +34,11 @@ from enum import Enum
 
 from datetime import datetime
 
+from .base import Schema
 from .registry import registercls
 from .utils import (
-    DynamicValue, RegisteredSchema, ThisSchema, MetaRegisteredSchema
+    DynamicValue, RegisteredSchema, ThisSchema, MetaRegisteredSchema, validate,
+    AnySchema
 )
 
 __all__ = [
@@ -200,7 +202,7 @@ class ArraySchema(ElementarySchema):
     __data_types__ = [list, tuple, set]
 
     #: item types. Default any.
-    itemtype = TypeSchema(nullable=True, default=None)
+    itemtype = AnySchema()
     #: minimal array size. Default None.
     minsize = IntegerSchema(nullable=True, default=None)
     #: maximal array size. Default None.
@@ -238,12 +240,18 @@ class ArraySchema(ElementarySchema):
             )
 
         if data:
+            if isinstance(data, DynamicValue):
+                data = data()
+
             if self.unique and len(set(data)) != len(data):
                 raise ValueError('Duplicated items in {0}'.format(data))
 
             if self.itemtype is not None:
                 for index, item in enumerate(data):
-                    if not isinstance(item, self.itemtype):
+                    try:
+                        validate(self.itemtype, item, owner=self.itemtype)
+
+                    except Exception:
                         raise TypeError(
                             'Wrong type of {0} at {1}. {2} expected.'.format(
                                 item, index, self.itemtype
@@ -257,7 +265,7 @@ class DictSchema(ArraySchema):
     __data_types__ = [dict]
 
     #: value type
-    valuetype = TypeSchema(nullable=True, default=None)
+    valuetype = AnySchema()
     default = DynamicValue(lambda: {})
 
     def _validate(self, data, *args, **kwargs):
@@ -270,7 +278,10 @@ class DictSchema(ArraySchema):
 
             if self.valuetype is not None:
                 for key, item in data.items():
-                    if not isinstance(item, self.valuetype):
+                    try:
+                        validate(self.valuetype, item, owner=self.valuetype)
+
+                    except Exception:
                         raise TypeError(
                             'Wrong type of {0} at {1}. {2} expected.'.format(
                                 item, key, self.valuetype
@@ -300,7 +311,29 @@ class DateTimeSchema(ElementarySchema):
     default = DynamicValue(lambda: datetime.now())
 
 
-class OneOfSchema(ElementarySchema):
-    """Validate one of input types."""
+class OneOfSchema(Schema):
+    """Validate data with at least one schema."""
 
-    itemtype = TypeSchema(type)
+    schemas = ArraySchema(itemtype=AnySchema())  #: schemas to check
+
+    def _validate(self, data, *args, **kwargs):
+
+        super(OneOfSchema, self)._validate(data=data, *args, **kwargs)
+
+        if self.nullable and data is None:
+            return
+
+        for selftype in self.schemas:
+            try:
+                validate(selftype, data)
+
+            except Exception:
+                continue
+
+            else:
+                break
+
+        else:
+            raise TypeError(
+                '{0} does not match one of {1}'.format(data, self.schemas)
+            )

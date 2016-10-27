@@ -1,6 +1,11 @@
 ChangeLog
 =========
 
+0.0.8 (2016/08/27)
+------------------
+
+- add support of "one of" and "list of" function parameter type and result.
+
 0.0.7 (2016/08/27)
 ------------------
 

@@ -239,13 +239,16 @@ Function schema definition
 
 .. code-block:: python
 
-   from b3j0f.schema import FunctionSchema, ParamSchema, FloatSchema, BooleanSchema, StringSchema, ArraySchema
+   from b3j0f.schema import FunctionSchema, ParamSchema, FloatSchema, BooleanSchema, StringSchema, ArraySchema, OneOfSchema
 
    @data2schema
-   def test(a, b, c=2):  # definition of a shema function. Parameter values and (function) types are defined in the signature and the docstring.
+   def test(a, b, c=2, d=None, e=None, f=None):  # definition of a shema function. Parameter values and (function) types are defined in the signature and the docstring.
       """
       :param float a: default 0.
       :type b: bool
+      :type d: ints  # list of int
+      :type e: list of str  #: list of str
+      :type f: int,float  #: one of (int, float)
       :rtype: str
       """
 
@@ -254,22 +257,41 @@ Function schema definition
    assert isinstance(test, FunctionSchema)
    assert isinstance(test.params, ArraySchema)
    assert isinstance(test.params[0], ParamSchema)
-   assert len(test.params) == 3
+   assert len(test.params) == 6
 
    assert test.params[0].name == 'a'
    assert test.params[0].mandatory == True
-   assert test.params[0].ref is FloatSchema
+   assert isinstance(test.params[0].ref, FloatSchema)
    assert test.params[0].default is 0.
 
    assert test.params[1].name == 'b'
-   assert test.params[1].ref is BooleanSchema
+   assert isinstance(test.params[1].ref, BooleanSchema)
    assert test.params[1].mandatory is True
    assert test.params[1].default is False
 
    assert test.params[2].name == 'c'
-   assert test.params[2].ref is IntegerSchema
+   assert isinstance(test.params[2].ref, IntegerSchema)
    assert test.params[2].mandatory is False
    assert test.params[2].default is 2
+
+   assert test.params[3].name == 'd'
+   assert isinstance(test.params[3].ref, ArraySchema)
+   assert isinstance(test.params[3].ref.itemtype, IntegerSchema)
+   assert test.params[3].mandatory is False
+   assert test.params[3].default is None
+
+   assert test.params[4].name == 'e'
+   assert isinstance(test.params[4].ref, ArraySchema)
+   assert isinstance(test.params[4].ref.itemtype, StringSchema)
+   assert test.params[4].mandatory is False
+   assert test.params[4].default is None
+
+   assert test.params[5].name == 'f'
+   assert isinstance(test.params[5].ref, OneOfSchema)
+   assert isinstance(test.params[5].ref.schemas[0], IntegerSchema)
+   assert isinstance(test.params[5].ref.schemas[1], FloatSchema)
+   assert test.params[5].mandatory is False
+   assert test.params[5].default is None
 
    assert test.rtype is StringSchema
 

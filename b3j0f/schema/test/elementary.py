@@ -25,6 +25,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+"""Elementary UTs."""
 
 from unittest import main
 
@@ -37,7 +38,8 @@ from ..elementary import (
     StringSchema,
     ArraySchema,
     TypeSchema,
-    DictSchema
+    DictSchema,
+    OneOfSchema
 )
 
 
@@ -178,11 +180,11 @@ class ArraySchemaTest(ElementaryTest):
 
     def test_itemtype(self):
 
-        self._assert(data=[1, 2], itemtype=int)
+        self._assert(data=[1, 2], itemtype=IntegerSchema())
 
     def test_itemtype_error(self):
 
-        self._assert(data=[1, 2.], itemtype=int, error=True)
+        self._assert(data=[1, 2.], itemtype=IntegerSchema(), error=True)
 
     def test_unique(self):
 
@@ -231,19 +233,21 @@ class DictSchemaTest(ElementaryTest):
 
     def test_itemtype(self):
 
-        self._assert(data={1: 1, 2: 2}, itemtype=int)
+        self._assert(data={1: 1, 2: 2}, itemtype=IntegerSchema())
 
     def test_itemtype_error(self):
 
-        self._assert(data={1: None, 2.: None}, itemtype=int, error=True)
+        self._assert(
+            data={1: None, 2.: None}, itemtype=IntegerSchema(), error=True
+        )
 
     def test_valuetype(self):
 
-        self._assert(data={1: 1, 2.: 2}, valuetype=int)
+        self._assert(data={1: 1, 2.: 2}, valuetype=IntegerSchema())
 
     def test_valuetype_error(self):
 
-        self._assert(data={1: 1, 2: 2.}, valuetype=int, error=True)
+        self._assert(data={1: 1, 2: 2.}, valuetype=IntegerSchema(), error=True)
 
     def test_unique(self):
 
@@ -252,6 +256,27 @@ class DictSchemaTest(ElementaryTest):
     def test_unique_error(self):
 
         self._assert(data={1: 1, 2: 1}, unique=True, error=True)
+
+
+class OneOfSchemaTest(UTCase):
+
+    def test_default(self):
+
+        schema = OneOfSchema()
+
+        self.assertRaises(TypeError, validate, schema, 2)
+
+    def test_error(self):
+
+        schema = OneOfSchema(schemas=[IntegerSchema(), StringSchema()])
+
+        self.assertRaises(TypeError, validate, schema, 3.)
+
+    def test_success(self):
+
+        schema = OneOfSchema(schemas=[IntegerSchema(), FloatSchema()])
+
+        validate(schema, 3.)
 
 if __name__ == '__main__':
     main()

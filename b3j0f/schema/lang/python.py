@@ -33,7 +33,7 @@ from b3j0f.utils.path import lookup
 
 from ..base import Schema
 from .factory import SchemaBuilder, build
-from ..elementary import ElementarySchema, ArraySchema
+from ..elementary import ElementarySchema, ArraySchema, OneOfSchema
 from ..utils import (
     updatecontent, data2schema, datatype2schemacls, RefSchema
 )
@@ -150,7 +150,7 @@ class FunctionSchema(ElementarySchema):
     Dedicated to describe functions, methods and lambda objects.
     """
 
-    _PDESC = r':param (?P<ptype1>[\w_]+) (?P<pname1>\w+):'
+    _PDESC = r':param (?P<ptype1>[\w_,]+) (?P<pname1>\w+):'
     _PTYPE = r':type (?P<pname2>[\w_]+):(?P<ptype2>[^\n]+)'
     _RTYPE = r':rtype:(?P<rtype>[^\n]+)'
 
@@ -161,7 +161,7 @@ class FunctionSchema(ElementarySchema):
         BuiltinMethodType
     ]
 
-    params = ArraySchema(itemtype=ParamSchema)
+    params = ArraySchema(itemtype=ParamSchema())
     rtype = Schema()
     impl = ''
     impltype = ''
@@ -308,23 +308,60 @@ class FunctionSchema(ElementarySchema):
             scope = get_function_globals(function)
 
             for match in cls._REC.findall(function.__doc__):
-
                 if rtype is None:
                     rrtype = match[4].strip() or None
 
                     if rrtype:
 
-                        try:
-                            lkrtype = lookup(rrtype, scope=scope)
+                        rtypes = rrtype.split(',')
 
-                        except ImportError:
-                            msg = 'Impossible to resolve rtype {0} from {1}'
-                            raise ImportError(msg.format(rrtype, function))
+                        schemas = []
+                        for rtype_ in rtypes:
+
+                            rtype_ = rtype_.strip()
+                            islist = False
+
+                            try:
+                                lkrtype = lookup(rtype_, scope=scope)
+
+                            except ImportError:
+                                islist = True
+
+                                try:
+                                    if rtype_[-1] == 's':
+                                        lkrtype = lookup(
+                                            rtype_[:-1], scope=scope
+                                        )
+
+                                    elif rtype_.startswith('list of '):
+                                        lkrtype = lookup(
+                                            rtype_[8:], scope=scope
+                                        )
+
+                                    else:
+                                        raise
+
+                                except ImportError:
+                                    msg = 'rtype {0}({1}) from {1} not found.'
+                                    raise ImportError(
+                                        msg.format(rtype_, rrtype, function)
+                                    )
+
+                            schemacls = datatype2schemacls(lkrtype)
+                            rschema = schemacls()
+
+                            if islist:
+                                rschema = ArraySchema(itemtype=rschema)
+
+                            schemas.append(rschema)
+
+                        if len(rtypes) > 1:
+                            rtype = OneOfSchema(schemas=schemas, nullable=True)
 
                         else:
-                            schemacls = datatype2schemacls(lkrtype)
-                            rtype = schemacls()
-                            continue
+                            rtype = schemas[0]
+
+                        continue
 
                 pname = (match[1] or match[2]).strip()
 
@@ -332,17 +369,54 @@ class FunctionSchema(ElementarySchema):
 
                     ptype = (match[0] or match[3]).strip()
 
-                    try:
-                        lkptype = lookup(ptype, scope=scope)
+                    ptypes = ptype.split(',')
 
-                    except ImportError:
-                        msg = 'Impossible to resolve type {0}("{1}") from {2}'
-                        raise ImportError(msg.format(ptype, pname, function))
+                    schemas = []
+
+                    for ptype in ptypes:
+
+                        ptype = ptype.strip()
+
+                        islist = False
+
+                        try:
+                            lkptype = lookup(ptype, scope=scope)
+
+                        except ImportError:
+                            islist = True
+
+                            try:
+                                if ptype[-1] == 's':
+                                    lkptype = lookup(ptype[:-1], scope=scope)
+
+                                elif ptype.startswith('list of '):
+                                    lkptype = lookup(ptype[8:], scope=scope)
+
+                                else:
+                                    raise
+
+                            except ImportError:
+
+                                msg = 'Error on ptype {0}("{1}") from {2}'
+                                raise ImportError(
+                                    msg.format(ptype, pname, function)
+                                )
+
+                        schemacls = datatype2schemacls(lkptype)
+                        pschema = schemacls()
+
+                        if islist:
+                            pschema = ArraySchema(itemtype=pschema)
+
+                        schemas.append(pschema)
+
+                    if len(ptypes) > 1:
+                        pschema = OneOfSchema(schemas=schemas, nullable=True)
 
                     else:
-                        schemacls = datatype2schemacls(lkptype)
+                        pschema = schemas[0]
 
-                        params[pname]['ref'] = schemacls()
+                    params[pname]['ref'] = pschema
 
         return params, rtype
 

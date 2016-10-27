@@ -37,7 +37,8 @@ from ..python import (
     FunctionSchema, buildschema, ParamSchema
 )
 from ...elementary import (
-    StringSchema, IntegerSchema, FloatSchema, BooleanSchema
+    StringSchema, IntegerSchema, FloatSchema, BooleanSchema, OneOfSchema,
+    ArraySchema
 )
 
 
@@ -209,6 +210,60 @@ class FunctionSchemaTest(UTCase):
 
         self.assertEqual(param.name, 'self')
         self.assertIsInstance(param.ref, Schema)
+
+    def test_or(self):
+
+        def test_or(self):
+            """
+            :param float,int self:
+            :rtype: float,int
+            """
+
+        schema = FunctionSchema(default=test_or)
+
+        self.assertIsInstance(schema.params[0].ref, OneOfSchema)
+        validate(schema.params[0].ref, 1.)
+        validate(schema.params[0].ref, 1)
+
+        self.assertIsInstance(schema.rtype, OneOfSchema)
+        validate(schema.rtype, 1)
+        validate(schema.rtype, 1.)
+
+    def test_lists(self):
+
+        def test_lists(self):
+            """
+            :param ints self:
+            :rtype: ints
+            """
+
+        schema = FunctionSchema(default=test_lists)
+
+        self.assertIsInstance(schema.params[0].ref, ArraySchema)
+        validate(schema.params[0].ref, [1, 2])
+        self.assertRaises(Exception, validate, schema.params[0].ref, [1., 2.])
+
+        self.assertIsInstance(schema.rtype, ArraySchema)
+        validate(schema.rtype, [1, 2])
+        self.assertRaises(Exception, validate, schema.rtype, [1., 2.])
+
+    def test_list_of(self):
+
+        def test_list_of(self):
+            """
+            :param ints self:
+            :rtype: ints
+            """
+
+        schema = FunctionSchema(default=test_list_of)
+
+        self.assertIsInstance(schema.params[0].ref, ArraySchema)
+        validate(schema.params[0].ref, [1, 2])
+        self.assertRaises(Exception, validate, schema.params[0].ref, [1., 2.])
+
+        self.assertIsInstance(schema.rtype, ArraySchema)
+        validate(schema.rtype, [1, 2])
+        self.assertRaises(Exception, validate, schema.rtype, [1., 2.])
 
 
 class BuildSchemaTest(UTCase):
