@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+0.0.7 (2016/08/27)
+------------------
+
+- fix error message on function rtype error.
+- fix recursive definition of rtype/param of functionschema.
+
 0.0.6 (2016/08/26)
 ------------------
 

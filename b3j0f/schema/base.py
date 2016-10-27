@@ -118,7 +118,6 @@ class Schema(property):
                     'fget', 'fset', 'fdel', 'setter', 'getter', 'deleter',
                     'default'
             ]:
-
                 if name in kwargs:
                     val = kwargs[name]
 

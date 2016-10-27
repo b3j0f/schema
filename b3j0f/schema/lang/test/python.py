@@ -245,9 +245,33 @@ class TestY(object):
         :rtype: TestY
         """
 
+    @staticmethod
+    def tests(a):
+        """
+        :param TestY a:
+        :rtype: TestY
+        """
+
+    @classmethod
+    def testc(cls):
+        """
+        :param TestY cls:
+        :rtype: TestY
+        """
+
 schemacls = buildschema(TestY)
+
 assert isinstance(schemacls.test.rtype, schemacls)
 assert isinstance(schemacls.test.params[0].ref, schemacls)
+assert schemacls().test.source is schemacls.test.default
+
+assert isinstance(schemacls.tests.rtype, schemacls)
+assert isinstance(schemacls.tests.params[0].ref, schemacls)
+assert schemacls().tests.source is schemacls.tests.default
+
+assert isinstance(schemacls.testc.rtype, schemacls)
+assert isinstance(schemacls.testc.params[0].ref, schemacls)
+assert schemacls().testc.source is schemacls.testc.default
 
 if __name__ == '__main__':
     main()

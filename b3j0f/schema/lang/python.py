@@ -171,7 +171,7 @@ class FunctionSchema(ElementarySchema):
 
         ElementarySchema._validate(self, data=data, *args, **kwargs)
 
-        if data != self._default_ or data is not self._default_:
+        if data != self.default or data is not self.default:
 
             if data.__name__ != self.name:
 
@@ -215,10 +215,15 @@ class FunctionSchema(ElementarySchema):
     def _setvalue(self, schema, value):
 
         if schema.name == 'default':
-
             self._setter(obj=self, value=value)
 
     def _setter(self, obj, value, *args, **kwargs):
+
+        if hasattr(self, 'olddefault'):
+            if self.olddefault is value:
+                return
+
+        self.olddefault = value
 
         ElementarySchema._setter(self, obj, value, *args, **kwargs)
 
@@ -313,7 +318,7 @@ class FunctionSchema(ElementarySchema):
                             lkrtype = lookup(rrtype, scope=scope)
 
                         except ImportError:
-                            msg = 'Impossible to resolve rtype {1} from {2}'
+                            msg = 'Impossible to resolve rtype {0} from {1}'
                             raise ImportError(msg.format(rrtype, function))
 
                         else:
@@ -359,6 +364,8 @@ class FunctionSchema(ElementarySchema):
                 result = func(*args, **kwargs)
 
             return result
+
+        result.source = func
 
         return result
 
