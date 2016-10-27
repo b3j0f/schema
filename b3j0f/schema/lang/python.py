@@ -31,12 +31,10 @@ from re import compile as re_compile
 from b3j0f.utils.version import OrderedDict
 from b3j0f.utils.path import lookup
 
-from ..base import Schema
+from ..base import Schema, DynamicValue
 from .factory import SchemaBuilder, build
-from ..elementary import ElementarySchema, ArraySchema, OneOfSchema
-from ..utils import (
-    updatecontent, data2schema, datatype2schemacls, RefSchema
-)
+from ..elementary import ElementarySchema, ArraySchema, OneOfSchema, TypeSchema
+from ..utils import updatecontent, data2schema, datatype2schemacls, RefSchema
 
 from types import (
     FunctionType, MethodType, LambdaType, BuiltinFunctionType,
@@ -123,6 +121,22 @@ def buildschema(_cls=None, **kwargs):
     return result
 
 
+class ParamTypeSchema(Schema):
+    """In charge of embedding a parameter type which met a problem while
+    generating a schema."""
+
+    type = TypeSchema()
+
+    def _validate(self, data, *args, **kwargs):
+
+        super(ParamTypeSchema, self)._validate(data=data, *args, **kwargs)
+
+        if not isinstance(data, self.type):
+            raise TypeError(
+                'Wrong type of {0}. {1} expected.'.format(data, self.type)
+            )
+
+
 @updatecontent
 class ParamSchema(RefSchema):
     """Function parameter schema."""
@@ -166,6 +180,7 @@ class FunctionSchema(ElementarySchema):
     impl = ''
     impltype = ''
     safe = False
+    varargs = False
 
     def _validate(self, data, owner, *args, **kwargs):
 
@@ -173,42 +188,56 @@ class FunctionSchema(ElementarySchema):
 
         if data != self.default or data is not self.default:
 
+            errormsg = 'Error while validating {0} with {1}'.format(data, self)
+
             if data.__name__ != self.name:
 
                 raise TypeError(
-                    'Wrong function name {0}. {1} expected.'.format(
-                        data.__name__, self.name
+                    '{0}. Wrong function name {1}. {2} expected.'.format(
+                        errormsg, data.__name__, self.name
                     )
                 )
 
-            params, rtype = self._getparams_rtype(function=data)
+            params, rtype, vargs, kwargs = self._getparams_rtype(function=data)
 
-            if len(params) != len(self.params):
+            var = self.varargs or vargs or kwargs
+
+            if (not var) and len(params) != len(self.params):
                 raise TypeError(
-                    'Wrong param length: {0}. {1} expected.'.format(
-                        len(params), len(self.params)
+                    '{0}. Wrong param length: {1}. {2} expected.'.format(
+                        errormsg, len(params), len(self.params)
                     )
                 )
 
-            if self.rtype is not None:
-                self.rtype._validate(data=rtype)
+            if self.rtype is not None and type(self.rtype) != type(rtype):
+                raise TypeError(
+                    '{0}. Wrong rtype {1}. {2} expected.'.format(
+                        rtype, self.rtype
+                    )
+                )
 
             for index, pkwargs in enumerate(params.values()):
                 name = pkwargs['name']
                 default = pkwargs.get('default')
-                selfparam = self.params[index]
+                param = self.params[index]
 
-                if selfparam.name != name:
+                if param.name != name:
                     raise TypeError(
-                        'Wrong parameter {0} at {1}. {2} expected.'.format(
-                            name, index, selfparam.name
+                        '{0}. Wrong param {1} at {2}. {3} expected.'.format(
+                            errormsg, name, index, param.name
                         )
                     )
 
-                if selfparam.default != default:
+                val = param.default
+                if isinstance(val, DynamicValue):
+                    val = val()
+
+                if (
+                    val is not None and default is not None and val != default
+                ):
                     raise TypeError(
-                        'Wrong default value {0} at {1}. Expected {2}.'.format(
-                            default, index, selfparam.default
+                        '{0}. Wrong val {1}/{2} at {3}. Expected {4}.'.format(
+                            errormsg, name, default, index, val
                         )
                     )
 
@@ -227,7 +256,9 @@ class FunctionSchema(ElementarySchema):
 
         ElementarySchema._setter(self, obj, value, *args, **kwargs)
 
-        pkwargs, self.rtype = self._getparams_rtype(value)
+        pkwargs, self.rtype, vargs, kwargs = self._getparams_rtype(value)
+
+        self.vargs = vargs or kwargs
 
         params = []
 
@@ -272,14 +303,14 @@ class FunctionSchema(ElementarySchema):
     def _getparams_rtype(cls, function):
         """Get function params from input function and rtype.
 
-        :return: OrderedDict or param schema by name and rtype.
+        :return: OrderedDict, rtype, vargs and kwargs.
         :rtype: tuple
         """
         try:
-            args, _, _, default = getargspec(function)
+            args, vargs, kwargs, default = getargspec(function)
 
         except TypeError:
-            args, _, _, default = (), (), (), ()
+            args, vargs, kwargs, default = (), (), (), ()
 
         indexlen = len(args) - (0 if default is None else len(default))
 
@@ -342,12 +373,17 @@ class FunctionSchema(ElementarySchema):
                                         raise
 
                                 except ImportError:
-                                    msg = 'rtype {0}({1}) from {1} not found.'
+                                    msg = 'rtype "{0}" ({1}) from {2} not found.'
                                     raise ImportError(
                                         msg.format(rtype_, rrtype, function)
                                     )
 
-                            schemacls = datatype2schemacls(lkrtype)
+                            try:
+                                schemacls = datatype2schemacls(lkrtype)
+
+                            except TypeError:
+                                schemacls = ParamTypeSchema(type=lkrtype)
+
                             rschema = schemacls()
 
                             if islist:
@@ -397,12 +433,17 @@ class FunctionSchema(ElementarySchema):
 
                             except ImportError:
 
-                                msg = 'Error on ptype {0}("{1}") from {2}'
+                                msg = 'Error on ptype "{0}" ({1}) from {2} not found.'
                                 raise ImportError(
-                                    msg.format(ptype, pname, function)
+                                    msg.format(pname, ptype, function)
                                 )
 
-                        schemacls = datatype2schemacls(lkptype)
+                        try:
+                            schemacls = datatype2schemacls(lkptype)
+
+                        except TypeError:
+                            schemacls = ParamTypeSchema(type=lkptype)
+
                         pschema = schemacls()
 
                         if islist:
@@ -418,7 +459,7 @@ class FunctionSchema(ElementarySchema):
 
                     params[pname]['ref'] = pschema
 
-        return params, rtype
+        return params, rtype, vargs, kwargs
 
     def __call__(self, *args, **kwargs):
 

@@ -1,6 +1,12 @@
 ChangeLog
 =========
 
+0.0.9 (2016/08/27)
+------------------
+
+- use ParamTypeSchema for function parameters/rtype from where it is impossible to generate a schema.
+- enhance error messages.
+
 0.0.8 (2016/08/27)
 ------------------
 
