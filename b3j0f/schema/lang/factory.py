@@ -90,11 +90,12 @@ class SchemaFactory(object):
         """
         return self._builders[name]
 
-    def build(self, _resource, _cache=True, **kwargs):
+    def build(self, _resource, _cache=True, updatecontent=True, **kwargs):
         """Build a schema class from input _resource.
 
         :param _resource: object from where get the right schema.
         :param bool _cache: use _cache system.
+        :param bool updatecontent: if True (default) update result.
         :rtype: Schema.
         """
         result = None
@@ -113,11 +114,15 @@ class SchemaFactory(object):
                 else:
                     break
 
-        if result is None:
-            raise ValueError('No builder found for {0}'.format(_resource))
+            if result is None:
+                raise ValueError('No builder found for {0}'.format(_resource))
 
-        if _cache:
-            self._schemasbyresource[_resource] = result
+            if _cache:
+                self._schemasbyresource[_resource] = result
+
+            if updatecontent:
+                from ..utils import updatecontent
+                updatecontent(result, updateparents=False)
 
         return result
 

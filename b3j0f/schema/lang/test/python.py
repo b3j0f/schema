@@ -25,12 +25,14 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+"""Python UTs."""
+
 from unittest import main
 
 from b3j0f.utils.ut import UTCase
 
 from ...base import Schema
-from ...utils import updatecontent, AnySchema
+from ...utils import updatecontent, AnySchema, validate
 from ..python import (
     FunctionSchema, buildschema, ParamSchema
 )
@@ -233,6 +235,19 @@ class BuildSchemaTest(UTCase):
         self.assertIsInstance(test, Schema)
         self.assertTrue(issubclass(Test, Schema))
         self.assertEqual(test.name, 'test')
+
+
+class TestY(object):
+
+    def test(self):
+        """
+        :param TestY self:
+        :rtype: TestY
+        """
+
+schemacls = buildschema(TestY)
+assert isinstance(schemacls.test.rtype, schemacls)
+assert isinstance(schemacls.test.params[0].ref, schemacls)
 
 if __name__ == '__main__':
     main()

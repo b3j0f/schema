@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+"""Factory UTs."""
 
 from unittest import main
 
@@ -47,7 +48,10 @@ class TestFactory(UTCase):
 
         def __init__(self, _type, *args, **kwargs):
 
-            super(TestFactory.SchemaBuilderTest, self).__init__(*args, **kwargs)
+            super(TestFactory.SchemaBuilderTest, self).__init__(
+                *args, **kwargs
+            )
+
             self.type = _type
 
         def build(self, _resource, **kwargs):
@@ -127,7 +131,6 @@ class TestFactory(UTCase):
         builder = getbuilder(TestSchemaBuilder.__name__)
 
         self.assertIsInstance(builder, TestSchemaBuilder)
-
 
 if __name__ == '__main__':
     main()

@@ -4,7 +4,7 @@
 # --------------------------------------------------------------------
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
+# Copyright (c) 2016 Jonathan Labéjof <jonathan.labejof@gmail.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,8 @@
 # SOFTWARE.
 # --------------------------------------------------------------------
 
+"""JSON UTs."""
+
 from __future__ import absolute_import, unicode_literals
 
 from unittest import main
@@ -33,9 +35,8 @@ from b3j0f.utils.ut import UTCase
 
 from json import dumps
 
-from ..json import JSONSchemaBuilder, _SCHEMASBYJSONNAME, _PARAMSBYNAME
+from ..json import JSONSchemaBuilder, _SCHEMASBYJSONNAME
 from ...base import Schema
-from ..factory import build
 
 
 class JSONSchemaTest(UTCase):
@@ -75,11 +76,11 @@ class JSONSchemaTest(UTCase):
             'id': 'uuid',
             'properties': {
                 '': {
-                        'type': 'integer',
-                        'title': 'example'
+                    'type': 'integer',
+                    'title': 'example'
                 },
                 'test': {
-                        'type': 'boolean'
+                    'type': 'boolean'
                 }
             }
         }

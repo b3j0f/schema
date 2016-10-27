@@ -1,6 +1,13 @@
 ChangeLog
 =========
 
+0.0.6 (2016/08/26)
+------------------
+
+- fix factory.build methods.
+- fix python language.
+- fix recursive calls of function param/rtype from parent class.
+
 0.0.5 (2016/08/26)
 ------------------
 

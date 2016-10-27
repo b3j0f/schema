@@ -337,9 +337,7 @@ def updatecontent(schemacls=None, updateparents=True, exclude=None):
         schemaclasses = [schemacls]
 
     for schemaclass in schemaclasses:
-
-        for name, member in getattr(schemaclass, '__dict__', {}).items():
-
+        for name, member in iteritems(getattr(schemaclass, '__dict__', {})):
             # transform only public members
             if name[0] != '_' and (exclude is None or name not in exclude):
 

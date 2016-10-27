@@ -45,7 +45,7 @@ from types import (
 
 from six import get_function_globals
 
-from inspect import getargspec, getsourcelines, isclass
+from inspect import getargspec, getsourcelines, isclass, isbuiltin
 
 from functools import wraps
 
@@ -78,31 +78,18 @@ class PythonSchemaBuilder(SchemaBuilder):
                 if 'name' not in kwargs:
                     kwargs['name'] = resname
 
-                if hasattr(_resource, '__slots__'):
+                for attrname in dir(_resource):
+                    if (
+                        attrname and attrname[0] != '_' and
+                        attrname not in kwargs and
+                        not hasattr(Schema, attrname)
+                    ):
+                        attr = getattr(_resource, attrname)
 
-                    __slots__ = _resource.__slots__
+                        if not isinstance(attr, MemberDescriptorType):
+                            kwargs[attrname] = attr
 
-                    for attrname in dir(_resource):
-                        if (
-                            attrname not in __slots__ and
-                            attrname and attrname[0] != '_' and
-                            attrname not in kwargs and
-                            not hasattr(Schema, attrname)
-                        ):
-
-                            attr = getattr(_resource, attrname)
-
-                            if not isinstance(attr, MemberDescriptorType):
-                                kwargs[attrname] = attr
-
-                    _resource = type(
-                        _resource.__name__, (object,),
-                        {__doc__: _resource.__doc__}
-                    )
-
-                result = type(resname, (Schema, _resource), kwargs)
-
-                updatecontent(result, updateparents=False)
+                result = type(resname, (Schema,), kwargs)
 
         return result
 
@@ -269,6 +256,7 @@ class FunctionSchema(ElementarySchema):
         self.params = params
 
         self.impltype = 'python'
+
         try:
             self.impl = str(getsourcelines(value))
 
@@ -310,7 +298,9 @@ class FunctionSchema(ElementarySchema):
         rtype = None
 
         # parse docstring
-        if function.__doc__ is not None:
+        if function.__doc__ is not None and not isbuiltin(function):
+
+            scope = get_function_globals(function)
 
             for match in cls._REC.findall(function.__doc__):
 
@@ -320,12 +310,11 @@ class FunctionSchema(ElementarySchema):
                     if rrtype:
 
                         try:
-                            lkrtype = lookup(
-                                rrtype, scope=get_function_globals(function)
-                            )
+                            lkrtype = lookup(rrtype, scope=scope)
 
                         except ImportError:
-                            continue
+                            msg = 'Impossible to resolve rtype {1} from {2}'
+                            raise ImportError(msg.format(rrtype, function))
 
                         else:
                             schemacls = datatype2schemacls(lkrtype)
@@ -339,16 +328,15 @@ class FunctionSchema(ElementarySchema):
                     ptype = (match[0] or match[3]).strip()
 
                     try:
-                        lkptype = lookup(
-                            ptype, scope=get_function_globals(function)
-                        )
+                        lkptype = lookup(ptype, scope=scope)
 
                     except ImportError:
-                        msg = 'Impossible to resolve param {0}/{1} from {1}'
-                        raise ImportError(msg.format(pname, ptype, function))
+                        msg = 'Impossible to resolve type {0}("{1}") from {2}'
+                        raise ImportError(msg.format(ptype, pname, function))
 
                     else:
                         schemacls = datatype2schemacls(lkptype)
+
                         params[pname]['ref'] = schemacls()
 
         return params, rtype

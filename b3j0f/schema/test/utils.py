@@ -245,23 +245,27 @@ class ThisSchemaTest(UTCase):
         self.assertEqual(this.args, (1, 2))
         self.assertEqual(this.kwargs, {'a': 3, 'b': 4})
 
+    def test_default(self):
 
-class DynamicValueTest(UTCase):
+        class TestSchema(RegisteredSchema):
 
-    def test(self):
+            default = ThisSchema()
 
-        dvalue = DynamicValue(lambda: 'test')
+        schema = TestSchema()
+        self.assertIsInstance(schema.default, TestSchema)
 
-        self.assertEqual('test', dvalue())
+        schema = TestSchema(default=None)
+        self.assertIsNone(schema._default_)
+        self.assertIsNone(schema.default)
 
 
-class FromObjTest(UTCase):
+class Data2SchemaTest(UTCase):
 
     class BaseTest(Schema):
 
         def __init__(self, default=None, *args, **kwargs):
 
-            super(FromObjTest.BaseTest, self).__init__(*args, **kwargs)
+            super(Data2SchemaTest.BaseTest, self).__init__(*args, **kwargs)
             self.default = default
 
     class Test(BaseTest):
@@ -270,14 +274,14 @@ class FromObjTest(UTCase):
     def setUp(self):
 
         registercls(
-            schemacls=FromObjTest.BaseTest,
-            data_types=[FromObjTest.BaseTest]
+            schemacls=Data2SchemaTest.BaseTest,
+            data_types=[Data2SchemaTest.BaseTest]
         )
 
     def tearDown(self):
 
-        unregistercls(FromObjTest.BaseTest)
-        unregistercls(FromObjTest.Test)
+        unregistercls(Data2SchemaTest.BaseTest)
+        unregistercls(Data2SchemaTest.Test)
         unregistercls(object)
 
     def test_default(self):
@@ -304,14 +308,14 @@ class FromObjTest(UTCase):
 
     def test_registered(self):
 
-        test = FromObjTest.Test()
+        test = Data2SchemaTest.Test()
         res = data2schema(_data=test)
 
         self.assertEqual(res.default, test)
 
     def test_registered_besteffort(self):
 
-        test = FromObjTest.Test()
+        test = Data2SchemaTest.Test()
         res = data2schema(_data=test, _besteffort=False)
 
         self.assertIsNone(res)
@@ -327,22 +331,6 @@ class FromObjTest(UTCase):
         res = data2schema(_data=test, _force=True)
 
         self.assertTrue(hasattr(res, 'test'))
-
-
-class DefaultTest(UTCase):
-
-    def test(self):
-
-        class TestSchema(RegisteredSchema):
-
-            default = ThisSchema()
-
-        schema = TestSchema()
-        self.assertIsInstance(schema.default, TestSchema)
-
-        schema = TestSchema(default=None)
-        self.assertIsNone(schema._default_)
-        self.assertIsNone(schema.default)
 
 
 class RefSchemaTest(UTCase):
@@ -402,7 +390,7 @@ class RefSchemaTest(UTCase):
         self.assertRaises(TypeError, setattr, schema, 'ref', self.stringschema)
 
 
-class Dict2SchemaClsTest(UTCase):
+class Data2SchemaClsTest(UTCase):
 
     def test_dict(self):
 
@@ -452,10 +440,6 @@ class DataType2Schemacls(UTCase):
 
         schemacls = datatype2schemacls(A)
 
-        self.assertIsInstance(schemacls(), A)
-        self.assertNotIsInstance(A(), schemacls)
-        self.assertTrue(issubclass(schemacls, A))
-        self.assertFalse(issubclass(A, schemacls))
         validate(schemacls(), A())
         self.assertTrue(hasattr(schemacls, 'test'))
 
@@ -468,10 +452,6 @@ class DataType2Schemacls(UTCase):
 
         schemacls = datatype2schemacls(A)
 
-        self.assertIsInstance(schemacls(), A)
-        self.assertNotIsInstance(A(), schemacls)
-        self.assertTrue(issubclass(schemacls, A))
-        self.assertFalse(issubclass(A, schemacls))
         validate(schemacls(), A())
         self.assertTrue(hasattr(schemacls, 'test'))
 

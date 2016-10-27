@@ -135,6 +135,7 @@ class Schema(property):
                     val = val()
 
                 setattr(self, self._attrname(name=name), val)
+
                 if member != val:
                     setattr(self, name, val)
 

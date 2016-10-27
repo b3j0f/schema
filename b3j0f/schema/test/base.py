@@ -33,6 +33,15 @@ from b3j0f.utils.ut import UTCase
 from ..base import Schema, DynamicValue
 
 
+class DynamicValueTest(UTCase):
+
+    def test(self):
+
+        dvalue = DynamicValue(lambda: 'test')
+
+        self.assertEqual('test', dvalue())
+
+
 class SchemaTest(UTCase):
 
     def test_init(self):

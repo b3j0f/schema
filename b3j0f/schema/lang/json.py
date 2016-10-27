@@ -133,8 +133,6 @@ class JSONSchemaBuilder(SchemaBuilder):
 
         result = json2schema(fresource)
 
-        updatecontent(result)
-
         return result
 
     def getresource(self, schemacls):
